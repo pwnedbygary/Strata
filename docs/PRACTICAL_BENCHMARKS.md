@@ -36,3 +36,62 @@ quantizations of otherwise identical weights. Adaptive placement was enabled;
 IQ3 had previous long-context runs while IQ1 started fresh. Timing comparisons
 are illustrative single runs, not controlled speed ratios. Fixed prompts and
 seeds make the protocol repeatable, not bitwise reproducible.
+
+## Snake with a larger output budget
+
+Both models were rerun with the unchanged prompt and a 16384-token output cap.
+Each started after a model reload. The original failures were preserved.
+
+| Model | Output tokens | Generation | Result |
+| --- | ---: | ---: | --- |
+| Coder IQ1_M | 16384 | 57.5 tokens/s | Hit limit in CSS; identical `.panel .ft .t .k` rule repeated 869 times; no body, script or benchmark API. |
+| Full IQ3_XXS | 6467 | 19.6 tokens/s | Finished; 11/11 browser checks passed, no JavaScript errors. |
+
+IQ3 also passed separate desktop keyboard, mobile direction-button and restart
+checks. Its vacating-tail-cell collision case worked. A larger cap let this IQ3
+attempt finish; it did not resolve IQ1's repetitive output. These are new runs,
+not continuations, and adaptive placement can change their text.
+
+## Source review, beyond completion
+
+**Python: both implementations are sound for the specified list input.** They
+sort before merging, avoid mutating the caller's nested lists, reject booleans
+as integer endpoints, and handle touching intervals. Both use O(n log n) time
+and O(n) extra storage. IQ1 checks the outer input is a list; IQ3's early
+`if not intervals` also accepts falsey non-list values such as None. That is a
+robustness difference outside the annotated input type. IQ3's merge loop is
+shorter and its validated tuples are a clear immutable snapshot. IQ1's forbidden
+typing import is a small task-compliance defect, not evidence of a bad algorithm.
+
+**SVG: IQ3 has substantially better output quality in this run.** It has meaningful
+layer IDs, reusable gradients, title/description accessibility metadata and
+editable geometry. The design is clear but simple. Some rectangles are expressed
+as paths, making edits more tedious than necessary. IQ1's unfinished SVG contains
+23 identical zero-area paths, which add size without drawing anything. This is
+redundant geometry as well as a completion failure.
+
+**Snake: IQ3 is a usable prototype with maintainable sections.** Its IIFE confines
+state, named helpers separate reset/movement/food/rendering, seeded RNG follows
+the specification, snapshots copy nested coordinates, and collision checking
+correctly permits entering the tail cell when it moves away. Actual keyboard,
+mobile controls and restart behavior were checked. Its source still needs work:
+
+- At a 640 by 640 viewport the centered layout puts the header 321.7 pixels above
+  the page's visible top. Tall mobile layouts need top alignment or safe centering.
+- Browser zoom is disabled; direction buttons lack descriptive labels, canvas has
+  no accessible description, and dynamic score/status lacks a live announcement.
+- Movement directly calls rendering/DOM updates, so the simulation cannot be
+  tested independently of the page without a small refactor.
+- requestAnimationFrame continues while paused/dead. Food placement scans the
+  snake for every grid cell; acceptable for 20 by 20, but not a scalable approach.
+  These are source-level efficiency concerns, not measured frame-rate problems.
+- Space-key autorepeat can toggle pause repeatedly. Unused rendering values and
+  the stored animation-frame ID add minor clutter. There is no explicit full-board
+  win state; that would be a useful additional edge case.
+
+IQ1's expanded Snake output never produced gameplay code, so its movement algorithm
+cannot be assessed. The 869 duplicate CSS rules are a concrete quality failure;
+high generation speed here mostly produced repetition. The reviewer prefers IQ3
+for these frontend tasks, while treating the small Python task as roughly tied.
+This review concerns these artifacts and this greedy generation profile, not every
+possible prompt or sampling configuration of either model.
