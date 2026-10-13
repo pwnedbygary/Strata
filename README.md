@@ -1,5 +1,8 @@
 <h1 align="center">Strata</h1>
 
+This fork includes an [optional RX 9070 XT / 32 GB Linux profile](docs/HARDWARE_RX9070XT_32GB.md)
+with a memory-limited launcher and measured 128K-context results. The ordinary installer and engine defaults are unchanged.
+
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [Português](README.pt-BR.md)
 
 <p align="center"><b>Run a 125-billion-parameter AI model on your own gaming PC</b><br>

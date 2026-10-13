@@ -61,3 +61,8 @@ build-vision-cuda12.bat
 
 /.ccache/
 /.rocm-win/
+
+# Local hardware measurements and optional benchmark browser dependencies
+/local-tuning/
+/.benchmark-tools/
+/benchmark-results/

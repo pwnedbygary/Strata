@@ -1,0 +1,7 @@
+Create an editable SVG illustration of a lighthouse during a storm, suitable as a game menu asset.
+
+Return only a complete SVG document, without Markdown fences or explanation. Use xmlns="http://www.w3.org/2000/svg" and viewBox="0 0 512 512". Use role="img", a meaningful title and description, and aria-labelledby referencing their IDs.
+
+The scene must visibly include storm clouds, waves, a recognizable lighthouse, and its beam of light. Compose it clearly at both 512px and thumbnail size. Use only these three colors, with opacity or local gradients for shading: #0B1220, #F8C46C, #D7E3FC. Put all fill, stroke and stop-color values in attributes rather than CSS. "none" and references to local gradients are allowed.
+
+Organize editable layers in groups with IDs "sky", "sea", "lighthouse", and "beam". Include at least eight vector shapes. Use only vector geometry: no embedded raster images, scripts, event handlers, external URLs, foreignObject, style elements, or animation. Do not put words or labels in the visible artwork.

@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "seed": 20261013,
+  "cases": [
+    {"id": "snake", "prompt": "snake.txt", "extension": "html", "max_tokens": 6144},
+    {"id": "merge_intervals", "prompt": "merge_intervals.txt", "extension": "py", "max_tokens": 3072},
+    {"id": "lighthouse_svg", "prompt": "lighthouse_svg.txt", "extension": "svg", "max_tokens": 4096}
+  ]
+}

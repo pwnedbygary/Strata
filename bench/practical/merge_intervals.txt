@@ -1,0 +1,13 @@
+Implement production-quality Python 3 code for merge_intervals(intervals).
+
+Return only Python source, without Markdown fences or explanation. Do not import modules or execute anything at module level. Helpers may be functions. Do not include a CLI or example invocations.
+
+The input is a list of two-element lists containing integers [start, end]. Merge overlapping or touching intervals and return a new list of two-element lists sorted by start. Do not mutate the input or its nested lists. Return [] for an empty input. Negative endpoints and zero-length intervals are valid. Reject malformed intervals, non-integer endpoints (including booleans), or start greater than end with ValueError. Include a concise docstring and type annotations.
+
+Examples:
+[[1,3],[2,6],[8,10],[10,18]] -> [[1,6],[8,18]]
+[[8,10],[1,3],[2,6],[15,18]] -> [[1,6],[8,10],[15,18]]
+[[-10,-4],[-5,2],[3,4]] -> [[-10,2],[3,4]]
+[[1,1],[1,1]] -> [[1,1]]
+
+Use O(n log n) time or better. The implementation should be directly usable in another Python project.

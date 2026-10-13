@@ -1,0 +1,14 @@
+Build a complete playable Snake game as one self-contained HTML file, with all CSS and JavaScript inline. Return only the HTML, without Markdown fences or explanation. No external dependencies, networking, imports, or remote assets.
+
+Use a 20 by 20 grid and a canvas. Include a visible score, clear instructions, Start/Pause and Restart buttons, arrow-key controls, and a game-over overlay. Make it usable on desktop and include touch direction buttons. Give it a polished dark arcade appearance.
+
+Game rules: the initial snake is [[10,10],[9,10],[8,10]], initially moving right. Movement is one cell per tick. Reversing directly into the previous direction is ignored. Eating food grows the snake by one and adds one point. Wall or self collision ends the game. Restart restores the initial state and score. The game starts paused. A normal UI timer runs only while unpaused and alive.
+
+For reproducible food placement, use unsigned 32-bit xorshift: starting from seed 20261013, each random number applies x ^= x << 13; x ^= x >>> 17; x ^= x << 5; then x >>>= 0. List empty cells in row-major order, excluding the snake, and choose the cell at randomNumber modulo emptyCellCount. Generate food once during reset and once after each food is eaten.
+
+Expose window.bench with these methods:
+- reset(seed=20261013): restore the initial paused state with the provided seed and generate food.
+- step(direction): perform exactly one tick, even when paused, using "up", "down", "left", or "right". Ignore a reversing direction. Do nothing if already dead. Render the result.
+- state(): return a fresh JSON-compatible object with snake (an array of [x,y] coordinates), food ([x,y]), direction ([dx,dy]), score (integer), alive (boolean), and paused (boolean).
+
+Do not use wall-clock time or Math.random for game state. Keep the UI and the test API connected to the same game logic.
