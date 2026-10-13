@@ -143,6 +143,7 @@ def main() -> int:
     benchmark.add_argument('--output-dir', type=Path, required=True)
     benchmark.add_argument('--cases', default='snake,merge_intervals,lighthouse_svg')
     benchmark.add_argument('--repeats', type=int, default=1)
+    benchmark.add_argument('--max-tokens', type=int, help='override task output limits')
     benchmark.add_argument('--browser-checks', action='store_true')
     args = parser.parse_args()
     try:
@@ -152,6 +153,8 @@ def main() -> int:
                     '--cases', args.cases, '--repeats', str(args.repeats)]
             if args.browser_checks:
                 argv.append('--browser-checks')
+            if args.max_tokens is not None:
+                argv.extend(['--max-tokens', str(args.max_tokens)])
             os.chdir(ROOT)
             os.execvp(argv[0], argv)
         config = json.loads(args.config.read_text(encoding='utf-8-sig'))

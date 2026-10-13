@@ -25,10 +25,13 @@ def main():
     parser.add_argument('--repeats', type=int, default=1)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--seed', type=int, default=20261013)
+    parser.add_argument('--max-tokens', type=int, help='override each selected task output limit')
     parser.add_argument('--browser-checks', action='store_true', help='run optional isolated Playwright checks')
     args = parser.parse_args()
     if args.repeats < 1:
         parser.error('--repeats must be positive')
+    if args.max_tokens is not None and args.max_tokens < 1:
+        parser.error('--max-tokens must be positive')
     directory = ROOT / 'bench/practical'
     suite = json.loads((directory / 'suite.json').read_text())
     selected = args.cases.split(',')
@@ -56,12 +59,13 @@ def main():
         case = by_id[case_id]
         source = (directory / case['prompt']).read_text()
         for repeat in range(args.repeats):
+            max_tokens = args.max_tokens or case['max_tokens']
             prompt = f"Practical benchmark v{suite['version']}, task {case['id']}, repeat {repeat}.\n" + source
             print(f"Generating {case['id']} ({repeat + 1}/{args.repeats}) ...", flush=True)
             started = time.monotonic()
             result = request('/v1/chat/completions', {'model': 'strata', 'temperature': 0, 'top_p': 1,
                        'seed': args.seed, 'presence_penalty': 0, 'frequency_penalty': 0,
-                       'reasoning_effort': 'none', 'max_tokens': case['max_tokens'],
+                       'reasoning_effort': 'none', 'max_tokens': max_tokens,
                        'messages': [{'role': 'user', 'content': prompt}]})
             elapsed = time.monotonic() - started
             choice = result['choices'][0]
@@ -82,7 +86,8 @@ def main():
                     browser = json.loads(checked.stdout)
                 except ValueError:
                     browser = {'status': 'error', 'message': checked.stderr[-500:]}
-            row = {'case': case['id'], 'repeat': repeat, 'prompt_sha256': hashlib.sha256(prompt.encode()).hexdigest(),
+            row = {'case': case['id'], 'repeat': repeat, 'max_tokens': max_tokens,
+                   'prompt_sha256': hashlib.sha256(prompt.encode()).hexdigest(),
                    'artifact_sha256': hashlib.sha256(artifact.encode()).hexdigest(),
                    'artifact': path.name, 'wall_seconds': elapsed, 'finish_reason': choice.get('finish_reason'),
                    'fenced_output': fenced, 'usage': result.get('usage'), 'timings': result.get('timings'),

@@ -20,6 +20,10 @@ artifacts are preserved. Python checks accept a restricted pure-function subset;
 rejection can mean unsupported syntax, rather than a wrong algorithm. Review the saved
 source too. SVG checks verify structure and specified constraints, not artistic quality.
 
+To give both games more output room, rerun each model with
+`--cases snake --max-tokens 16384`. Reports record the overridden limit. Keep these
+expanded-budget results separate from the original 6144-token attempts.
+
 Optional browser checks and screenshots require a local Playwright installation:
 
 ```sh
