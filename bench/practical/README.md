@@ -24,6 +24,10 @@ To give both games more output room, rerun each model with
 `--cases snake --max-tokens 16384`. Reports record the overridden limit. Keep these
 expanded-budget results separate from the original 6144-token attempts.
 
+The [review-driven revision workflow](../../docs/REVIEW_REVISION_BENCHMARK.md) tests
+how the model responds to independent review feedback, while preserving each source
+version and checking for regressions.
+
 Optional browser checks and screenshots require a local Playwright installation:
 
 ```sh
