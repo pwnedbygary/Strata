@@ -1,0 +1,13 @@
+{
+  "baseline": {
+    "minimum_available_ram_gib": 10.304,
+    "minimum_physical_vram_free_mib": 1572
+  },
+  "reprobe": {
+    "minimum_available_ram_gib": 10.131,
+    "minimum_physical_vram_free_mib": 1483
+  },
+  "fresh_answers_identical": true,
+  "follow_up_answers_identical": true,
+  "default_policy_5000_rounds_identical": true
+}

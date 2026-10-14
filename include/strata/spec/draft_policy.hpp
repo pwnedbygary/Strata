@@ -59,6 +59,7 @@ private:
     std::array<double, kBuckets> cok_{}, cbad_{};          // chained lookup drafts, the same (reached rounds only)
     double rounds_ = 0;                                    // rounds observed so far
     std::array<double, kMaxT + 1> last_{};                 // the round at which each size was last measured
+    double reprobe_rounds_ = 0; // opt-in: refresh stale intermediate lookup sizes after expert placement changes
 };
 
 }  // namespace strata::spec

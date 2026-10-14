@@ -2,6 +2,7 @@
 #include "strata/spec/draft_policy.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 
 namespace strata::spec {
 namespace {
@@ -25,7 +26,15 @@ constexpr double kStaleRounds = 300.0;
 }  // namespace
 
 DraftPolicy::DraftPolicy(int max_t, double margin)
-    : max_t_(std::clamp(max_t, 1, kMaxT)), margin_(margin) {}
+    : max_t_(std::clamp(max_t, 1, kMaxT)), margin_(margin) {
+    // Disabled by default. RAM-expert promotion changes window costs after startup;
+    // the default probes only the full proposal, so a cold middle-size price may persist.
+    if (const char* e = std::getenv("STRATA_LOOKUP_REPROBE_ROUNDS")) {
+        char* end = nullptr;
+        const long n = std::strtol(e, &end, 10);
+        if (end != e && *end == '\0' && n >= 16 && n <= 300) reprobe_rounds_ = (double) n;
+    }
+}
 
 int DraftPolicy::bucket(int match) {
     return match < 6 ? 0 : match < 12 ? 1 : match < 24 ? 2 : 3;
@@ -72,6 +81,15 @@ DraftPolicy::Pick DraftPolicy::choose(int t_mtp, int lookup_k, int match) const 
         if (r > best) { best = r; best_t = k + 1; }
     }
     const int t_full = std::min(lookup_k, max_t_ - 1) + 1;
+    if (reprobe_rounds_ > 0 && q >= 0.85) {
+        for (int t = 2; t <= t_full; ++t) {
+            // The nominal best width is not measured if it loses to target-only decoding.
+            if (t == best_t && best > base * (1.0 + margin_)) continue;
+            if (cost_n_[t] < kProbes || rounds_ - last_[t] > reprobe_rounds_) {
+                p.lookup = true; p.t = t; return p;
+            }
+        }
+    }
     if (best_t > 0 && best > base * (1.0 + margin_)) {
         p.lookup = true;
         p.t = best_t;
@@ -91,7 +109,8 @@ DraftPolicy::Pick DraftPolicy::choose(int t_mtp, int lookup_k, int match) const 
 void DraftPolicy::observe(bool lookup, int t, int accepted, int match, double round_ms) {
     t = std::clamp(t, 1, kMaxT);
     if (round_ms > 0) {
-        cost_[t] = cost_n_[t] > 0 ? (1.0 - kCostAlpha) * cost_[t] + kCostAlpha * round_ms : round_ms;
+        const bool refresh = reprobe_rounds_ > 0 && rounds_ - last_[t] > reprobe_rounds_;
+        cost_[t] = cost_n_[t] > 0 && !refresh ? (1.0 - kCostAlpha) * cost_[t] + kCostAlpha * round_ms : round_ms;
         cost_n_[t] += 1.0;
         last_[t] = rounds_;
     }
@@ -142,7 +161,8 @@ int DraftPolicy::chain(int t_mtp, double p_mtp, int k_avail, int match) const {
 void DraftPolicy::observe_chain(int t_mtp, int k, int accepted, int match, double round_ms) {
     const int t = std::clamp(t_mtp + k, 1, kMaxT);
     if (round_ms > 0) {
-        cost_[t] = cost_n_[t] > 0 ? (1.0 - kCostAlpha) * cost_[t] + kCostAlpha * round_ms : round_ms;
+        const bool refresh = reprobe_rounds_ > 0 && rounds_ - last_[t] > reprobe_rounds_;
+        cost_[t] = cost_n_[t] > 0 && !refresh ? (1.0 - kCostAlpha) * cost_[t] + kCostAlpha * round_ms : round_ms;
         cost_n_[t] += 1.0;
         last_[t] = rounds_;
     }
