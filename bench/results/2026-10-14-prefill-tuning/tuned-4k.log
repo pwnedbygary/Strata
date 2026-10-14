@@ -1,0 +1,34 @@
+Running as unit: strata-prefill-tuned.scope; invocation ID: 0806da3171d24fb49c4a1c4763ad700a
+strata-q36: models/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf: 866 tensors (layout checked), 7.83 GiB on the GPU in 2.2 s (the routed experts are placed after the engine's buffers)
+strata-q36: prompt experts on the native grouped kernels
+prefill gemm: hipBLASLt tuning enabled (9 rows, gfx1201, version 100202)
+strata-q36: context 262144 cells, prompt chunk 512, MTP block loaded, 4.97 GiB of VRAM free
+strata-q35: int8 KV, bounded attention scratch
+strata-q36: warmed up in 1.0 s (one prompt chunk, a decode step, a speculative step)
+PROFILE_PREFILL tokens=512 layer_ms=472.264 gdn_ms=70.256 attention_ms=19.346 ffn_ms=266.219 other_ms=116.443
+PROFILE_PREFILL tokens=512 layer_ms=486.231 gdn_ms=70.611 attention_ms=33.230 ffn_ms=266.188 other_ms=116.202
+PROFILE_PREFILL tokens=512 layer_ms=524.197 gdn_ms=72.274 attention_ms=48.266 ffn_ms=280.602 other_ms=123.055
+PROFILE_PREFILL tokens=512 layer_ms=534.464 gdn_ms=72.489 attention_ms=62.159 ffn_ms=276.287 other_ms=123.529
+PROFILE_PREFILL tokens=512 layer_ms=533.923 gdn_ms=71.388 attention_ms=71.858 ffn_ms=272.471 other_ms=118.207
+PROFILE_PREFILL tokens=512 layer_ms=552.041 gdn_ms=69.576 attention_ms=97.959 ffn_ms=267.315 other_ms=117.191
+PROFILE_PREFILL tokens=512 layer_ms=566.139 gdn_ms=68.341 attention_ms=112.047 ffn_ms=269.168 other_ms=116.583
+PROFILE_PREFILL tokens=512 layer_ms=580.476 gdn_ms=69.120 attention_ms=128.793 ffn_ms=267.167 other_ms=115.396
+bench 0: pp4096 960.4 tok/s, tg0 0.0 tok/s
+PROFILE_PREFILL tokens=512 layer_ms=475.067 gdn_ms=70.304 attention_ms=19.655 ffn_ms=268.259 other_ms=116.850
+PROFILE_PREFILL tokens=512 layer_ms=488.195 gdn_ms=70.438 attention_ms=32.829 ffn_ms=267.254 other_ms=117.674
+PROFILE_PREFILL tokens=512 layer_ms=503.837 gdn_ms=70.418 attention_ms=46.474 ffn_ms=268.966 other_ms=117.979
+PROFILE_PREFILL tokens=512 layer_ms=546.773 gdn_ms=71.999 attention_ms=69.633 ffn_ms=279.373 other_ms=125.769
+PROFILE_PREFILL tokens=512 layer_ms=532.735 gdn_ms=70.455 attention_ms=72.618 ffn_ms=271.200 other_ms=118.462
+PROFILE_PREFILL tokens=512 layer_ms=558.670 gdn_ms=70.023 attention_ms=98.891 ffn_ms=270.829 other_ms=118.927
+PROFILE_PREFILL tokens=512 layer_ms=568.816 gdn_ms=68.828 attention_ms=112.707 ffn_ms=270.052 other_ms=117.229
+PROFILE_PREFILL tokens=512 layer_ms=589.268 gdn_ms=69.758 attention_ms=128.974 ffn_ms=272.140 other_ms=118.396
+bench 1: pp4096 957.5 tok/s, tg0 0.0 tok/s
+PROFILE_PREFILL tokens=512 layer_ms=476.645 gdn_ms=70.721 attention_ms=19.419 ffn_ms=268.464 other_ms=118.042
+PROFILE_PREFILL tokens=512 layer_ms=491.628 gdn_ms=69.953 attention_ms=32.785 ffn_ms=269.792 other_ms=119.097
+PROFILE_PREFILL tokens=512 layer_ms=503.260 gdn_ms=70.661 attention_ms=46.226 ffn_ms=268.789 other_ms=117.584
+PROFILE_PREFILL tokens=512 layer_ms=518.145 gdn_ms=70.107 attention_ms=60.844 ffn_ms=269.747 other_ms=117.447
+PROFILE_PREFILL tokens=512 layer_ms=537.485 gdn_ms=71.087 attention_ms=75.498 ffn_ms=271.661 other_ms=119.238
+PROFILE_PREFILL tokens=512 layer_ms=582.841 gdn_ms=72.659 attention_ms=102.081 ffn_ms=282.206 other_ms=125.895
+PROFILE_PREFILL tokens=512 layer_ms=624.022 gdn_ms=70.717 attention_ms=124.930 ffn_ms=295.420 other_ms=132.955
+PROFILE_PREFILL tokens=512 layer_ms=611.354 gdn_ms=71.363 attention_ms=133.368 ffn_ms=282.841 other_ms=123.782
+bench 2: pp4096 939.4 tok/s, tg0 0.0 tok/s

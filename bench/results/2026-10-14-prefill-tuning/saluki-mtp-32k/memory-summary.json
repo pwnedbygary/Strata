@@ -1,0 +1,11 @@
+{
+  "samples": 82,
+  "min_available_gib": 20.653,
+  "min_vram_free_mib": 2192,
+  "max_cpu_tctl_c": 55.125,
+  "max_gpu_temperatures_c": {
+    "mem": 64.0,
+    "edge": 55.0,
+    "junction": 72.0
+  }
+}

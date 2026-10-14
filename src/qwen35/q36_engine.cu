@@ -1237,6 +1237,28 @@ struct Engine {
     strata::artifact::ImageRequest image_request;
     int32_t* image_positions = nullptr;
     bool image_active = false;
+    bool profile_prefill = [] { const char* v=std::getenv("STRATA_Q35_PROFILE_PREFILL"); return v && std::strcmp(v,"1")==0; }();
+    struct PrefillEvent { cudaEvent_t begin, end; int kind; };
+    std::vector<PrefillEvent> prefill_events;
+    int profile_begin(int kind, int T, bool verify=false) {
+        if (!profile_prefill || warming || verify || T<=8 || m->g.family!=strata::ModelFamily::Qwen35Dense) return -1;
+        PrefillEvent e{}; e.kind=kind;
+        CK(cudaEventCreate(&e.begin)); CK(cudaEventCreate(&e.end)); CK(cudaEventRecord(e.begin,st));
+        prefill_events.push_back(e); return (int)prefill_events.size()-1;
+    }
+    void profile_end(int index) { if (index>=0) CK(cudaEventRecord(prefill_events[(size_t)index].end,st)); }
+    void profile_flush(int tokens) {
+        if (prefill_events.empty()) return;
+        CK(cudaStreamSynchronize(st));
+        double total[4]={};
+        for (const auto& e:prefill_events) {
+            float ms=0; CK(cudaEventElapsedTime(&ms,e.begin,e.end)); total[e.kind]+=ms;
+            CK(cudaEventDestroy(e.begin)); CK(cudaEventDestroy(e.end));
+        }
+        prefill_events.clear();
+        std::fprintf(stderr,"PROFILE_PREFILL tokens=%d layer_ms=%.3f gdn_ms=%.3f attention_ms=%.3f ffn_ms=%.3f other_ms=%.3f\n",
+                     tokens,total[0],total[1],total[2],total[3],total[0]-total[1]-total[2]-total[3]);
+    }
     bool graph_requested = true;
     static constexpr size_t kDenseReserve = 2560u << 20;
     size_t dense_reserve = kDenseReserve;
@@ -1755,6 +1777,7 @@ struct Engine {
     /// `verify`: a verify window - the GDN state is read, not written (commit() writes it for the kept rows).
     void layer(const Layer& L, size_t li, int T, int64_t p0, const int32_t* dpos, bool graph_mode, bool verify,
                const float* wn, float* hout) {
+        const int pwhole=profile_begin(0,T,verify);
         const auto& g = m->g;
         const int N = (int) g.n_embd, Kp = (int) m->top_k, FF = (int) g.n_ff, FS = (int) g.n_ff_shexp;
         const int HK = (int) g.ssm_k_heads, HV = (int) g.ssm_v_heads, D = (int) g.ssm_state_size;
@@ -1781,6 +1804,7 @@ struct Engine {
             // fused single-token kernels are not used here: fused_gdn_conv_l2's 4-tap sum contracts into FMAs
             // differently from k_conv_seq's, a 1-ulp difference in h that the Q8_1 activation rounding can turn into a
             // flipped near-tie later; with them the KL is the same, 1.05x / 0.81x the floor, but MTP would not be exact.)
+            const int pgdn=profile_begin(1,T,verify);
             k_conv_seq<<<C / 128, 128, 0, st>>>(conv[li], qkv_b, L.conv, hc_b, C, 2 * HK, m->eps, T, !verify);
             if (T > kGemmT && !verify) {   // a prompt chunk: the column-split delta rule, then the norm
                 k_gdn_seq_cols<<<dim3(HV, kGdnColGroups), dim3(128 / kGdnColGroups, 16), 0, st>>>(S[li], hc_b, C, al_b,
@@ -1790,12 +1814,14 @@ struct Engine {
                 k_gdn_seq<<<HV, dim3(128, 4), 0, st>>>(S[li], hc_b, C, al_b, be_b, z, L.ssm_norm, m->eps, gdn_y, HK, HV,
                                                        T, !verify);
             }
+            profile_end(pgdn);
             mm(L.ssm_out, gdn_y, y, T);
         } else {
             prep(h, N, T, xq);
             apply(L.wq, xq, qg, T);
             apply(L.wk, xq, kx, T);
             apply(L.wv, xq, vx, T);
+            const int pattn=profile_begin(2,T,verify);
             auto prep_cache = [&](auto* key, auto* value) {
                 if (image_active) k_attn_prep_vision<<<dim3(H + HKV, T), kThreads, 0, st>>>(qg,kx,vx,L.q_norm,L.k_norm,q,gate,key,value,
                     H,HKV,HD,m->n_rot,dpos,cache_stride,m->rope_base,m->eps,
@@ -1872,10 +1898,12 @@ struct Engine {
                     k_attn_merge<<<nt * H, HD, 0, st>>>(pacc, pm, pl, gate, dpos, t0, H, n_chunk, att);
                 }
             }
+            profile_end(pattn);
             mm(L.wo, att, y, T);
         }
         k_add_rms<<<T, kThreads, 0, st>>>(x, y, L.post_norm, h, N, m->eps);
         if (g.family == strata::ModelFamily::Qwen35Dense) {
+            const int pffn=profile_begin(3,T,verify);
             prep(h, N, T, xq);
             apply(L.sh_gate, xq, sg, T);
             apply(L.sh_up, xq, su, T);
@@ -1887,6 +1915,7 @@ struct Engine {
                 mm(L.sh_down, shh, sy, T);
             }
             k_add_rms<<<T, kThreads, 0, st>>>(x, sy, wn, hout, N, m->eps);
+            profile_end(pffn); profile_end(pwhole);
             return;
         }
         // routed experts (one token: the router and the shared expert's gate in one product, the gate its last row)
@@ -2276,6 +2305,7 @@ struct Engine {
             CK(cudaMemcpyAsync(hlast, hmain + (size_t) (T - 1) * N, (size_t) N * 4, cudaMemcpyDeviceToDevice, st));
             pos += T;
             CK(cudaStreamSynchronize(st));
+            profile_flush(T);
             on_chunk(i + T);
         }
         if (m->hybrid) rebalance(hybrid_swaps_after_prompt);

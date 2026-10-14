@@ -215,6 +215,12 @@ repeat completed at **32.8/30.4**, with no new kernel messages during that short
 Two earlier system resets remain unresolved; these are performance/correctness samples,
 not a long-duration stability guarantee. [Responses, prefill times, memory and limits](bench/results/2026-10-14-coding-context/README.md).
 
+Saluki prefill tuning now measures **457 tokens/s on the 30,692-token coding prompt**,
+up from **139** in the JEDEC baseline, with the same first answer and 13 passing checks.
+The opt-in dense hipBLASLt table changes kernel selection without caching expanded
+FP16 weights. [Measurements and configuration](docs/PREFILL_TUNING.md).
+[Flash Next / Gyro comparison under investigation](docs/FLASH_GYRO_INVESTIGATION.md).
+
 ## What it built
 
 ### A playable game, improved through review
