@@ -12,15 +12,17 @@ with this profile. This is a measured starting point, not a speed guarantee.
 
 ## Install and apply
 
-Use the normal installer first. The Coder download is about 58 GB; use a data
-directory on a drive with enough room. The setup steps and driver requirements
-are in [AI_SETUP.md](AI_SETUP.md).
+IQ3_XXS is the primary configuration of this fork. Use the normal installer first;
+the GGUF download is about 75.8 GB and packing adds about 40 GiB of expert data.
+Use an NVMe data directory with room for both. The setup steps and driver requirements
+are in [AI_SETUP.md](AI_SETUP.md). This explicit 32 GB file-tier setup is below the
+upstream model guide's usual RAM recommendation; apply the bounded profile before launch.
 
 ```sh
-./setup.sh --yes --family coder --model IQ1_M --context 131072 --no-start
-.venv/bin/python tools/hardware_profile.py apply --config strata-coder-iq1_m.json
+./setup.sh --yes --family qwen --model IQ3_XXS --context 131072 --no-start
+.venv/bin/python tools/hardware_profile.py apply --config strata-iq3_xxs.json
 .venv/bin/python tools/hardware_profile.py run \
-  --config strata-coder-iq1_m-rx9070xt-32gb.json
+  --config strata-iq3_xxs-rx9070xt-32gb.json --port 8096
 ```
 
 Add `--data-dir /path/to/Strata-data` to setup to put model files on another

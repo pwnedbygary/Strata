@@ -1,0 +1,389 @@
+{
+  "date": "2026-10-13",
+  "hardware": {
+    "gpu": "RX 9070 XT",
+    "vram_gib": 16,
+    "cpu": "Ryzen 7 7800X3D",
+    "cores": 8,
+    "threads": 16,
+    "ram_gib": 30.9,
+    "os": "CachyOS",
+    "rocm": "7.2",
+    "storage": "NVMe/Btrfs"
+  },
+  "model": "qwen3.8-flash-next-iq3_xxs",
+  "engine": "0.1.44",
+  "profile": "rx9070xt-32gb",
+  "measurements": [
+    {
+      "task": "short writing",
+      "trial": 0,
+      "temperature": 0.7,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 46,
+        "prompt_ms": 3902.7,
+        "prompt_per_token_ms": 84.841,
+        "prompt_per_second": 11.8,
+        "predicted_n": 128,
+        "predicted_ms": 8322.3,
+        "predicted_per_token_ms": 65.018,
+        "predicted_per_second": 15.4,
+        "draft_n": 102,
+        "draft_n_accepted": 60
+      },
+      "usage": {
+        "prompt_tokens": 46,
+        "completion_tokens": 128,
+        "total_tokens": 174,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "wall_seconds": 12.236687130993232
+    },
+    {
+      "task": "short writing",
+      "trial": 1,
+      "temperature": 0.7,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 46,
+        "prompt_ms": 2122.9,
+        "prompt_per_token_ms": 46.15,
+        "prompt_per_second": 21.7,
+        "predicted_n": 128,
+        "predicted_ms": 4093.9,
+        "predicted_per_token_ms": 31.984,
+        "predicted_per_second": 31.3,
+        "draft_n": 131,
+        "draft_n_accepted": 59
+      },
+      "usage": {
+        "prompt_tokens": 46,
+        "completion_tokens": 128,
+        "total_tokens": 174,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "wall_seconds": 6.219043067016173
+    },
+    {
+      "task": "short writing",
+      "trial": 2,
+      "temperature": 0.7,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 46,
+        "prompt_ms": 2066.4,
+        "prompt_per_token_ms": 44.922,
+        "prompt_per_second": 22.3,
+        "predicted_n": 128,
+        "predicted_ms": 3368.8,
+        "predicted_per_token_ms": 26.319,
+        "predicted_per_second": 38.0,
+        "draft_n": 110,
+        "draft_n_accepted": 60
+      },
+      "usage": {
+        "prompt_tokens": 46,
+        "completion_tokens": 128,
+        "total_tokens": 174,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "wall_seconds": 5.500010093965102
+    },
+    {
+      "task": "64k context",
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 65547,
+        "prompt_ms": 151827.5,
+        "prompt_per_token_ms": 2.316,
+        "prompt_per_second": 431.7,
+        "predicted_n": 128,
+        "predicted_ms": 7742.3,
+        "predicted_per_token_ms": 60.487,
+        "predicted_per_second": 16.5,
+        "draft_n": 118,
+        "draft_n_accepted": 70
+      },
+      "usage": {
+        "prompt_tokens": 65547,
+        "completion_tokens": 128,
+        "total_tokens": 65675,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "wall_seconds": 159.64741496997885,
+      "notes": "Uncached reference summary; 128-token output cap."
+    },
+    {
+      "task": "130k context",
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 130012,
+        "prompt_ms": 295115.2,
+        "prompt_per_token_ms": 2.27,
+        "prompt_per_second": 440.5,
+        "predicted_n": 128,
+        "predicted_ms": 4567.0,
+        "predicted_per_token_ms": 35.68,
+        "predicted_per_second": 28.0,
+        "draft_n": 100,
+        "draft_n_accepted": 69
+      },
+      "usage": {
+        "prompt_tokens": 130012,
+        "completion_tokens": 128,
+        "total_tokens": 130140,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "wall_seconds": 299.8106633819989,
+      "notes": "Uncached reference summary; 128-token output cap."
+    },
+    {
+      "case": "merge_intervals",
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 308,
+        "prompt_ms": 7749.0,
+        "prompt_per_token_ms": 25.159,
+        "prompt_per_second": 39.7,
+        "predicted_n": 329,
+        "predicted_ms": 26444.7,
+        "predicted_per_token_ms": 80.379,
+        "predicted_per_second": 12.4,
+        "draft_n": 272,
+        "draft_n_accepted": 231
+      },
+      "usage": {
+        "prompt_tokens": 308,
+        "completion_tokens": 329,
+        "total_tokens": 637,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "wall_seconds": 34.2076504760189,
+      "finish_reason": "stop",
+      "checks": {
+        "empty": true,
+        "touching": true,
+        "unsorted": true,
+        "negative": true,
+        "duplicate": true,
+        "nested": true,
+        "input_unchanged": true,
+        "reversed_rejected": true,
+        "boolean_rejected": true,
+        "float_rejected": true,
+        "malformed_rejected": true
+      }
+    },
+    {
+      "case": "lighthouse_svg",
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 279,
+        "prompt_ms": 7509.5,
+        "prompt_per_token_ms": 26.916,
+        "prompt_per_second": 37.2,
+        "predicted_n": 2511,
+        "predicted_ms": 109686.5,
+        "predicted_per_token_ms": 43.682,
+        "predicted_per_second": 22.9,
+        "draft_n": 1922,
+        "draft_n_accepted": 1827
+      },
+      "usage": {
+        "prompt_tokens": 279,
+        "completion_tokens": 2511,
+        "total_tokens": 2790,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "wall_seconds": 117.19911056396086,
+      "finish_reason": "stop",
+      "checks": {
+        "valid_svg": true,
+        "viewbox": true,
+        "editable_layers": true,
+        "palette": true,
+        "vector_only": true,
+        "shape_count": true,
+        "accessible": true
+      }
+    },
+    {
+      "case": "snake",
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 472,
+        "prompt_ms": 9421.9,
+        "prompt_per_token_ms": 19.962,
+        "prompt_per_second": 50.1,
+        "predicted_n": 6467,
+        "predicted_ms": 330047.9,
+        "predicted_per_token_ms": 51.036,
+        "predicted_per_second": 19.6,
+        "draft_n": 5154,
+        "draft_n_accepted": 4461
+      },
+      "usage": {
+        "prompt_tokens": 472,
+        "completion_tokens": 6467,
+        "total_tokens": 6939,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "wall_seconds": 339.4817952369922,
+      "finish_reason": "stop",
+      "max_tokens": 16384,
+      "browser": {
+        "status": "completed",
+        "checks": {
+          "api_present": true,
+          "initial_snake": true,
+          "initial_score": true,
+          "starts_paused": true,
+          "reversal_ignored": true,
+          "paused_step_moves": true,
+          "wall_collision": true,
+          "state_copy": true,
+          "food_growth": true,
+          "seeded_food": true,
+          "seeded_reset": true
+        },
+        "page_errors": []
+      }
+    },
+    {
+      "task": "review revision",
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 7482,
+        "prompt_ms": 24405.3,
+        "prompt_per_token_ms": 3.262,
+        "prompt_per_second": 306.6,
+        "predicted_n": 7083,
+        "predicted_ms": 499127.9,
+        "predicted_per_token_ms": 70.468,
+        "predicted_per_second": 14.2,
+        "draft_n": 5527,
+        "draft_n_accepted": 5087
+      },
+      "usage": {
+        "prompt_tokens": 7482,
+        "completion_tokens": 7083,
+        "total_tokens": 14565,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "wall_seconds": 523.5573277240037,
+      "finish_reason": "stop",
+      "independent_review": "failed: boot crash, snapshot mutation prevents pause changes, empty live region",
+      "sha256": {
+        "original": "e58eb2724f51dbab874ab7ffd98d5fba9e604d75d0de5ab28f7e675d5c9687ca",
+        "review": "5785c53f65394f99aa496a1dcce18013c577ed515c46333a2abfb3fa50026161",
+        "requirements": "17a88c8c38549444417a81d7f787d973561ced7ed2e2ab0553391c64e09d2252",
+        "prompt": "a2a553b21a90cee74b41b3fb62ed84c394ecef52dfc35553026311c39833a147",
+        "revised": "f2aa7fc053dcfd076b0321c31cb73b0903e2644c714c69399ed1a9880f55f556"
+      }
+    },
+    {
+      "task": "focused review patch",
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 8115,
+        "prompt_ms": 20827.7,
+        "prompt_per_token_ms": 2.567,
+        "prompt_per_second": 389.6,
+        "predicted_n": 2694,
+        "predicted_ms": 158489.0,
+        "predicted_per_token_ms": 58.83,
+        "predicted_per_second": 17.0,
+        "draft_n": 2207,
+        "draft_n_accepted": 1927
+      },
+      "usage": {
+        "prompt_tokens": 8115,
+        "completion_tokens": 2694,
+        "total_tokens": 10809,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "wall_seconds": 179.3264977229992,
+      "finish_reason": "stop",
+      "independent_review": "passed core functionality and targeted review checks; minor follow-ups retained",
+      "sha256": {
+        "original": "1e6025a73add646eea1a084d77dc02f2074855e68f5a8b24656051f5578c9e05",
+        "review": "dfc782b0e02b2f442aac3cdf0081339aa71d393b189dd1343d9ba6ed745d2559",
+        "requirements": "17a88c8c38549444417a81d7f787d973561ced7ed2e2ab0553391c64e09d2252",
+        "prompt": "0a56df54ac462840465eb76d3921e13b63fb1652ad88d69c7c414defafd52756",
+        "revised": "b8f09aa70e8d6291640a5d607de5f375ea441f5c25ea32869820e3f15dfba401"
+      }
+    }
+  ],
+  "revision_checks": {
+    "checks": {
+      "zoom_allowed": true,
+      "canvas_description": true,
+      "factory_present": true,
+      "idle_frames_stopped": true,
+      "independent_engines": true,
+      "engine_state_copied": true,
+      "full_board_reached": true,
+      "full_board_win": true,
+      "full_board_steps": 39671,
+      "pause_autorepeat_ignored": true,
+      "keyboard_works": true,
+      "reduced_motion": true,
+      "pause_frames_stopped": true,
+      "restart_frames_stopped": true,
+      "live_status_present": true,
+      "unchanged_ticks_do_not_announce": true,
+      "live_mutations_on_unchanged_ticks": 0,
+      "header_reachable_640x640": true,
+      "header_reachable_375x667": true,
+      "header_reachable_812x375": true,
+      "direction_labels": true,
+      "mobile_controls": true
+    },
+    "page_errors": []
+  },
+  "remaining_edges": {
+    "no_seed_food": null,
+    "dead_pending_frames": 1,
+    "alive": false,
+    "announcement": "dead score 0",
+    "after_50ms": 0
+  },
+  "writing_trials_temperature": 0.7,
+  "artifact_files": {
+    "snake-reviewed.html": {
+      "sha256": "b8f09aa70e8d6291640a5d607de5f375ea441f5c25ea32869820e3f15dfba401",
+      "bytes": 20815
+    },
+    "lighthouse.svg": {
+      "sha256": "1c07b028aa6e0942b8bbe970555fb40a563386c65cf5d55e46fee7d324f704bf",
+      "bytes": 3958
+    },
+    "merge_intervals.py": {
+      "sha256": "a391819087c6beece09bc772ae2fc683b8196b8fec6a7e69fa8c24274bd60013",
+      "bytes": 1367
+    }
+  },
+  "hash_notes": "Revision sha256 fields are text hashes; artifact_files contains SHA-256 of the exported file bytes.",
+  "export_formatting": "Extra terminal blank lines and log trailing spaces trimmed; no executable source changes."
+}

@@ -1,0 +1,9 @@
+# Selected engine lines from October 13, 2026; full command lines and local paths omitted.
+strata generate: KV streaming: 32768 of 131072 cells per QSA layer in VRAM, the K/V in 1.55 GiB of pinned RAM
+strata generate: the file tier reads unbuffered (STRATA_UNBUFFERED_LOAD=1)
+FileExpertSource: mapped pinned cache complement ready: resident 11.00 GiB, pinned 11.00 GiB in 10 s; 11.00 GiB page-locked after taking the pages in steps;
+strata serve: 2964 MiB of VRAM free with everything loaded
+strata serve: prompt 65547 tokens = 0 reused + 65547 read in 151827 ms (431.7 tok/s), 128 generated in 7742 ms (16.5 tok/s), drafts accepted 70 of 118, 5 checkpoints
+strata serve: prompt 130012 tokens = 0 reused + 130012 read in 295115 ms (440.5 tok/s), 128 generated in 4567 ms (28.0 tok/s), drafts accepted 69 of 100, 6 checkpoints
+strata serve: prompt 7482 tokens = 0 reused + 7482 read in 24405 ms (306.6 tok/s), 7083 generated in 499128 ms (14.2 tok/s), drafts accepted 5087 of 5527, 1 checkpoints
+strata serve: prompt 8115 tokens = 0 reused + 8115 read in 20828 ms (389.6 tok/s), 2694 generated in 158489 ms (17.0 tok/s), drafts accepted 1927 of 2207, 1 checkpoints

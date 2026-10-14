@@ -1,246 +1,211 @@
-<h1 align="center">Strata</h1>
+# Strata on an RX 9070 XT + 32 GB RAM
 
-This fork includes an [optional RX 9070 XT / 32 GB Linux profile](docs/HARDWARE_RX9070XT_32GB.md)
-with a memory-limited launcher and measured 128K-context results. The ordinary installer and engine defaults are unchanged.
+A personal fork of [Niko1221/Strata](https://github.com/Niko1221/Strata), tuned and tested
+with **Qwen3.8-Flash-Next IQ3_XXS**, one 16 GB AMD GPU, 32 GB system RAM and an NVMe SSD.
+The aim is usable local coding and creative work with a 128K context window on this PC.
 
-**English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [Português](README.pt-BR.md)
+This fork adds an **opt-in hardware profile**, a memory-limited launcher, practical
+benchmarks and a generate → independent review → revise workflow. The engine,
+server and ordinary installer defaults are unchanged. Model weights are not included.
 
-<p align="center"><b>Run a 125-billion-parameter AI model on your own gaming PC</b><br>
-NVIDIA or AMD graphics card (12 GB or more) · Windows or Linux · free and open source</p>
+<img src="docs/media/rx9070xt-32gb/snake-desktop.png" width="850" alt="IQ3-generated Neon Serpent Snake game running on desktop after two independent review rounds">
 
-<p align="center"><a href="https://github.com/Niko1221/Strata/releases/download/v0.1.10/Pagoda.mp4"><img src="docs/media/pagoda-preview.webp" width="720" alt="A voxel pagoda garden that Strata's model wrote, running in the browser"></a><br>
-<sub>A voxel pagoda garden, 1 shot prompt running on an RTX 5070 with Strata (IQ3_S, 128K context) ·
-<a href="https://github.com/Niko1221/Strata/releases/download/v0.1.10/Pagoda.mp4">full video (49 s)</a></sub></p>
+*An actual locally generated game, after two review rounds. Keyboard, mobile controls,
+seeded food, growth and restart were checked. [Download the reviewed HTML](docs/examples/iq3_xxs/snake-reviewed.html)
+and open it in your browser. Remaining issues are documented below.*
 
-Strata runs **[Qwen3.8-Flash-Next](https://huggingface.co/Qwen/Qwen3.8-Flash-Next)** on a normal PC. This is a
-large, smart AI model that usually needs a server. It chats, writes code, reads pictures and works with your apps
-and coding agents. Nothing leaves your PC.
+## The tested PC
 
-## How fast is it?
+Measurements below were recorded on **October 13, 2026**.
 
-We measured it on two ordinary gaming PCs. A token is about ¾ of a word.
-
-- **Writes answers:** how fast the reply appears in a short chat. 60 tokens per second is faster than you can read.
-- **Reads your prompt:** how fast it takes in what you send (here a 32K-token document, code or chat history).
-
-<table>
-<tr><th>NVIDIA: RTX 5070 (12 GB), Ryzen 5 7600, 64 GB RAM</th><th>AMD: RX 9070 XT (16 GB), Ryzen 9 3900X, 47 GB RAM</th></tr>
-<tr><td>
-
-| Size | Writes answers | Reads your prompt |
-| --- | ---: | ---: |
-| **Q2_0** | 94 tokens/s | 2,650 tokens/s |
-| **IQ2_XS** | 79 tokens/s | 2,090 tokens/s |
-| **IQ3_XXS** | 62 tokens/s | 1,750 tokens/s |
-| **IQ3_S** | 53 tokens/s | 1,620 tokens/s |
-| **Coder** | 55 tokens/s | 2,180 tokens/s |
-
-</td><td>
-
-| Size | Writes answers | Reads your prompt |
-| --- | ---: | ---: |
-| **Q2_0** | 60 tokens/s | 1,160 tokens/s |
-| **IQ2_XS** | 52 tokens/s | 1,110 tokens/s |
-| **Coder** | 44 tokens/s | 1,420 tokens/s |
-
-</td></tr>
-</table>
-
-NVIDIA: Q2_0 with engine 0.1.36, the other rows with 0.1.26 (4K answers, 32K prompts). The full tables are in
-[DETAILS.md](docs/DETAILS.md#speed-measured). A card with more VRAM is faster: an RTX 3090 (24 GB) should write
-about 100-140 tokens per second. Long chats and other cards: [speed of each model](docs/MODELS.md#how-fast-is-each-size),
-[community results](docs/COMMUNITY_BENCHMARKS.md).
-
-<p align="center"><a href="https://buymeacoffee.com/strataengine"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50"></a><br>
-<sub>Strata is free. If it runs well on your PC, a coffee keeps the work on it going.</sub></p>
-
-## What you need
-
-| | |
+| Component | Tested configuration |
 | --- | --- |
-| **Graphics card** | **NVIDIA** GeForce RTX 20, 30, 40 or 50 series, or **AMD** Radeon RX 7900 XT / XTX, RX 7800 XT / 7700 XT, RX 9060 XT, RX 9070 / 9070 XT, Radeon AI PRO R9700 or RX 6800 / 6900 series. It needs **12 GB of VRAM or more**. |
-| **RAM** | 32 GB or more. Your RAM decides [which model](#which-model-should-i-pick) fits. 64 GB runs every size. |
-| **Disk** | About 80 GB free. Use an SSD if you can: the first start is much faster. |
-| **System** | Windows 10 / 11 or Linux, and a current graphics driver from NVIDIA or AMD. |
+| GPU | AMD Radeon RX 9070 XT, 16 GiB VRAM, gfx1201 |
+| CPU | Ryzen 7 7800X3D, 8 cores / 16 threads |
+| RAM | 32 GB installed; 30.9 GiB reported by Linux |
+| Storage | NVMe SSD, Btrfs |
+| OS / runtime | CachyOS Linux, system ROCm 7.2 |
+| Strata engine | 0.1.44 |
+| Model | ISTA-DASLab GSQ-RCO Qwen3.8-Flash-Next IQ3_XXS |
+| Serving | One model, one request at a time; images disabled |
 
-The installer sets up everything else. Two or three cards can share the model ([multi-GPU](docs/MULTI_GPU.md)).
+This is an NVMe-backed full-model configuration. The complete expert pack does not
+fit in the GPU and resident RAM caches; misses read weights from SSD. The upstream
+setup guide normally recommends more RAM for this model. These results do not cover
+Windows, other GPUs, concurrent requests or vision.
 
-Experimental, written and tested by community members on their own machines:
+## What the tuning does
 
-- **Older graphics cards** (Tesla P40 / V100, GTX 10, Radeon VII / MI50, RX 6700 XT, RX 5500 XT): [Older GPUs](docs/OLDER_GPUS.md).
-- **Intel Arc**, built from source on Linux: [Intel Arc](docs/INTEL_ARC.md).
-- **Apple Silicon Macs (M1 to M5)**, built from source by `./setup.sh` (the Metal engine): [Mac](docs/MAC.md).
-- **AMD Ryzen AI Max (Strix Halo)**, built from source on Linux: [Strix Halo](docs/STRIX_HALO.md).
-- **Older processors without AVX2**: they work, but slowly. [Older CPUs](docs/INSTALL.md#older-cpus-experimental).
+| Setting | This profile |
+| --- | --- |
+| Maximum context | 131,072 tokens |
+| KV cache | int8; 32,768 resident cells per streamed layer |
+| Host KV backing | About 1.55 GiB of pinned RAM allocated at startup |
+| Resident expert budget | Up to 11 GiB, guarded page-locking |
+| VRAM reserve | 3,072 MiB; automatic expert-cache and prefill sizing |
+| File tier | Unbuffered NVMe reads |
+| Overlap | Asynchronous adaptive expert swaps and automatic helper affinity |
+| Process limit | systemd user scope: 20 GiB charged memory, zero process swap |
 
-The full list: [docs/INSTALL.md](docs/INSTALL.md#what-you-need).
+The profile keeps the model's MTP/speculation settings. The launcher bounds the server
+and engine together and refuses an unprotected public bind. A separate test guard
+stops the scope when available system RAM falls below 1 GiB.
 
-## Install
+An earlier uncontained configuration was OOM-killed. Higher-memory trials were faster
+but left too little room for the desktop, so they were not retained. The current
+review experiments kept at least **2.66 GiB available RAM** and did not trigger the guard.
+The scope is not a guarantee against every GPU driver/kernel allocation or brief peak.
+System swap, zram and drivers were not changed by this profile.
 
-### Let your AI set it up
+[Settings, tuning history and memory limits](docs/HARDWARE_RX9070XT_32GB.md)
 
-Do you use an AI coding assistant (Claude Code, Cursor, Codex, GitHub Copilot, ...)? Paste this into it:
+## Measured generation speeds
+
+These are real individual requests, not an advertised constant speed. Output lengths,
+expert placement, SSD reads and draft acceptance differ between tasks. The writing
+trials used temperature 0.7; the capability and context tests used temperature 0.
+
+| IQ3_XXS task | Input / output tokens | Generation | Result |
+| --- | ---: | ---: | --- |
+| Short writing trials | 46 / 128 each | 15.4–38.0 tokens/s | Three trials; cold/warm behavior varied |
+| Python interval merging | 308 / 329 | 12.4 tokens/s | 11/11 functional checks passed |
+| Editable lighthouse SVG | 279 / 2,511 | 22.9 tokens/s | 7/7 structural checks; rendered successfully |
+| Complete Snake game | 472 / 6,467 | 19.6 tokens/s | 11/11 gameplay checks; desktop/mobile controls worked |
+| Full code-review revision | 7,482 / 7,083 | 14.2 tokens/s | Useful refactor, but introduced UI regressions |
+| Focused review patch | 8,115 / 2,694 | 17.0 tokens/s | Working result; 11 core + 20 review-specific checks passed |
+
+The first Snake attempt exhausted a 6,144-token cap. Raising the cap to 16,384 allowed
+a new IQ3 attempt to finish. The focused patch returned nine literal edits, rather than
+regenerating the entire file. [Practical comparisons and source review](docs/PRACTICAL_BENCHMARKS.md)
+
+### Near-full 128K context
+
+| Uncached input | Output | Prompt reading | Generation | Whole request |
+| ---: | ---: | ---: | ---: | ---: |
+| 65,547 tokens | 128 tokens | 431.7 tokens/s | 16.5 tokens/s | 159.6 s |
+| 130,012 tokens | 128 tokens | 440.5 tokens/s | 28.0 tokens/s | 299.8 s |
+
+The nearly full-window prompt took **295.1 seconds to read** and 4.6 seconds to generate
+its short answer. It completed without an OOM or RAM-guard abort. These reference-summary
+runs test capacity and throughput; they do not establish long-context answer quality.
+The faster second result does not mean that larger context inherently increases speed.
+**25–30 tokens/s happened in one near-full test; it is not sustained across every task.**
+
+[Measurement JSON](docs/examples/iq3_xxs/measurements.json) ·
+[Selected engine log lines](docs/examples/iq3_xxs/engine-excerpts.log)
+
+Excerpt from the recorded engine output:
 
 ```text
-Set up Strata on this PC for me: https://github.com/Niko1221/Strata - follow docs/AI_SETUP.md in that repository.
+strata generate: KV streaming: 32768 of 131072 cells per QSA layer in VRAM, the K/V in 1.55 GiB of pinned RAM
+strata generate: the file tier reads unbuffered (STRATA_UNBUFFERED_LOAD=1)
+strata serve: prompt 130012 tokens = 0 reused + 130012 read in 295115 ms (440.5 tok/s), 128 generated in 4567 ms (28.0 tok/s), drafts accepted 69 of 100, 6 checkpoints
 ```
 
-It checks your graphics card, RAM and disk and picks the model that fits. Then it installs and starts it and tells
-you how to connect your apps. AI tools can also install, start and stop Strata through its
-[MCP server](docs/MCP_SERVER.md).
+## What it built
 
-### Or do it yourself
+### A playable game, improved through review
 
-[Download Strata](https://github.com/Niko1221/Strata/archive/refs/heads/main.zip) and unzip it (or `git clone` it).
-**Windows:** double-click **`START-HERE.bat`**. **Linux:** run **`./setup.sh`** in the Strata folder.
+The final Snake prototype has a DOM-free simulation factory, copied state snapshots,
+deterministic food placement, a full-board win, accessible direction labels, mobile
+scrolling and a loop that stops while paused. An independent cycle test filled the
+400-cell board after 39,671 moves.
 
-**Mac (Apple Silicon, M1 to M5, macOS 15 or newer):** install Apple's Command Line Tools once
-(`xcode-select --install` in Terminal; Xcode itself is not needed). Then open Terminal in the Strata folder and run
-**`./setup.sh`**. It builds the Mac engine on your Mac (about 7 minutes), asks the same questions, downloads the model
-and starts it. Next time, `./setup.sh` starts it right away. Which size fits your Mac and how fast it is:
-[docs/MAC.md](docs/MAC.md).
+<img src="docs/media/rx9070xt-32gb/snake-mobile.png" width="300" alt="Reviewed Snake game on a narrow mobile layout with labelled direction buttons and a visible header">
 
-The steps are the same for NVIDIA and AMD. The installer finds your card and sets up the right engine for it. It
-asks you a few questions:
+The first review-driven rewrite broke startup and pause controls. Independent review
+caught those regressions; a second, focused patch fixed them. Minor follow-ups remain:
+calling the new factory without a seed leaves food uninitialized, one pending callback
+runs after death, and announcements use internal words such as “dead.” The unused engine
+time field also remains. This is a useful prototype, not a claim of flawless code.
 
-- which model and which size,
-- how much context (how much text the model keeps in mind),
-- whether it should read pictures.
+[Review/revision experiment, checks and timing](docs/REVIEW_REVISION_BENCHMARK.md)
 
-Press Enter each time for the recommended answer. Then it downloads the model (about 70 GB) and starts it. If the
-download stops, run it again: it continues where it left off. Your browser opens the Strata app at
-`http://127.0.0.1:8080`.
+### Editable vector artwork
 
-> **While the model starts, your PC can be slow or stop responding for 1-3 minutes** (longest the first time).
-> Strata loads 35-55 GB into your RAM and locks part of it for the graphics card. This is normal. Wait, and don't
-> close the window. The window shows what Strata is doing.
+<img src="docs/media/rx9070xt-32gb/lighthouse.png" width="420" alt="IQ3-generated SVG lighthouse with storm clouds, waves and a warm light beam">
 
-**Next time**, run `START-HERE.bat` (or `./setup.sh`) again. It starts right away and downloads nothing twice. Close
-its window to stop the model. `UPDATE.bat` (`./update.sh`) updates Strata without starting it. Updating, Docker,
-several cards, where the files go and every option: [docs/INSTALL.md](docs/INSTALL.md).
+The model wrote [this standalone SVG](docs/examples/iq3_xxs/lighthouse.svg) as code:
+named sky/sea/lighthouse/beam layers, reusable gradients, title/description metadata,
+no raster assets or external dependencies. It passed the specified palette and structure
+checks. The illustration is clear but simple; this is SVG drafting, not raster image generation.
 
-**Is it fast on your PC?** Run `BENCH.bat` (`./bench.sh`): about 5-10 minutes, it measures chat, 4K/16K prompts and an agent-style session with your own settings and writes a report to share ([how](docs/COMMUNITY_BENCHMARKS.md#run-the-benchmark)).
+### Small library code
 
-## Which model should I pick?
+[The generated Python function](docs/examples/iq3_xxs/merge_intervals.py) merges touching
+and overlapping intervals in O(n log n), preserves the input, and rejects malformed
+intervals and boolean endpoints. It passed the 11 benchmark cases. Its outer-input
+validation could still be more defensive. Tests and source review are both needed.
 
-The installer recommends one for your RAM. The same model comes in several sizes, compressed more or less. Smaller
-sizes are faster. Larger sizes are a bit smarter.
+## Install this profile
 
-| Your RAM | Take | Why |
-| --- | --- | --- |
-| **32 GB** | **Coder** | it fits 32 GB, and it is made for code (with a 24 GB card, Q2_0 and IQ2_XS run too) |
-| **48 GB** | **IQ2_XS** (or Q2_0, the fastest) | the larger sizes do not fit |
-| **64 GB** | **IQ2_XS** (recommended), or IQ3_XXS / IQ3_S | every size fits; IQ3_S is the best and the slowest |
-| **96 GB or more** | **IQ3_S**, or Unsloth's UD-IQ4_XS (~4-bit) | room for the largest sizes with everything else open |
+Use an NVMe location with room for the download, pack and build. The two GGUF shards
+are about **75.8 GB**, and the packed experts add about **40 GiB** plus dense weights,
+MTP and build/cache files; allow at least 150 GB free for a fresh installation.
 
-- **[Coder](docs/MODELS.md#coder):** a coding version with half of the experts removed. It reaches 91% of the full
-  model's SWE-bench Verified score (measured by its authors) and fits 32 GB of RAM. It is weaker outside code,
-  including Chinese and other CJK text (#438). For those, take Q2_0, IQ2_XS or IQ3_S, which keep every expert.
-- **[Swift 1.5](docs/MODELS.md#swift-15):** a fine-tune that thinks for a much shorter time before it answers. You
-  get the answer sooner, at about the same quality.
-- **[Unsloth UD-IQ4_XS](docs/MODELS.md#unsloth-ud-iq4_xs):** Unsloth's ~4-bit version, between IQ3_S and
-  UD-Q4_K_XL in quality. A 94 GB download. With less than ~80 GB of RAM, Strata reads part of it from the SSD
-  while it answers, so it is slower there (an NVMe SSD helps).
-- **[Unsloth UD-Q4_K_XL, UD-Q5_K_XL, UD-Q6_K_XL and Q8_0](docs/MODELS.md#unsloths-files-ud-iq4_xs-to-q8_0):**
-  4- to 8-bit, closer to the full model (93-95% the same next token as Q8_0). Fast where every expert fits in RAM
-  (~88 GB for UD-Q4_K_XL up to ~136 GB for Q8_0); with less RAM Strata reads part of them from the SSD while it
-  answers, which is much slower (7-8.5 tokens/s for UD-Q4_K_XL on a 64 GB PC).
-- **[OrcaRouter's Uncensored IQ3_XXS](docs/MODELS.md#orcarouter-uncensored-iq3_xxs):** you set it up by hand. It is
-  not in the installer's menu.
+Follow [AI_SETUP.md](docs/AI_SETUP.md) and [AMD_HIP.md](docs/AMD_HIP.md) for the normal
+installer and AMD runtime prerequisites. This is an explicit, opt-in 32 GB file-tier
+experiment; apply the bounded profile before starting the model.
 
-Sizes, downloads and what fits where: [docs/MODELS.md](docs/MODELS.md). To add another model later, run
-`SETUP.bat` (Linux: `./setup.sh --setup`).
-
-## Using it
-
-<p align="center"><img src="docs/media/runpagoda.png" width="900" alt="The Strata app's Monitor tab next to a coding agent"><br>
-<sub>The Strata app's <b>Monitor</b> (left) while a coding agent writes the pagoda garden from the video (right)</sub></p>
-
-- **In the browser:** open `http://127.0.0.1:8080`. It has **Chat**, a live **Monitor** of the model and your
-  GPU/CPU/RAM, and **About** with the settings and addresses.
-- **Your apps and coding agents:** add an "OpenAI-compatible" provider with the base URL
-  **`http://127.0.0.1:8080/v1`**. Any API key and any model name work.
-  - Apps that use Anthropic's API: `http://127.0.0.1:8080/v1/messages` (Claude Code:
-    `ANTHROPIC_BASE_URL=http://127.0.0.1:8080`).
-  - Codex CLI and other apps that use the OpenAI Responses API: `/v1/responses`
-    ([setup](docs/DETAILS.md#the-responses-api-and-codex-cli)).
-- **Thinking:** choose **off, low, medium or high** in the chat menu or in your app's "reasoning effort". Off is the
-  fastest. High is best for hard questions.
-- **Pictures:** say yes to "Images?" in setup. Then click **Picture** in the chat, or attach pictures in your app.
-  AMD cards read pictures on Linux through the processor; on Windows they can't yet.
-- **From your phone or another PC:** `START-HERE.bat --setup --host 0.0.0.0 --api-key <secret>`. Always set a key.
-- **One request at a time:** by default Strata answers one request, and the others wait. To answer several at once,
-  set `"parallel": 2` ([BATCHING.md](docs/BATCHING.md)). On a 12 GB card this makes each answer slower.
-- **Long prompts:** Strata reads the first message of a chat in full, about 1 minute per 30,000 tokens. Follow-up
-  messages start in seconds.
-
-More: [where your chats are stored](docs/INSTALL.md#where-things-are-stored), [the API](docs/DETAILS.md#using-it).
-
-### Optional: more speed on one card when the whole model fits in RAM
-
-Two opt-in settings (by RubenTorney, #1904 and #1905). They help when you run one graphics card and your RAM holds
-every expert (Strata's arena mode, for example Q2_0 or IQ3_XXS on a 64 GB PC). Open your config,
-`strata-<model>.json` in the Strata data folder ([where](docs/INSTALL.md#where-things-are-stored)), and add:
-
-- **Faster decode:** `"--adapt-async", "1"` to the `"args"` list. The expert cache then updates on a helper thread
-  instead of pausing the answer. Measured on an RTX 5070 (Windows, Q2_0): +4-5% decode, +7-10% on code and long
-  documents. Answers can differ slightly from the default (they stay the same from run to run).
-- **Faster prompt reading on Windows:** `"STRATA_PIN_BY_NEED": "1"` in the `"env"` block. Windows can lock only about
-  half the RAM for the graphics card; this locks the experts the card actually needs first. Measured on the RTX 5070:
-  +4.4% prompt reading.
-
-```json
-"args": [ ..., "--adapt-async", "1" ],
-"env": { "STRATA_PIN_BY_NEED": "1" }
+```sh
+git clone --branch codex/rx9070xt-32gb-profile https://github.com/pwnedbygary/Strata.git
+cd Strata
+./setup.sh --yes --family qwen --model IQ3_XXS --context 131072 --no-start
+.venv/bin/python tools/hardware_profile.py apply --config strata-iq3_xxs.json
+.venv/bin/python tools/hardware_profile.py run \
+  --config strata-iq3_xxs-rx9070xt-32gb.json --port 8096 --open
 ```
 
-Restart Strata (`START-HERE.bat` or `./setup.sh`) after the change. To undo, remove the two entries.
+Linux, a systemd user manager and cgroup v2 memory accounting are required by the
+bounded launcher. The helper preserves model paths and writes a separate configuration.
+The server is local at `http://127.0.0.1:8096/`, with an OpenAI-compatible API at `/v1`
+and an Anthropic-compatible API at `/v1/messages`. A public bind requires an API key.
 
-## Something went wrong?
+Stop the server with:
 
-- **My PC froze the first time Strata started.** This is normal while it loads the model. Wait, and don't close the
-  window. Still frozen after 10 minutes? Restart the PC, close other programs and try again, or pick a smaller size.
-- **It stopped while downloading or installing.** Run `START-HERE.bat` (or `./setup.sh`) again. It continues where
-  it stopped.
-- **It's very slow and the disk light keeps blinking, or it says "the engine stopped unexpectedly".** Your PC does
-  not have enough free RAM. Close other programs (browsers use a lot), or pick a smaller size (Q2_0 or IQ2_XS).
-- **It says port 8080 is already in use.** Strata is already running. Look for its window.
+```sh
+systemctl --user stop strata-local.scope
+```
 
-More problems and their fixes: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). Still stuck? Open an
-[issue](https://github.com/Niko1221/Strata/issues) and attach `strata-<model>.log` from the Strata folder. Found a
-security problem? Report it privately: [SECURITY.md](SECURITY.md).
+`experts.bin` is the packed expert-weight file used by this setup, not swap or chat
+history. Keep it: the NVMe file tier depends on it. The GGUFs, pack and MTP are excluded
+from Git and are not downloaded by cloning this fork.
 
-## How does it work?
+## Repeat the practical tests
 
-Models like this one usually run on servers with hundreds of gigabytes of graphics memory. Your graphics card has
-12-24 GB. Strata makes the model fit by **sharing the work across your whole PC**. Think of a kitchen: the things
-you use all the time stay on the counter, and the rest waits in the pantry.
+Run one client at a time against the already-running server. Keep prompt, sampling,
+output budget and review mode consistent. The reports retain failed attempts too.
 
-<p align="center"><img src="docs/media/how-it-works.svg" width="860" alt="The model's 24,576 experts: the busiest on the graphics card, all of them in RAM, a lookup table on the SSD"></p>
+```sh
+.venv/bin/python tools/hardware_profile.py benchmark \
+  --cases merge_intervals,lighthouse_svg --output-dir benchmark-results/iq3-code-art
+.venv/bin/python tools/hardware_profile.py benchmark \
+  --cases snake --max-tokens 16384 --output-dir benchmark-results/iq3-snake
+```
 
-- **The model is a team of 24,576 small specialists ("experts").** Each word needs only 10 of them.
-- **Your graphics card** keeps the few thousand experts that are used most often. **Your RAM** holds all of them,
-  and **your processor** works on the rest at the same time. **Your SSD** holds a big lookup table.
+Add `--browser-checks` after installing the optional Playwright dependencies in
+[the practical suite guide](bench/practical/README.md). Use the
+[review-driven runner](docs/REVIEW_REVISION_BENCHMARK.md) to provide an actual source
+review and measure whether a revision fixes findings without introducing regressions.
+The request protocol uses fixed prompts and seeds; adaptive placement means outputs
+are not guaranteed bit-identical across runs or hardware.
 
-<p align="center"><img src="docs/media/guess-and-check.svg" width="860" alt="A small helper guesses the next words; the big model checks them all at once and keeps the right ones"></p>
+Helper tests need no model, GPU or downloads:
 
-- **Guess, then check:** a small helper guesses the next few words. The big model checks them all at once. You get
-  the same answer, 1.6-1.8x sooner.
-- **Long texts are read in big pieces** (up to 8,192 tokens at a time), at over 1,000 tokens per second.
+```sh
+python3 -m unittest tools.test_hardware_profile tools.test_practical_checks tools.test_benchmark_revision
+```
 
-The longer explanation: [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md). Every part and its numbers:
-[the details](docs/DETAILS.md#how-it-works) and the [paper](docs/paper/Strata-Paper.pdf).
+## Evidence and upstream credit
 
-## Credits and license
+- [Exported examples, measurements and logs](docs/examples/iq3_xxs/README.md)
+- [Hardware profile and tuning history](docs/HARDWARE_RX9070XT_32GB.md)
+- [Practical model comparisons](docs/PRACTICAL_BENCHMARKS.md)
+- [Independent review and revision results](docs/REVIEW_REVISION_BENCHMARK.md)
+- [Original upstream README](README.upstream.md), [engine details](docs/DETAILS.md),
+  [model guide](docs/MODELS.md) and [MIT license](LICENSE)
 
-The model is [Qwen3.8-Flash-Next](https://huggingface.co/Qwen/Qwen3.8-Flash-Next) by the Qwen team. It was
-compressed by [ISTA-DASLab](https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF), UkisAI (Swift 1.5)
-and Unsloth. Strata uses parts of [llama.cpp / ggml](https://github.com/ggml-org/llama.cpp). All credits:
-[docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md#credits). Strata is open source under the [MIT License](LICENSE). A few
-parts and every model have their own licenses ([which ones](docs/HOW_IT_WORKS.md#license)).
-
-## Support Strata
-
-Strata is free and open source. If it is useful to you, you can support its development:
-
-<p align="center"><a href="https://buymeacoffee.com/strataengine"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50"></a></p>
+The inference engine, server, installer and original project belong to
+[Niko1221 and the Strata contributors](https://github.com/Niko1221/Strata).
+This fork contributes the optional profile, measurement tools, review workflow and
+these hardware-specific results. Other translated READMEs describe the upstream project.
