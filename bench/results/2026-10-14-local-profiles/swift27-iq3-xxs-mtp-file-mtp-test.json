@@ -1,0 +1,39 @@
+{
+  "id": "chatcmpl-f25ea87fa58e44efb3c7b292",
+  "object": "chat.completion",
+  "created": 1791994588,
+  "model": "swift27-iq3-xxs-mtp-file",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "def square(n):\n    return n * n",
+        "reasoning_content": "We need answer user's request: \"Write a Python function square(n) returning n*n. Output code only.\" Need final only code. Done. Need likely include function definition. Ensure no extra text.\n"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 67,
+    "completion_tokens": 55,
+    "total_tokens": 122,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 67,
+    "prompt_ms": 643.3,
+    "prompt_per_token_ms": 9.601,
+    "prompt_per_second": 104.2,
+    "predicted_n": 55,
+    "predicted_ms": 1082.9,
+    "predicted_per_token_ms": 19.689,
+    "predicted_per_second": 50.8,
+    "draft_n": 29,
+    "draft_n_accepted": 26
+  },
+  "router_wall_seconds": 12.61
+}

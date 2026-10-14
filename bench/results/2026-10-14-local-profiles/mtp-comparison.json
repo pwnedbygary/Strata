@@ -1,0 +1,22 @@
+[
+  {
+    "model_file_profile": "swift27-iq3-xxs-mtp-file",
+    "context": 8192,
+    "same_prompt": true,
+    "same_assistant_message": true,
+    "off_tps": 35.5,
+    "on_tps": 50.8,
+    "draft_offered": 29,
+    "draft_accepted": 26
+  },
+  {
+    "model_file_profile": "swift27-iq3-s-mtp-file",
+    "context": 8192,
+    "same_prompt": true,
+    "same_assistant_message": true,
+    "off_tps": 34.3,
+    "on_tps": 52.2,
+    "draft_offered": 41,
+    "draft_accepted": 38
+  }
+]

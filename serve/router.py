@@ -55,6 +55,8 @@ def read_registry(path):
     default = raw.get('default', next(iter(result)))
     if not isinstance(default, str) or default not in result:
         raise ValueError('default model is not registered')
+    if result[default][1].get('router', {}).get('enabled') is False:
+        raise ValueError('Default model cannot be disabled')
     return result, default
 
 
@@ -72,10 +74,17 @@ def model_metadata(name, cfg, state):
         raise ValueError(f'{name}: router.max_output_tokens must be a positive integer')
     maximum = min(cap, context) if cap and context else cap or context
     vision = bool(cfg.get('vision'))
+    draft_tokens = 0
+    flag = '--spec' if cfg.get('arch', 'qwen4exp') == 'qwen4exp' else '--mtp'
+    if flag in args and args.index(flag) + 1 < len(args):
+        with contextlib.suppress(ValueError, TypeError):
+            draft_tokens = max(0, int(args[args.index(flag)+1]))
     return {'id': name, 'object': 'model', 'owned_by': 'strata',
             'name': settings.get('display_name', name),
             'description': settings.get('description', ''),
             'context_length': context, 'max_output_tokens': maximum,
+            'available': settings.get('enabled', True) is not False,
+            'unavailable_reason': settings.get('disabled_reason') if settings.get('enabled') is False else None,
             'meta': {'n_ctx': context, 'max_output_tokens': maximum},
             'model_architecture': cfg.get('arch', 'qwen4exp'),
             'architecture': {'input_modalities': ['text', 'image'] if vision else ['text'],
@@ -83,10 +92,29 @@ def model_metadata(name, cfg, state):
             'capabilities': {'streaming': True, 'tools': True, 'vision': vision,
                              'image_generation': bool(cfg.get('images'))},
             'sampling_defaults': cfg.get('sampling', {}),
+            'drafting': {'enabled': draft_tokens > 0, 'draft_tokens': draft_tokens,
+                         'greedy_only': cfg.get('arch', 'qwen4exp') != 'qwen4exp'},
             'output_limit_policy': 'min(configured_cap, context_length - tokenized_input)',
             'fit_max_tokens': bool(cfg.get('fit_max_tokens')),
-            'status': {'value': 'loading' if state['loading'] == name else
+            'status': {'value': 'unavailable' if settings.get('enabled') is False else
+                      'loading' if state['loading'] == name else
                       'loaded' if state['active'] == name else 'unloaded'}}
+
+
+def profile_web_script(source, name, cfg):
+    """Apply this router profile's defaults and keep browser edits per model."""
+    defaults = {key: value for key, value in cfg.get('sampling', {}).items()
+                if key in ('temperature', 'top_p', 'top_k')}
+    if cfg.get('reasoning_effort'):
+        defaults['thinking'] = cfg['reasoning_effort']
+    original = 'let settings = {...DEFAULTS, ...store.get("sampling", {})};'
+    if original not in source:
+        return source
+    replacement = ('Object.assign(DEFAULTS, ' + json.dumps(defaults) + ');\n'
+                   'const PROFILE_SAMPLING_KEY = ' + json.dumps('sampling:' + name) + ';\n'
+                   'let settings = {...DEFAULTS, ...store.get(PROFILE_SAMPLING_KEY, {})};')
+    return source.replace(original, replacement).replace(
+        'store.set("sampling", settings);', 'store.set(PROFILE_SAMPLING_KEY, settings);')
 
 
 def worker_command(config, port):
@@ -161,6 +189,9 @@ class Router:
     def switch(self, name):
         if name not in self.profiles:
             raise ValueError(f'Unknown model: {name}')
+        settings = self.profiles[name][1].get('router', {})
+        if settings.get('enabled') is False:
+            raise ValueError(settings.get('disabled_reason') or 'This model profile is unavailable')
         with self.turn:
             if self.closed.is_set():
                 raise RuntimeError('Router is shutting down')
@@ -257,7 +288,7 @@ iframe{display:block;border:0;width:100%;height:calc(100vh - 64px)}#status{font-
 const $=id=>document.getElementById(id);let initialized=false;
 const headers=()=>({'Content-Type':'application/json',...($('key').value?{'Authorization':'Bearer '+$('key').value}:{})});
 async function state(){try{let r=await fetch('/router/status',{headers:headers()});let s=await r.json();if(!r.ok)throw Error(s.error?.message||r.status);
-if(!initialized){for(let n of s.profiles){let o=document.createElement('option');o.value=o.textContent=n;$('models').append(o)}$('models').value=s.active||s.default;if(s.active)$('chat').src='/chat/';initialized=true}
+if(!initialized){let catalog=await(await fetch('/v1/models',{headers:headers()})).json();for(let m of catalog.data){let o=document.createElement('option');o.value=m.id;o.textContent=m.name+(m.available===false?' (unavailable)':'');o.disabled=m.available===false;o.title=m.unavailable_reason||'';$('models').append(o)}$('models').value=s.active||s.default;if(s.active)$('chat').src='/chat/';initialized=true}
 $('status').textContent=s.loading?'Loading '+s.loading+'…':s.error||(s.active?'Loaded: '+s.active:'No model loaded');}catch(e){$('status').textContent=e.message}}
 async function action(path,body){$('load').disabled=$('unload').disabled=true;$('status').textContent='Waiting for active request, then switching…';try{
 let r=await fetch(path,{method:'POST',headers:headers(),body:JSON.stringify(body)});let s=await r.json();if(!r.ok)throw Error(s.error?.message||r.status);
@@ -412,6 +443,7 @@ def handler(router, api_key=''):
                     self.error(503, 'No model loaded; select a model or send a generation request')
                     return
                 target = forward_path
+                profile_name = router.active
                 headers = {k: v for k, v in self.headers.items()
                            if k.lower() not in HOP | {'origin', 'authorization', 'x-api-key'}}
                 headers.pop('Cookie', None)
@@ -422,6 +454,11 @@ def handler(router, api_key=''):
                 try:
                     connection.request(self.command, target, body=body or None, headers=headers)
                     response = connection.getresponse()
+                    if path == '/web/app.js' and response.status == 200:
+                        source = response.read().decode('utf-8')
+                        source = profile_web_script(source, profile_name, router.profiles[profile_name][1])
+                        self.reply(200, source, 'application/javascript; charset=utf-8')
+                        return
                     if path == '/health' and response.status == 200:
                         health = json.loads(response.read())
                         health['api_key'] = bool(api_key)

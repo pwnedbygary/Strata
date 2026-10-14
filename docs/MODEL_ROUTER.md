@@ -166,3 +166,13 @@ portable release.
 [Raw AppImage smoke-test responses and discovery](../bench/results/2026-10-14-router-appimage/README.md).
 
 Release/reload and SSE streaming also passed on the real Saluki profile, ending with `[DONE]`.
+
+## More local models
+
+[Swift, MTP-enabled variants, the 0.8B fixture and Tiel availability](LOCAL_MODEL_PROFILES.md).
+Discovery now includes `available`, `unavailable_reason` and `drafting` fields. Disabled
+profiles stay visible but cannot replace the active worker.
+
+The router applies profile sampling defaults to the embedded web UI and keeps browser
+sampling overrides separately per model. This prevents the generic web temperature
+from silently disabling a greedy-only MTP preset.

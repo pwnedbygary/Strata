@@ -79,7 +79,10 @@ class RouterTests(unittest.TestCase):
         self.assertIsNotNone(first.poll())
         self.assertEqual(self.router.active, 'beta')
         self.assertEqual(self.request('/chat/')[0], 200)
-        self.assertEqual(self.request('/chat/web/app.js')[0], 200)
+        code, script, _ = self.request('/chat/web/app.js')
+        self.assertEqual(code, 200)
+        self.assertIn(b'"temperature": 0.5', script)
+        self.assertIn(b'sampling:beta', script)
         self.assertEqual(json.loads(self.request('/chat/health')[1])['model'], 'beta')
         self.assertEqual(self.request('/router/unload', {})[0], 200)
         self.assertIsNone(self.router.active)
@@ -140,6 +143,17 @@ class RouterTests(unittest.TestCase):
         finally:
             for _ in range(8):
                 self.router.requests.release()
+
+    def test_disabled_model_is_listed_but_cannot_replace_active_model(self):
+        self.router.switch('alpha')
+        first = self.router.process
+        self.router.profiles['beta'][1]['router'].update(enabled=False, disabled_reason='Unsupported expert format')
+        data = json.loads(self.request('/v1/models')[1])['data'][1]
+        self.assertFalse(data['available'])
+        self.assertEqual(data['status']['value'], 'unavailable')
+        self.assertEqual(self.request('/router/load', {'model': 'beta'})[0], 400)
+        self.assertEqual(self.router.active, 'alpha')
+        self.assertIsNone(first.poll())
 
     def test_registry_rejects_bad_default(self):
         self.registry.write_text(json.dumps({'default': 'wrong', 'profiles': {'alpha': 'alpha.json'}}))

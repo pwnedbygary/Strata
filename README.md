@@ -200,6 +200,7 @@ engines, tuning tables and the expert-placement profile. Model weights/packs/tok
 remain external, and this first build requires compatible **system ROCm**. It is tested
 on this PC, not claimed portable across all distributions or GPUs. The original single-model
 server remains available separately. [Registration, API metadata, packaging and limits](docs/MODEL_ROUTER.md).
+[Additional local profiles, active Swift MTP measurements and Tiel limitations](docs/LOCAL_MODEL_PROFILES.md).
 
 ## What it built
 
