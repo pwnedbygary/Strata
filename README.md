@@ -173,6 +173,34 @@ strata generate: the file tier reads unbuffered (STRATA_UNBUFFERED_LOAD=1)
 strata serve: prompt 130012 tokens = 0 reused + 130012 read in 295115 ms (440.5 tok/s), 128 generated in 4567 ms (28.0 tok/s), drafts accepted 69 of 100, 6 checkpoints
 ```
 
+## One endpoint, saved model profiles, and an AppImage
+
+The optional router keeps the web UI and API at `http://127.0.0.1:8096/` while switching
+between saved model profiles. Select a model in the dropdown and click **Load model**,
+or let your harness request `saluki27` / `flash-iq3` through the same `/v1` base URL.
+Only one model stays loaded; switching waits for generation to finish before releasing
+its worker. **Release memory** unloads the model without stopping the router.
+
+`GET /v1/models` lists all registered models, including unloaded profiles, with their
+configured context length, output cap, modalities, sampling defaults and load status.
+An output budget still has to fit after the input tokens in the shared context.
+
+<img src="docs/media/router/router.png" width="850" alt="Strata router model selector above the existing chat interface, with styles and fonts loaded">
+
+*Fresh-browser rendering check against the AppImage running Saluki; the screenshot is not a performance benchmark.*
+
+On this machine, after registering the profiles:
+
+```sh
+./dist/Strata-RX9070XT-x86_64.AppImage --open
+```
+
+The Linux x86_64 AppImage bundles Python, the server/web app, Flash and native dense HIP
+engines, tuning tables and the expert-placement profile. Model weights/packs/tokenizers
+remain external, and this first build requires compatible **system ROCm**. It is tested
+on this PC, not claimed portable across all distributions or GPUs. The original single-model
+server remains available separately. [Registration, API metadata, packaging and limits](docs/MODEL_ROUTER.md).
+
 ## What it built
 
 ### A playable game, improved through review

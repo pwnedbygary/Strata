@@ -1,0 +1,6 @@
+#!/bin/sh
+APPDIR_PATH=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ "$#" -eq 0 ]; then
+    set -- --open
+fi
+exec "$APPDIR_PATH/usr/bin/strata-router" "$@"
