@@ -1,0 +1,54 @@
+{
+  "suite_version": 1,
+  "seed": 20261013,
+  "temperature": 0,
+  "model": "qwen3.6-35b-a3b-gsq-hybrid-strata",
+  "engine": null,
+  "max_context": 8192,
+  "engine_settings": {
+    "model": "qwen3.6-35b-a3b-gsq-hybrid-strata",
+    "max_context": 8192,
+    "images": false,
+    "version": null
+  },
+  "trials": [
+    {
+      "case": "snake",
+      "repeat": 0,
+      "max_tokens": 8192,
+      "prompt_sha256": "e42e7fc4b602708271c1430ca9de3c70077c67b7b08bb946764259f710649777",
+      "artifact_sha256": "7cd18142ff8f53fb25ecadefb6c3e9de6768019bd99dc2fcd84e9dde5cf011ef",
+      "artifact": "snake-0.html",
+      "wall_seconds": 35.674458223977126,
+      "finish_reason": "stop",
+      "fenced_output": true,
+      "usage": {
+        "prompt_tokens": 472,
+        "completion_tokens": 3089,
+        "total_tokens": 3561,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 472,
+        "prompt_ms": 448.1,
+        "prompt_per_token_ms": 0.949,
+        "prompt_per_second": 1053.3,
+        "predicted_n": 3089,
+        "predicted_ms": 35223.0,
+        "predicted_per_token_ms": 11.403,
+        "predicted_per_second": 87.7,
+        "draft_n": 0,
+        "draft_n_accepted": 0
+      },
+      "checks": {},
+      "browser": {
+        "status": "error",
+        "message": "browserType.launch: Executable doesn't exist at /home/garyb/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Looks like Playwright was just installed or updated.       \u2551\n\u2551 Please run the following command to download new browsers: \u2551\n\u2551                                                            \u2551\n\u2551     npx playwright install                                 \u2551\n\u2551                      "
+      },
+      "manual_visual_review": "not_done"
+    }
+  ]
+}

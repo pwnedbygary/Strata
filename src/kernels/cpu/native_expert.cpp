@@ -33,6 +33,32 @@ void init_once() {
 
 bool native_experts_available() noexcept { return true; }
 
+bool dense_repack_q8(int type, const uint8_t* src, int n_in, int n_out,
+                     std::vector<uint8_t>& dst, std::string& err) {
+    if (!src || n_in <= 0 || n_in % 256 || n_out <= 0 ||
+        (type != 0 && type != 1 && type != 10 && type != 14 && type != 19 && type != 30)) {
+        err = "dense Q8 compatibility requires aligned F32/F16/BF16/Q2_K/Q6_K/IQ1_S rows";
+        return false;
+    }
+    init_once();
+    const auto* from = ggml_get_type_traits((ggml_type) type);
+    const auto* to = ggml_get_type_traits(GGML_TYPE_Q8_0);
+    if ((!from->to_float && type != 0) || !to->from_float_ref) {
+        err = "ggml has no dense compatibility converter";
+        return false;
+    }
+    const size_t source_row = ggml_row_size((ggml_type) type, n_in);
+    const size_t target_row = ggml_row_size(GGML_TYPE_Q8_0, n_in);
+    dst.resize(target_row * (size_t) n_out);
+    std::vector<float> row((size_t) n_in);
+    for (int r = 0; r < n_out; ++r) {
+        if (type == 0) std::memcpy(row.data(), src + (size_t) r * source_row, (size_t) n_in * 4);
+        else from->to_float(src + (size_t) r * source_row, row.data(), n_in);
+        to->from_float_ref(row.data(), dst.data() + (size_t) r * target_row, n_in);
+    }
+    return true;
+}
+
 // The "is this format handled by that kernel" questions, answered here and not next to the kernels: iq_avx512.cpp is
 // compiled for AVX-512 and iq_avx2.cpp / kq_avx2.cpp for AVX2, and native_gu_rows asks these on every CPU before it
 // has checked what the CPU can run.  A function in a wide-ISA file may use that ISA anywhere in its body, so an

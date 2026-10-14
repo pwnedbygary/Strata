@@ -1,0 +1,65 @@
+{
+  "suite_version": 1,
+  "seed": 20261013,
+  "temperature": 0,
+  "model": "qwen3.6-35b-a3b-gsq-hybrid-strata",
+  "engine": null,
+  "max_context": 8192,
+  "engine_settings": {
+    "model": "qwen3.6-35b-a3b-gsq-hybrid-strata",
+    "max_context": 8192,
+    "images": false,
+    "version": null
+  },
+  "trials": [
+    {
+      "case": "merge_intervals",
+      "repeat": 0,
+      "max_tokens": 3072,
+      "prompt_sha256": "60871fd10bf4a9b638278976306dfd9fa21ca159c828ef9fd9bf08ca0f5a7666",
+      "artifact_sha256": "e3dd059e35ba2b6134ac33f014f0f641c317775705caf9b6e490ab39286bfcb5",
+      "artifact": "merge_intervals-0.py",
+      "wall_seconds": 4.586655138002243,
+      "finish_reason": "stop",
+      "fenced_output": false,
+      "usage": {
+        "prompt_tokens": 308,
+        "completion_tokens": 376,
+        "total_tokens": 684,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 308,
+        "prompt_ms": 392.6,
+        "prompt_per_token_ms": 1.275,
+        "prompt_per_second": 784.5,
+        "predicted_n": 376,
+        "predicted_ms": 4191.4,
+        "predicted_per_token_ms": 11.147,
+        "predicted_per_second": 89.7,
+        "draft_n": 0,
+        "draft_n_accepted": 0
+      },
+      "checks": {
+        "empty": true,
+        "touching": true,
+        "unsorted": true,
+        "negative": true,
+        "duplicate": true,
+        "nested": true,
+        "input_unchanged": true,
+        "reversed_rejected": true,
+        "boolean_rejected": true,
+        "float_rejected": true,
+        "malformed_rejected": true
+      },
+      "browser": {
+        "status": "not_run"
+      },
+      "manual_visual_review": "not_applicable"
+    }
+  ]
+}

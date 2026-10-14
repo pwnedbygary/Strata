@@ -77,6 +77,9 @@ std::vector<Kv> metadata(const char* arch, const Dims& d, uint64_t vocab) {
                           fixture::u32(p + "full_attention_interval", d.interval)};
     if (std::string(arch) == "qwen35moe") {
         kv.push_back(fixture::u32(p + "nextn_predict_layers", d.nextn));
+    } else if (std::string(arch) == "qwen35") {
+        kv.push_back(fixture::u32(p + "feed_forward_length", d.ff));
+        if (d.nextn) kv.push_back(fixture::u32(p + "nextn_predict_layers", d.nextn));
     } else {
         kv.push_back(fixture::u32(p + "hyper_connection.count", d.hc));
         kv.push_back(fixture::u32(p + "hyper_connection.low_rank", d.hc_lr));
@@ -109,13 +112,13 @@ bool geometry_of(const fs::path& p, strata::core::ModelGeometry& g, int64_t& k, 
 }
 
 std::string layout_error(const fs::path& dir, const char* arch, const Dims& d, uint64_t vocab,
-                         void (*mutate)(std::vector<Tensor>&)) {
+                         void (*mutate)(std::vector<Tensor>&), bool singleton_gate = false) {
     const fs::path meta = dir / "meta.gguf";
     fixture::write(meta, metadata(arch, d, vocab), {});
     strata::core::ModelGeometry g;
     int64_t k = 0;
     std::string err;
-    if (std::string(arch) == "qwen35moe") {
+    if (std::string(arch) == "qwen35moe" || std::string(arch) == "qwen35") {
         if (!geometry_of(meta, g, k, err)) return "geometry: " + err;
     } else {
         // the qwen4exp guard pins Flash-Next's own block count and widths, so the tiny model's geometry is set here
@@ -145,7 +148,7 @@ std::string layout_error(const fs::path& dir, const char* arch, const Dims& d, u
     fixture::write(model, metadata(arch, d, vocab), ts);
     const strata::GgufModel m({model.string()});
     size_t n = 0;
-    if (!strata::core::check_gguf_layout(m, g, err, &n)) return err;
+    if (!strata::core::check_gguf_layout(m, g, err, &n, singleton_gate)) return err;
     return {};
 }
 
@@ -260,8 +263,38 @@ int main(int argc, char** argv) {
     }
     {
         // the layout tables
+        Dims dense = kTiny36;
+        dense.block_count = 4; dense.nextn = 0;
+        check(layout_error(d.path, "qwen35", dense, 16, nullptr).empty(),
+              "dense Qwen35 geometry and complete layout work without MTP metadata");
+        check(layout_error(d.path, "qwen35", dense, 16, [](std::vector<Tensor>& ts) {
+            for (auto it = ts.begin(); it != ts.end(); ++it)
+                if (it->name == "output.weight") { ts.erase(it); break; }
+        }).empty(), "dense Qwen35 accepts tied output embeddings");
+        check(!layout_error(d.path, "qwen35", dense, 16, [](std::vector<Tensor>& ts) {
+            for (auto& t : ts)
+                if (t.name == "blk.0.ffn_down.weight") ++t.shape[0];
+        }).empty(), "dense Qwen35 rejects incorrect feed-forward dimensions");
         check(layout_error(d.path, "qwen35moe", kTiny36, 16, nullptr).empty(),
               "a complete qwen35moe file passes its layout (incl. the nextn MTP block)");
+        auto singleton = [](std::vector<Tensor>& ts) {
+            for (auto& t : ts)
+                if (t.name == "blk.0.ffn_gate_inp_shexp.weight") t.shape.push_back(1);
+        };
+        check(!layout_error(d.path, "qwen35moe", kTiny36, 16, singleton).empty(),
+              "singleton shared gate remains rejected by default");
+        check(layout_error(d.path, "qwen35moe", kTiny36, 16, singleton, true).empty(),
+              "opt-in accepts the equivalent singleton shared gate");
+        check(!layout_error(d.path, "qwen35moe", kTiny36, 16, [](std::vector<Tensor>& ts) {
+            for (auto& t : ts)
+                if (t.name == "blk.0.ffn_gate_inp_shexp.weight") t.shape.push_back(2);
+        }, true).empty(), "opt-in refuses a non-singleton shared gate");
+        check(!layout_error(d.path, "qwen35moe", kTiny36, 16, [](std::vector<Tensor>& ts) {
+            for (auto& t : ts)
+                if (t.name == "blk.0.attn_norm.weight") t.shape.push_back(1);
+        }, true).empty(), "opt-in does not relax other tensor shapes");
+        check(!layout_error(d.path, "qwen4exp", kTinyFlash, 16, singleton, true).empty(),
+              "opt-in does not relax Flash-Next shapes");
         const std::string ef = layout_error(d.path, "qwen4exp", kTinyFlash, 16, nullptr);
         check(ef.empty(), "a complete qwen4exp file passes its layout (hyper-connections, indexer)" +
                               (ef.empty() ? std::string() : ": " + ef));

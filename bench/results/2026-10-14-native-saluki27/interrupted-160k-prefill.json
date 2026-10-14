@@ -1,0 +1,15 @@
+{
+  "state": "reading",
+  "queued": 0,
+  "phase": "reading the prompt",
+  "prompt_tokens": 163610,
+  "prompt_read": 72704,
+  "prompt_total": 163610,
+  "generated": 0,
+  "max_tokens": 128,
+  "elapsed_s": 1283.6,
+  "tok_s": null,
+  "tok_s_mean": null,
+  "prefill_tok_s_mean": 56.7,
+  "tok_s_window_s": null
+}

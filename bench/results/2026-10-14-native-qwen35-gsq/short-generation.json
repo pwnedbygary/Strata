@@ -1,0 +1,110 @@
+{
+  "url": "http://127.0.0.1:8096",
+  "temperature": 0,
+  "max_tokens": 192,
+  "prompt_file": null,
+  "trials": [
+    {
+      "wall_seconds": 2.430881478008814,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 30,
+        "prompt_ms": 139.7,
+        "prompt_per_token_ms": 4.657,
+        "prompt_per_second": 214.7,
+        "predicted_n": 192,
+        "predicted_ms": 2281.7,
+        "predicted_per_token_ms": 11.884,
+        "predicted_per_second": 84.1,
+        "draft_n": 0,
+        "draft_n_accepted": 0
+      },
+      "usage": {
+        "prompt_tokens": 30,
+        "completion_tokens": 192,
+        "total_tokens": 222,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "```python\ndef merge_sorted_lists(list1: list, list2: list) -> list:\n    \"\"\"\n    Merges two sorted lists into a single sorted list.\n    \n    Args:\n        list1: First sorted list\n        list2: Second sorted list\n        \n    Returns:\n        A new sorted list containing all elements from both input lists\n    \"\"\"\n    merged = []\n    i, j = 0, 0\n    \n    # Merge elements from both lists using two pointers\n    while i < len(list1) and j < len(list2):\n        if list1[i] <= list2[j]:\n            merged.append(list1[i])\n            i += 1\n        else:\n            merged.append(list2[j])\n            j += 1\n    \n    # Append remaining elements from list1 (if any)\n    while i < len(list1):\n        merged.append(list"
+          },
+          "finish_reason": "length"
+        }
+      ]
+    },
+    {
+      "wall_seconds": 2.139131515985355,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 30,
+        "prompt_ms": 93.8,
+        "prompt_per_token_ms": 3.127,
+        "prompt_per_second": 319.8,
+        "predicted_n": 192,
+        "predicted_ms": 2043.9,
+        "predicted_per_token_ms": 10.645,
+        "predicted_per_second": 93.9,
+        "draft_n": 0,
+        "draft_n_accepted": 0
+      },
+      "usage": {
+        "prompt_tokens": 30,
+        "completion_tokens": 192,
+        "total_tokens": 222,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "Here is a Python function that merges two sorted lists into a single sorted list, followed by an explanation of its time and space complexity.\n\n### Python Function\n\n```python\ndef merge_sorted_lists(list1: list, list2: list) -> list:\n    \"\"\"\n    Merges two sorted lists into a single sorted list.\n    \n    Args:\n        list1: A sorted list of elements.\n        list2: A sorted list of elements.\n        \n    Returns:\n        A new sorted list containing all elements from list1 and list2.\n    \"\"\"\n    merged = []\n    i, j = 0, 0\n    \n    # Iterate through both lists while there are elements remaining\n    while i < len(list1) and j < len(list2):\n        if list1[i] <= list2[j]:\n            merged.append(list1[i])\n            i += 1\n       "
+          },
+          "finish_reason": "length"
+        }
+      ]
+    },
+    {
+      "wall_seconds": 2.1459096830221824,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 30,
+        "prompt_ms": 68.1,
+        "prompt_per_token_ms": 2.27,
+        "prompt_per_second": 440.5,
+        "predicted_n": 192,
+        "predicted_ms": 2076.4,
+        "predicted_per_token_ms": 10.815,
+        "predicted_per_second": 92.5,
+        "draft_n": 0,
+        "draft_n_accepted": 0
+      },
+      "usage": {
+        "prompt_tokens": 30,
+        "completion_tokens": 192,
+        "total_tokens": 222,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "Here is a Python function that merges two sorted lists into a single sorted list, followed by an explanation of its time and space complexity.\n\n### Python Implementation\n\n```python\ndef merge_sorted_lists(list1: list, list2: list) -> list:\n    \"\"\"\n    Merges two sorted lists into a single sorted list.\n    \n    Args:\n        list1: A sorted list of elements.\n        list2: A sorted list of elements.\n        \n    Returns:\n        A new sorted list containing all elements from list1 and list2.\n    \"\"\"\n    merged = []\n    i, j = 0, 0\n    \n    # Compare elements from both lists and append the smaller one\n    while i < len(list1) and j < len(list2):\n        if list1[i] <= list2[j]:\n            merged.append(list1[i])\n            i += 1\n"
+          },
+          "finish_reason": "length"
+        }
+      ]
+    }
+  ]
+}

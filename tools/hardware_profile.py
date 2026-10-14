@@ -8,6 +8,7 @@ import json
 import os
 import shlex
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -25,6 +26,17 @@ ENV = {
     'STRATA_RESIDENT_HEADROOM_GIB': '4', 'STRATA_PIN_GUARD': '2',
     'STRATA_PIN_RESERVE_GIB': '4', 'STRATA_UNBUFFERED_LOAD': '1',
 }
+
+
+def recover_failed_scope():
+    """Clear a previous failed unit; never stop a running server."""
+    state = subprocess.run(['systemctl', '--user', 'show', 'strata-local.scope',
+                            '--property=ActiveState', '--value'], capture_output=True, text=True)
+    if state.returncode == 0 and state.stdout.strip() == 'failed':
+        result = subprocess.run(['systemctl', '--user', 'reset-failed', 'strata-local.scope'],
+                                capture_output=True, text=True)
+        if result.returncode:
+            raise ValueError('cannot clear failed Strata scope: ' + result.stderr.strip())
 
 
 def validate(config: dict) -> None:
@@ -175,6 +187,7 @@ def main() -> int:
             if args.port is not None:
                 config = {**config, 'port': args.port}
             argv = command(config, args.config)
+            recover_failed_scope()
             if args.open:
                 argv.append('--open')
             os.chdir(ROOT)

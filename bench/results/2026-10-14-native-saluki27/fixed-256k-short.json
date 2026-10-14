@@ -1,0 +1,42 @@
+{
+  "url": "http://127.0.0.1:8096",
+  "temperature": 0,
+  "max_tokens": 128,
+  "prompt_file": null,
+  "trials": [
+    {
+      "wall_seconds": 36.999910449027084,
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 30,
+        "prompt_ms": 800.1,
+        "prompt_per_token_ms": 26.67,
+        "prompt_per_second": 37.5,
+        "predicted_n": 128,
+        "predicted_ms": 36194.4,
+        "predicted_per_token_ms": 282.769,
+        "predicted_per_second": 3.5,
+        "draft_n": 0,
+        "draft_n_accepted": 0
+      },
+      "usage": {
+        "prompt_tokens": 30,
+        "completion_tokens": 128,
+        "total_tokens": 158,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "```python\ndef merge_sorted_lists(list1: list, list2: list) -> list:\n    \"\"\"\n    Merge two sorted lists into a single sorted list.\n    \n    Args:\n        list1: First sorted list\n        list2: Second sorted list\n    \n    Returns:\n        A new sorted list containing all elements from both input lists\n    \"\"\"\n    merged = []\n    i, j = 0, 0\n    \n    # Compare elements from both lists and append the smaller one\n    while i < len(list1) and j < len(list2):\n        if list1[i]"
+          },
+          "finish_reason": "length"
+        }
+      ]
+    }
+  ]
+}

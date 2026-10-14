@@ -1,0 +1,30 @@
+{
+  "prompt_tokens": 3546,
+  "positions": 17,
+  "top1_agreement": 17,
+  "mean_kl": 0.0,
+  "max_kl": 0.0,
+  "kl": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "reference": "same native engine and int8 KV: resident versus disk-backed weights; not external parity",
+  "logits_byte_identical": true,
+  "resident_sha256": "df946c11ebdf22b87eb1933576eaa5dfea5c25c95fc6c04e50a2b74d259ac92f",
+  "streamed_sha256": "df946c11ebdf22b87eb1933576eaa5dfea5c25c95fc6c04e50a2b74d259ac92f"
+}

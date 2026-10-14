@@ -1,0 +1,29 @@
+{
+  "prompt_tokens": 4246,
+  "positions": 17,
+  "top1_agreement": 17,
+  "mean_kl": 0.0,
+  "max_kl": 0.0,
+  "kl": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "reference": "same native engine and int8 KV: static versus adaptive storage with KV growth; not external parity",
+  "logits_byte_identical": true,
+  "cycle_logits_byte_identical": true
+}

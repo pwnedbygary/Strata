@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Arcade</title>
+    <style>
+        :root {
+            --bg-color: #111;
+            --grid-bg: #181818;
+            --snake-color: #00ff00;
+            --food-color: #ff0000;
+            --text-color: #eee;
+            --accent-color: #0088ff;
+            --cell-size: 20px;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            width: 400px;
+            align-items: center;
+        }
+        .score-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        .controls {
+            display: flex;
+            gap: 8px;
+        }
+        button {
+            padding: 8px 16px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        button:hover { background: #0066cc; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        
+        .game-wrapper {
+            position: relative;
+            width: 400px;
+            height: 400px;
+        }
+        canvas {
+            background: var(--grid-bg);
+            display: block;
+            border: 2px solid #333;
+        }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 16px;
+            color: white;
+            font-size: 20px;
+            text-align: center;
+        }
+        .overlay.hidden { display: none; }
+        
+        .touch-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            width: 160px;
+        }
+        .touch-btn {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .touch-btn:hover { background: #444; }
+        
+        .instructions {
+            font-size: 12px;
+            color: #777;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="score-display">Score: <span id="score">0</span></div>
+            <div class="controls">
+                <button id="btn-start">Start</button>
+                <button id="btn-restart">Restart</button>
+            </div>
+        </div>
+        <div class="game-wrapper">
+            <canvas id="gameCanvas" width="400" height="400"></canvas>
+            <div id="overlay" class="overlay hidden">
+                <div id="overlay-msg">Game Over</div>
+                <button id="btn-overlay-restart">Restart</button>
+            </div>
+        </div>
+        <div class="touch-controls">
+            <div class="touch-btn" id="btn-up">▲</div>
+            <div class="touch-btn" id="btn-down">▼</div>
+            <div class="touch-btn" id="btn-left">◄</div>
+            <div class="touch-btn" id="btn-right">►</div>
+        </div>
+        <div class="instructions">Use Arrow Keys or Touch Buttons. Start to begin.</div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 20;
+        const CELL_SIZE = 20;
+        const CANVAS_SIZE = GRID_SIZE * CELL_SIZE;
+
+        // Game State
+        let snake = [[10,10],[9,10],[8,10]];
+        let direction = [1, 0]; // dx, dy
+        let score = 0;
+        let alive = true;
+        let paused = true;
+        let food = null;
+        let seed = 20261013;
+
+        // DOM Elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const overlay = document.getElementById('overlay');
+        const overlayMsg = document.getElementById('overlay-msg');
+        const btnStart = document.getElementById('btn-start');
+        const btnRestart = document.getElementById('btn-restart');
+        const btnOverlayRestart = document.getElementById('btn-overlay-restart');
+        const btnUp = document.getElementById('btn-up');
+        const btnDown = document.getElementById('btn-down');
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+
+        // RNG
+        function xorshift() {
+            let x = seed;
+            x ^= x << 13;
+            x ^= x >>> 17;
+            x ^= x << 5;
+            seed = x >>> 0;
+            return seed;
+        }
+
+        function generateFood() {
+            let emptyCells = [];
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (!snake.some(s => s[0] === x && s[1] === y)) {
+                        emptyCells.push([x, y]);
+                    }
+                }
+            }
+            if (emptyCells.length === 0) return null;
+            const r = xorshift();
+            const idx = r % emptyCells.length;
+            food = emptyCells[idx];
+        }
+
+        function resetGame(newSeed = 20261013) {
+            seed = newSeed;
+            snake = [[10,10],[9,10],[8,10]];
+            direction = [1, 0];
+            score = 0;
+            alive = true;
+            paused = true;
+            food = null;
+            generateFood();
+            updateUI();
+            render();
+        }
+
+        function step(newDir) {
+            if (!alive) return;
+
+            // Check reverse direction
+            if (newDir[0] === -direction[0] && newDir[1] === -direction[1]) {
+                // Ignore reversing direction
+            } else {
+                direction = newDir;
+            }
+
+            const head = snake[0];
+            const nx = head[0] + direction[0];
+            const ny = head[1] + direction[1];
+
+            // Wall collision
+            if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) {
+                alive = false;
+                render();
+                return;
+            }
+
+            // Self collision
+            if (snake.some(s => s[0] === nx && s[1] === ny)) {
+                alive = false;
+                render();
+                return;
+            }
+
+            // Move
+            snake.unshift([nx, ny]);
+
+            // Eat food
+            if (nx === food[0] && ny === food[1]) {
+                score++;
+                generateFood();
+            } else {
+                snake.pop();
+            }
+
+            render();
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            
+            // Draw Grid (optional subtle lines)
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= GRID_SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * CELL_SIZE, 0);
+                ctx.lineTo(i * CELL_SIZE, CANVAS_SIZE);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * CELL_SIZE);
+                ctx.lineTo(CANVAS_SIZE, i * CELL_SIZE);
+                ctx.stroke();
+            }
+
+            // Draw Snake
+            ctx.fillStyle = '#00ff00';
+            snake.forEach(([x, y]) => {
+                ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
+            });
+
+            // Draw Food
+            if (food) {
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(food[0] * CELL_SIZE, food[1] * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
+            }
+
+            // Update UI
+            scoreEl.textContent = score;
+            
+            if (!alive) {
+                overlay.classList.remove('hidden');
+                overlayMsg.textContent = "Game Over! Score: " + score;
+                btnStart.disabled = true;
+            } else {
+                overlay.classList.add('hidden');
+                btnStart.disabled = paused;
+            }
+        }
+
+        function updateUI() {
+            scoreEl.textContent = score;
+            btnStart.disabled = paused;
+            if (!alive) {
+                overlay.classList.remove('hidden');
+                overlayMsg.textContent = "Game Over! Score: " + score;
+                btnStart.disabled = true;
+            } else {
+                overlay.classList.add('hidden');
+                btnStart.disabled = paused;
+            }
+        }
+
+        // Event Listeners
+        btnStart.addEventListener('click', () => {
+            if (!alive) return;
+            paused = false;
+            updateUI();
+        });
+
+        btnRestart.addEventListener('click', () => {
+            resetGame();
+        });
+
+        btnOverlayRestart.addEventListener('click', () => {
+            resetGame();
+        });
+
+        // Keyboard Controls
+        document.addEventListener('keydown', (e) => {
+            if (!alive) return;
+            let dir = null;
+            switch(e.key) {
+                case 'ArrowUp': dir = [0, -1]; break;
+                case 'ArrowDown': dir = [0, 1]; break;
+                case 'ArrowLeft': dir = [-1, 0]; break;
+                case 'ArrowRight': dir = [1, 0]; break;
+            }
+            if (dir) {
+                step(dir);
+                if (!paused) {
+                    // If game is running, step triggers a tick. 
+                    // We need to ensure the game loop continues.
+                    // Since we don't use setInterval for logic, we rely on user input to drive ticks?
+                    // Wait, the prompt says "Movement is one cell per tick". 
+                    // Usually Snake runs on a timer. 
+                    // "A normal UI timer runs only while unpaused and alive."
+                    // This implies an automatic loop.
+                }
+            }
+        });
+
+        // Touch Controls
+        btnUp.addEventListener('click', () => step([0, -1]));
+        btnDown.addEventListener('click', () => step([0, 1]));
+        btnLeft.addEventListener('click', () => step([-1, 0]));
+        btnRight.addEventListener('click', () => step([1, 0]));
+
+        // Game Loop
+        let gameInterval = null;
+        const TICK_RATE = 100; // 10 ticks per second
+
+        function startLoop() {
+            if (gameInterval) return;
+            gameInterval = setInterval(() => {
+                if (!paused && alive) {
+                    step(direction);
+                }
+            }, TICK_RATE);
+        }
+
+        // Initialize
+        resetGame();
+        startLoop();
+
+        // Expose window.bench
+        window.bench = {
+            reset: (s) => resetGame(s),
+            step: (d) => {
+                let dir = [0,0];
+                if (d === 'up') dir = [0, -1];
+                if (d === 'down') dir = [0, 1];
+                if (d === 'left') dir = [-1, 0];
+                if (d === 'right') dir = [1, 0];
+                step(dir);
+            },
+            state: () => {
+                return {
+                    snake: snake.map(s => [...s]),
+                    food: food ? [...food] : null,
+                    direction: [...direction],
+                    score: score,
+                    alive: alive,
+                    paused: paused
+                };
+            }
+        };
+    </script>
+</body>
+</html>

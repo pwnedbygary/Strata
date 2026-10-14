@@ -1,0 +1,68 @@
+{
+  "suite_version": 1,
+  "seed": 20261013,
+  "temperature": 0,
+  "model": "underdog-saluki-27b-1.0-iq2-mix",
+  "engine": null,
+  "max_context": 262144,
+  "engine_settings": {
+    "model": "underdog-saluki-27b-1.0-iq2-mix",
+    "max_context": 262144,
+    "images": false,
+    "version": null
+  },
+  "trials": [
+    {
+      "case": "snake",
+      "repeat": 0,
+      "max_tokens": 8192,
+      "prompt_sha256": "e42e7fc4b602708271c1430ca9de3c70077c67b7b08bb946764259f710649777",
+      "artifact_sha256": "96ef2338323384335063bdb59a4b7237de4d67d433ae557c0b5e5e62508fdbe5",
+      "artifact": "snake-0.html",
+      "wall_seconds": 173.387487030006,
+      "finish_reason": "stop",
+      "fenced_output": false,
+      "usage": {
+        "prompt_tokens": 472,
+        "completion_tokens": 5503,
+        "total_tokens": 5975,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 472,
+        "prompt_ms": 2757.9,
+        "prompt_per_token_ms": 5.843,
+        "prompt_per_second": 171.1,
+        "predicted_n": 5503,
+        "predicted_ms": 170625.4,
+        "predicted_per_token_ms": 31.006,
+        "predicted_per_second": 32.3,
+        "draft_n": 0,
+        "draft_n_accepted": 0
+      },
+      "checks": {},
+      "browser": {
+        "status": "completed",
+        "checks": {
+          "api_present": true,
+          "initial_snake": true,
+          "initial_score": true,
+          "starts_paused": true,
+          "reversal_ignored": true,
+          "paused_step_moves": false,
+          "wall_collision": true,
+          "state_copy": true,
+          "food_growth": true,
+          "seeded_food": true,
+          "seeded_reset": true
+        },
+        "page_errors": [],
+        "screenshot": "snake-0.html.png"
+      },
+      "manual_visual_review": "not_done"
+    }
+  ]
+}

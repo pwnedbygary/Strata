@@ -1,0 +1,1 @@
+{"status":"completed","checks":{"api_present":true,"initial_snake":true,"initial_score":true,"starts_paused":true,"reversal_ignored":true,"paused_step_moves":true,"wall_collision":true,"state_copy":true,"food_growth":true,"seeded_food":true,"seeded_reset":true},"page_errors":[],"screenshot":"snake-0.html.png"}

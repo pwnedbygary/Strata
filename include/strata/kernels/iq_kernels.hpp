@@ -14,6 +14,9 @@ namespace strata::kernels {
 
 /// ggml type ids handled here.
 bool iq_supported(int ggml_type) noexcept;
+/// Experimental dense Q2_K / IQ1_S rows; original weights, q8_1 activations.
+void dense_lowbit_mmvq(int ggml_type, const void* w, const void* x_q8_1, float* y,
+                       int n_in, int n_out, int ncols, void* stream);
 /// The token-embedding types iq_embed_rows and iq_dequant_f32 read: the i-quants above and BF16 (30).
 bool embed_type_supported(int ggml_type) noexcept;
 /// Bytes of one row of `n` values of `ggml_type` (n a multiple of the type's block).
