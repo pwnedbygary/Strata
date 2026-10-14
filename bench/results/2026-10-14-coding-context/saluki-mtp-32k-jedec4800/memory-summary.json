@@ -1,0 +1,15 @@
+{
+  "samples": 244,
+  "min_available_gib": 21.284,
+  "min_physical_vram_free_mib": 1813,
+  "max_cpu_tctl_c": 67.0,
+  "max_gpu_temperatures_c": {
+    "edge": 58.0,
+    "junction": 76.0,
+    "mem": 68.0
+  },
+  "configured_memory_speed_mts_user_reported": 4800,
+  "bios_changes": "User reset memory/fabric/SoC settings to Auto and removed Curve Optimizer; current PBO state not verified through Linux",
+  "new_kernel_messages_during_run": false,
+  "fresh_answer_matches_earlier_32k": true
+}

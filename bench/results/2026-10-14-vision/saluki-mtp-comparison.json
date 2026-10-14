@@ -1,0 +1,20 @@
+[
+  {
+    "case": 1,
+    "assistant_messages_identical": true,
+    "off_tps": 35.9,
+    "on_tps": 49.0,
+    "off_drafts": 0,
+    "on_drafts": 26,
+    "accepted": 26
+  },
+  {
+    "case": 2,
+    "assistant_messages_identical": true,
+    "off_tps": 36.0,
+    "on_tps": 49.5,
+    "off_drafts": 0,
+    "on_drafts": 26,
+    "accepted": 26
+  }
+]

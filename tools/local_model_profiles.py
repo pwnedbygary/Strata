@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Add profiles for the locally tested Swift/Tiel/0.8B files; retain existing registry entries."""
 import argparse
+import copy
 import json
 import os
 from pathlib import Path
@@ -28,8 +29,17 @@ def main():
     parser.add_argument('--base-config', type=Path, default=ROOT/'strata-saluki27-adaptive.json')
     parser.add_argument('--registry', type=Path, default=Path.home()/'.config/strata/router.json')
     parser.add_argument('--swift-mtp', action='store_true', help='opt in to measured 8K/one-draft Swift profiles')
+    parser.add_argument('--mtp-context', type=int, default=8192, help='MTP limit, 4K multiples through 256K; larger limits opt into adaptive MTP')
     parser.add_argument('--include-q8-compat', action='store_true', help='explicitly permit lossy 0.8B projection compatibility conversion')
+    parser.add_argument('--vision', action='store_true', help='add separate CPU screenshot-encoder profiles; requires a vision-enabled build')
+    parser.add_argument('--vision-tokens', type=int, default=2048, help='visual-token budget per screenshot (default 2048)')
+    parser.add_argument('--saluki-abliterated', action='store_true', help='add 256K Saluki abliterated screenshot profiles with MTP off/on')
+    parser.add_argument('--remove-swift-mtp', action='store_true', help='remove Swift MTP selections from the registry, retaining their files')
     args = parser.parse_args()
+    if args.mtp_context not in range(4096, 262145, 4096):
+        parser.error('--mtp-context must be a 4K multiple through 262144')
+    if args.vision_tokens not in range(256,4097):
+        parser.error('--vision-tokens must be between 256 and 4096')
     base = json.loads(args.base_config.read_text())
     if base.get('backend') != 'hip':
         parser.error('These profiles were validated on the RX 9070 XT HIP build only')
@@ -53,11 +63,15 @@ def main():
             quant = 'IQ3_S' if 'IQ3_S' in filename else 'IQ3_XXS'
             title = f'Swift 1.5 27B {quant} — adaptive 256K'
             if mtp_file and args.swift_mtp:
-                cfg['args'][cfg['args'].index('--max-context')+1] = '8192'
+                cfg['args'][cfg['args'].index('--max-context')+1] = str(args.mtp_context)
                 cfg['args'][cfg['args'].index('--mtp')+1] = '1'
                 cfg['env'].pop('STRATA_Q35_ADAPTIVE_WEIGHTS', None)
                 cfg['sampling'] = {**cfg.get('sampling', {}), 'temperature': 0}
-                title = f'Swift 1.5 27B {quant} — 8K, MTP drafting on (1 draft)'
+                if args.mtp_context > 8192:
+                    cfg['env'].update(STRATA_Q35_ADAPTIVE_WEIGHTS='1', STRATA_Q35_ADAPTIVE_MTP='1')
+                title = f'Swift 1.5 27B {quant} — {args.mtp_context//1024}K, MTP drafting on (1 draft)'
+                if args.mtp_context > 8192:
+                    title += '; adaptive GPU/file weights'
             elif mtp_file:
                 title += '; contains MTP weights, drafting off'
             cfg['router'] = {'display_name': title}
@@ -83,11 +97,62 @@ def main():
         path = args.registry.parent/'profiles'/(name+'.json')
         cfg['log'] = str(path.resolve().with_suffix('.log'))
         save(path, cfg)
+        if kind == 'swift' and mtp_file and args.swift_mtp and args.mtp_context > 8192:
+            fast_name = name + '-fast-8k'
+            fast = copy.deepcopy(cfg)
+            fast['args'][fast['args'].index('--max-context')+1] = '8192'
+            fast['env'].pop('STRATA_Q35_ADAPTIVE_WEIGHTS', None)
+            fast['env'].pop('STRATA_Q35_ADAPTIVE_MTP', None)
+            fast['model_name'] = fast_name
+            fast['router']['display_name'] = f'Swift 1.5 27B {quant} — fast 8K MTP'
+            fast_path = args.registry.parent/'profiles'/(fast_name+'.json')
+            fast['log'] = str(fast_path.resolve().with_suffix('.log'))
+            save(fast_path, fast)
+            registry['profiles'][fast_name] = str(fast_path.resolve())
         registry['profiles'][name] = str(path.resolve())
         # Retire the temporary labels used before MTP validation.
         if mtp_file:
             registry['profiles'].pop(name+'-file', None)
         added.append(name)
+        if args.vision and kind == 'swift' and not mtp_file:
+            mmproj = args.models/'mmproj-Swift-1.5-Qwen3.8-27B-F16.gguf'
+            if mmproj.is_file():
+                add_vision_profile(cfg, name, model, mmproj, registry, args.registry.parent, args.vision_tokens)
+    if args.vision and 'saluki27' in registry['profiles']:
+        entry = registry['profiles']['saluki27']
+        source = Path(entry) if isinstance(entry, str) else None
+        if source and not source.is_absolute():
+            source = args.registry.parent/source
+        saluki = json.loads(source.read_text()) if source else entry
+        model = args.models/'Underdog-Saluki-27B-1.0-IQ2-mix.gguf'
+        mmproj = args.models/'mmproj-Underdog-Saluki-27B-1.0-F16.gguf'
+        if model.is_file() and mmproj.is_file():
+            add_vision_profile(saluki, 'saluki27', model, mmproj, registry, args.registry.parent, args.vision_tokens)
+    if args.saluki_abliterated:
+        model = args.models/'Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf'
+        mmproj = args.models/'mmproj-Underdog-Saluki-27B-1.0-F16.gguf'
+        if not model.is_file() or not mmproj.is_file():
+            parser.error('Saluki abliterated GGUF and matching Saluki mmproj are required')
+        name = 'saluki27-abliterated'
+        pack = args.packs/name
+        extract(model, pack)
+        cfg = prepare(base, model, pack/'tokenizer', 262144, 512, attention_score_mib=128)
+        cfg.update(exe='@bundle/dense-hip', cwd=str(args.registry.resolve().parent))
+        cfg['router'] = {'display_name': 'Saluki 27B abliterated IQ2-mix — adaptive 256K'}
+        tuning = cfg.get('env', {}).get('STRATA_HIPBLASLT_TUNING')
+        if tuning and (ROOT/'tools/hip'/Path(tuning).name).is_file():
+            cfg['env']['STRATA_HIPBLASLT_TUNING'] = '@bundle/tools/hip/' + Path(tuning).name
+        for drafts in (0,1):
+            profile = name + ('-mtp' if drafts else '')
+            add_vision_profile(cfg, profile, model, mmproj, registry, args.registry.parent, args.vision_tokens, drafts)
+            added.append(profile+'-vision')
+    if args.remove_swift_mtp:
+        for profile in list(registry['profiles']):
+            if profile.startswith('swift27-') and '-mtp' in profile:
+                del registry['profiles'][profile]
+        added = [name for name in added if not (name.startswith('swift27-') and '-mtp' in name)]
+        if registry.get('default') not in registry['profiles']:
+            registry['default'] = next(iter(registry['profiles']))
     if not added:
         parser.error('None of the known candidate files were found; registry left unchanged')
     registry.setdefault('default', next(iter(registry['profiles'])))
@@ -100,6 +165,27 @@ def main():
         temporary.unlink(missing_ok=True)
     print('Registered: '+', '.join(added))
     print('Restart the router to read the updated registry. Disabled Tiel entries are listed but cannot load.')
+
+
+def add_vision_profile(base, name, model, mmproj, registry, directory, image_tokens=2048, drafts=0):
+    cfg = copy.deepcopy(base)
+    name += '-vision'
+    cfg['model_name'] = name
+    cfg['args'][cfg['args'].index('--mtp')+1] = str(drafts)
+    if '--vision' not in cfg['args']:
+        cfg['args'].append('--vision')
+    cfg['env'].pop('STRATA_Q35_ADAPTIVE_MTP', None)
+    if drafts:
+        cfg['env']['STRATA_Q35_ADAPTIVE_MTP'] = '1'
+        cfg['sampling'] = {**cfg.get('sampling', {}), 'temperature': 0}
+    cfg['env']['STRATA_Q35_VISION'] = '1'
+    cfg['vision'] = {'exe': '@bundle/vision-cpu', 'model': str(model.resolve()),
+                     'mmproj': str(mmproj.resolve()), 'gpu': False, 'threads': 4, 'max_tokens': image_tokens}
+    cfg['router'] = {'display_name': base.get('router', {}).get('display_name', name.removesuffix('-vision')) + f' — screenshots, MTP {"on (1 draft)" if drafts else "off"}'}
+    path = directory/'profiles'/(name+'.json')
+    cfg['log'] = str(path.resolve().with_suffix('.log'))
+    save(path, cfg)
+    registry['profiles'][name] = str(path.resolve())
 
 
 if __name__ == '__main__':

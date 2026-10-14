@@ -1,0 +1,79 @@
+{
+  "model": "saluki27-abliterated-mtp-vision",
+  "cases": [
+    {
+      "expected": {
+        "file": "src/game.js",
+        "line": 42,
+        "error_code": "ERR-7314",
+        "message": "snake is not defined"
+      },
+      "actual": {
+        "file": "src/game.js",
+        "line": 42,
+        "error_code": "ERR-7314",
+        "message": "snake is not defined"
+      },
+      "exact": true,
+      "elapsed_seconds": 33.06,
+      "usage": {
+        "prompt_tokens": 4086,
+        "completion_tokens": 53,
+        "total_tokens": 4139,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 4086,
+        "prompt_ms": 24390.7,
+        "prompt_per_token_ms": 5.969,
+        "prompt_per_second": 167.5,
+        "predicted_n": 53,
+        "predicted_ms": 1238.0,
+        "predicted_per_token_ms": 23.358,
+        "predicted_per_second": 42.8,
+        "draft_n": 26,
+        "draft_n_accepted": 26
+      }
+    },
+    {
+      "expected": {
+        "file": "src/router.py",
+        "line": 87,
+        "error_code": "ERR-2059",
+        "message": "worker is not ready"
+      },
+      "actual": {
+        "file": "src/router.py",
+        "line": 87,
+        "error_code": "ERR-2059",
+        "message": "worker is not ready"
+      },
+      "exact": true,
+      "elapsed_seconds": 27.75,
+      "usage": {
+        "prompt_tokens": 4086,
+        "completion_tokens": 53,
+        "total_tokens": 4139,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 4086,
+        "prompt_ms": 24460.5,
+        "prompt_per_token_ms": 5.986,
+        "prompt_per_second": 167.0,
+        "predicted_n": 53,
+        "predicted_ms": 1238.3,
+        "predicted_per_token_ms": 23.364,
+        "predicted_per_second": 42.8,
+        "draft_n": 26,
+        "draft_n_accepted": 26
+      }
+    }
+  ]
+}

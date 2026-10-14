@@ -10,7 +10,7 @@ The local Swift 27B and Underdog-Saluki 27B files declare `qwen35`: 64 main laye
 
 Native Q2_K and IQ1_S projection kernels preserve those original GGUF weights. An earlier Q8_0 compatibility path expanded Saluki's GPU weights from about 7.41 GiB to 11.36 GiB; it is no longer needed for this file. Q8 compatibility remains a separate, explicit lossy opt-in for other files, leaving the original file untouched. The supplied 27B profile rejects files that would require that conversion.
 
-Dense MTP weights are not loaded when MTP is off. The model's own tokenizer/chat template is exported from its GGUF. The mmproj file remains intact; this profile is text-only and does not claim image-input support.
+Dense MTP weights are not loaded when MTP is off. The model's own tokenizer/chat template is exported from its GGUF. The original dense profiles remain text-only; separate [screenshot profiles](SCREENSHOT_INPUT.md) use the matching mmproj and opt-in `STRATA_Q35_VISION=1`. Saluki abliterated was tested with images and one greedy MTP draft.
 
 ## Context and memory
 

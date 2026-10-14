@@ -1,0 +1,3 @@
+# Preserve generated answers as data, including their original trailing spaces.
+*/fresh.md -text whitespace=-blank-at-eol
+*/follow-up.md -text whitespace=-blank-at-eol

@@ -78,6 +78,7 @@ class RouterTests(unittest.TestCase):
         self.assertIn(b'[DONE]', data)
         self.assertIsNotNone(first.poll())
         self.assertEqual(self.router.active, 'beta')
+
         self.assertEqual(self.request('/chat/')[0], 200)
         code, script, _ = self.request('/chat/web/app.js')
         self.assertEqual(code, 200)
@@ -88,6 +89,23 @@ class RouterTests(unittest.TestCase):
         self.assertIsNone(self.router.active)
         self.assertEqual(self.request('/router/load', {'model': 'alpha'})[0], 200)
         self.assertEqual(self.router.active, 'alpha')
+
+    def test_vision_bundle_paths_are_resolved_without_mutating_profile(self):
+        _, cfg = self.router.profiles['alpha']
+        cfg['vision'] = {'exe': '@bundle/vision-cpu', 'model': 'local.gguf', 'mmproj': 'projector.gguf'}
+        seen = {}
+        def worker(config, port):
+            runtime = json.loads(config.read_text())
+            seen.update(runtime['vision'])
+            runtime.pop('vision')  # mock worker does not launch a real image encoder
+            config.write_text(json.dumps(runtime))
+            return [sys.executable, str(ROOT/'serve/server.py'), '--engine', 'mock',
+                    '--config', str(config), '--port', str(port), '--script', 'Hello.']
+        with patch('serve.router.worker_command', worker):
+            self.router.switch('alpha')
+        self.assertEqual(seen['exe'], str(ROOT/'engines/vision-cpu'))
+        self.assertEqual(seen['model'], str(Path(self.tmp.name)/'local.gguf'))
+        self.assertEqual(cfg['vision']['exe'], '@bundle/vision-cpu')
 
     def test_auth_origin_host_and_unknown_profile(self):
         self.assertEqual(self.request('/router/status', auth=False)[0], 401)
@@ -101,6 +119,13 @@ class RouterTests(unittest.TestCase):
         cookie = headers['Set-Cookie'].split(';')[0]
         self.assertIn('HttpOnly', headers['Set-Cookie'])
         self.assertEqual(self.request('/router/status', headers={'Cookie': cookie}, auth=False)[0], 200)
+
+    def test_token_count_loads_requested_model(self):
+        code, data, _ = self.request('/v1/messages/count_tokens', {
+            'model': 'beta', 'messages': [{'role': 'user', 'content': 'Count me'}]})
+        self.assertEqual(code, 200, data)
+        self.assertIn('input_tokens', json.loads(data))
+        self.assertEqual(self.router.active, 'beta')
 
     def test_busy_model_is_not_replaced_and_status_remains_available(self):
         self.router.switch('alpha')

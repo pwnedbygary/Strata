@@ -1,0 +1,17 @@
+{
+  "seconds": 1836.8,
+  "prompt_progress": {
+    "total": 261120,
+    "cache": 0,
+    "processed": 121856,
+    "time_ms": 1821784
+  },
+  "answer_chars": 0,
+  "latest_memory": {
+    "seconds": 1836.8,
+    "available_gib": 13.277,
+    "vram_free_mib": 1290
+  },
+  "completed": false,
+  "stop_reason": "User-approved pivot to screenshot validation and realistic 32K/64K coding contexts; no full-window result"
+}

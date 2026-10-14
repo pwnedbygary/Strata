@@ -211,6 +211,15 @@ class Router:
                         cfg[key] = str(value if value.is_absolute() else cwd / value)
                 if str(cfg['exe']).startswith('@bundle/'):
                     cfg['exe'] = str(ROOT / 'engines' / str(cfg['exe']).removeprefix('@bundle/'))
+                if isinstance(cfg.get('vision'), dict):
+                    cfg['vision'] = dict(cfg['vision'])
+                    for key in ('exe', 'model', 'mmproj'):
+                        value = cfg['vision'].get(key)
+                        if value and str(value).startswith('@bundle/'):
+                            cfg['vision'][key] = str(ROOT / 'engines' / str(value).removeprefix('@bundle/'))
+                        elif value:
+                            path = Path(value).expanduser()
+                            cfg['vision'][key] = str(path if path.is_absolute() else cwd / path)
                 cfg['args'] = [str(ROOT / arg.removeprefix('@bundle/'))
                                if isinstance(arg, str) and arg.startswith('@bundle/') else arg
                                for arg in cfg['args']]
@@ -414,7 +423,7 @@ def handler(router, api_key=''):
                 self.error(404, 'Unknown router endpoint')
                 return
             model = None
-            if path in GENERATE and self.command == 'POST':
+            if path in GENERATE | {'/v1/messages/count_tokens'} and self.command == 'POST':
                 req = json.loads(body)
                 if not isinstance(req, dict):
                     raise ValueError('Request must be a JSON object')
@@ -422,7 +431,7 @@ def handler(router, api_key=''):
                 if not isinstance(model, str) or model not in router.profiles:
                     self.error(404, 'Model is not registered')
                     return
-            if model:
+            if model and path in GENERATE:
                 cap = router.profiles[model][1].get('router', {}).get('max_output_tokens')
                 if cap:
                     keys = ('max_output_tokens',) if path == '/v1/responses' else (

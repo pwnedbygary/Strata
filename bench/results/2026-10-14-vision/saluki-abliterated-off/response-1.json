@@ -1,0 +1,37 @@
+{
+  "id": "chatcmpl-c4d3ec7ef35d44aab93234f1",
+  "object": "chat.completion",
+  "created": 1792001462,
+  "model": "saluki27-abliterated-vision",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n  \"file\": \"src/game.js\",\n  \"line\": 42,\n  \"error_code\": \"ERR-7314\",\n  \"message\": \"snake is not defined\"\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 242,
+    "completion_tokens": 53,
+    "total_tokens": 295,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 242,
+    "prompt_ms": 1315.1,
+    "prompt_per_token_ms": 5.434,
+    "prompt_per_second": 184.0,
+    "predicted_n": 53,
+    "predicted_ms": 1478.0,
+    "predicted_per_token_ms": 27.887,
+    "predicted_per_second": 35.9,
+    "draft_n": 0,
+    "draft_n_accepted": 0
+  }
+}

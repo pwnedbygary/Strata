@@ -36,6 +36,8 @@
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
 
+#include "strata/artifact/image_request.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <atomic>
@@ -263,6 +265,57 @@ __global__ void k_attn_prep(const float* qg, const float* kx, const float* vx, c
     if (i < n_rot) {
         const int p = i < half ? i : i - half;
         const float theta = (float) pos * powf(base, -2.0f * (float) p / (float) n_rot);
+        float sn, cs;
+        sincosf(theta, &sn, &cs);
+        v = i < half ? buf[i] * cs - buf[i + half] * sn : buf[i - half] * sn + buf[i] * cs;
+    }
+    if (isq) {
+        q[((size_t) t * H + head) * HD + i] = v;
+        gate[((size_t) t * H + head) * HD + i] = qg[((size_t) t * H + head) * 2 * HD + HD + i];
+    } else {
+        const int kh = head - H;
+        const float value = vx[((size_t) t * HKV + kh) * HD + i];
+        if constexpr (std::is_same<CacheT, int8_t>::value) {
+            const float km = block_max(fabsf(v), sh);
+            __syncthreads();
+            const float vm = block_max(fabsf(value), sh);
+            const float kd = km > 0.f ? km / 127.f : 1.f, vd = vm > 0.f ? vm / 127.f : 1.f;
+            if (!i) { ks[(size_t) kh * scale_ctx + pos] = kd; vs[(size_t) kh * scale_ctx + pos] = vd; }
+            kc[((size_t) kh * ctx + pos) * HD + i] = (int8_t) fminf(127.f, fmaxf(-127.f, nearbyintf(v / kd)));
+            vc[((size_t) kh * ctx + pos) * HD + i] = (int8_t) fminf(127.f, fmaxf(-127.f, nearbyintf(value / vd)));
+        } else {
+            kc[((size_t) kh * ctx + pos) * HD + i] = CacheT(v);
+            vc[((size_t) kh * ctx + pos) * HD + i] = CacheT(value);
+        }
+    }
+}
+
+template<class CacheT>
+__global__ void k_attn_prep_vision(const float* qg, const float* kx, const float* vx, const float* qw, const float* kw,
+                            float* q, float* gate, CacheT* kc, CacheT* vc, int H, int HKV, int HD, int n_rot,
+                            const int32_t* pos0, int ctx, float base, float eps, float* ks, float* vs, int scale_ctx, const int32_t* positions, int section_t, int section_h, int section_w) {
+    __shared__ float sh[kThreads];
+    __shared__ float buf[256];
+    const int head = blockIdx.x, t = blockIdx.y;
+    const int pos = *pos0 + t;
+    const bool isq = head < H;
+    const float* src = isq ? qg + ((size_t) t * H + head) * 2 * HD : kx + ((size_t) t * HKV + head - H) * HD;
+    const int i = threadIdx.x;
+    const float v0 = i < HD ? src[i] : 0.f;
+    const float s = block_sum(v0 * v0, sh);
+    const float r = rsqrtf(s / (float) HD + eps);
+    if (i < HD) buf[i] = v0 * r * (isq ? qw[i] : kw[i]);
+    __syncthreads();
+    if (i >= HD) return;
+    float v = buf[i];
+    const int half = n_rot / 2;
+    if (i < n_rot) {
+        const int p = i < half ? i : i - half;
+        const int sector = p % (section_t + section_h + section_w);
+        const int axis = sector % 3 == 1 && sector < 3 * section_h ? 1 :
+                         sector % 3 == 2 && sector < 3 * section_w ? 2 : 0;
+        const int rotary_pos = positions[(size_t)pos * 3 + axis];
+        const float theta = (float) rotary_pos * powf(base, -2.0f * (float) p / (float) n_rot);
         float sn, cs;
         sincosf(theta, &sn, &cs);
         v = i < half ? buf[i] * cs - buf[i + half] * sn : buf[i - half] * sn + buf[i] * cs;
@@ -888,8 +941,10 @@ bool load(const std::string& path, Model& m, std::string& err, bool want_mtp) {
     const bool lowbit = dense && lowbit_env && std::strcmp(lowbit_env, "1") == 0;
     const char* adaptive_env = dense ? std::getenv("STRATA_Q35_ADAPTIVE_WEIGHTS") : nullptr;
     m.adaptive_dense = adaptive_env && std::strcmp(adaptive_env, "1") == 0;
-    if (m.adaptive_dense && (!lowbit || want_mtp || m.g.n_embd != 5120 || m.g.n_layers != 64)) {
-        err = "adaptive dense cache requires the native 27B path with MTP off"; return false;
+    const char* adaptive_mtp_env = std::getenv("STRATA_Q35_ADAPTIVE_MTP");
+    const bool adaptive_mtp = adaptive_mtp_env && std::strcmp(adaptive_mtp_env, "1") == 0;
+    if (m.adaptive_dense && (!lowbit || (want_mtp && !adaptive_mtp) || m.g.n_embd != 5120 || m.g.n_layers != 64)) {
+        err = "adaptive dense cache requires native 27B; MTP additionally needs STRATA_Q35_ADAPTIVE_MTP=1"; return false;
     }
     const char* dense_env = std::getenv("STRATA_Q35_DENSE");
     if (dense && (!dense_env || std::strcmp(dense_env, "1") != 0)) {
@@ -1179,6 +1234,9 @@ struct Engine {
     std::vector<CachedWeight> cached_weights;
     size_t cache_cursor = 0;
     int cache_stride = 0;
+    strata::artifact::ImageRequest image_request;
+    int32_t* image_positions = nullptr;
+    bool image_active = false;
     bool graph_requested = true;
     static constexpr size_t kDenseReserve = 2560u << 20;
     size_t dense_reserve = kDenseReserve;
@@ -1316,9 +1374,15 @@ struct Engine {
         }
         if (model.adaptive_dense) {
             cached_weights.resize((size_t) model.cache_count);
-            for (const Layer& L : model.layers)
+            auto cache_matrix = [&](const Mat& w) {
+                if (w.cache_id >= 0) cached_weights[(size_t) w.cache_id] = {const_cast<uint8_t*>(w.d),w.backing,w.bytes};
+            };
+            auto cache_layer = [&](const Layer& L) {
                 for (const Mat* w : {&L.qkv,&L.zg,&L.ssm_out,&L.wq,&L.wk,&L.wv,&L.wo,&L.sh_gate,&L.sh_up,&L.sh_down})
-                    if (w->cache_id >= 0) cached_weights[(size_t) w->cache_id] = {const_cast<uint8_t*>(w->d),w->backing,w->bytes};
+                    cache_matrix(*w);
+            };
+            for (const Layer& L : model.layers) cache_layer(L);
+            if (model.has_mtp) { cache_layer(model.mtp); cache_matrix(model.eh_proj); }
         }
         const char* kv_env = std::getenv("STRATA_Q35_KV_F16");
         kv_f16 = dense && kv_env && std::strcmp(kv_env, "1") == 0;
@@ -1457,7 +1521,7 @@ struct Engine {
         if (m->has_mtp) {   // the MTP block's own K / V (an attention layer at index n_layers)
             conv.push_back(nullptr);
             S.push_back(nullptr);
-            const size_t cells = (size_t) g.n_head_kv * ctx * g.head_dim;
+            const size_t cells = (size_t) g.n_head_kv * cache_stride * g.head_dim;
             kc.push_back(kv_i8 ? reinterpret_cast<float*>(dalloc_t<int8_t>(cells)) : kv_f16 ? reinterpret_cast<float*>(dalloc_t<__half>(cells)) : dalloc(cells));
             vc.push_back(kv_i8 ? reinterpret_cast<float*>(dalloc_t<int8_t>(cells)) : kv_f16 ? reinterpret_cast<float*>(dalloc_t<__half>(cells)) : dalloc(cells));
             kscale.push_back(kv_i8 ? dalloc((size_t) g.n_head_kv * ctx) : nullptr);
@@ -1475,6 +1539,41 @@ struct Engine {
         std::fprintf(stderr, "strata-q36: context %d cells, prompt chunk %d%s, %.2f GiB of VRAM free\n", ctx, tmax,
                      m->has_mtp ? ", MTP block loaded" : "", (double) fr / (1 << 30));
         if (dense) std::fprintf(stderr, "strata-q35: %s KV, bounded attention scratch\n", kv_i8 ? "int8" : kv_f16 ? "FP16" : "FP32");
+    }
+
+    void clear_images() {
+        if (!image_active && !image_positions) return;
+        CK(cudaStreamSynchronize(st)); reset_graphs();
+        if (image_positions) CK(cudaFree(image_positions));
+        image_positions = nullptr; image_active = false;
+        image_request = {};
+    }
+    bool set_images(const std::string& file, const std::vector<int32_t>& ids, std::string& err) {
+        const char* enabled = std::getenv("STRATA_Q35_VISION");
+        if (!enabled || std::strcmp(enabled,"1") != 0 || m->g.family != strata::ModelFamily::Qwen35Dense) {
+            err = "native screenshot input requires an opt-in dense vision profile"; return false;
+        }
+        const auto* sections = m->file->meta().get("qwen35.rope.dimension_sections");
+        if (!sections || sections->items.size()!=4 || sections->items[0].u!=11 ||
+            sections->items[1].u!=11 || sections->items[2].u!=10 || sections->items[3].u!=0 || m->n_rot!=64) {
+            err = "unvalidated interleaved image rotary layout"; return false;
+        }
+        strata::artifact::ImageRequest request;
+        if (!strata::artifact::read_image_request(file,ids,(int)m->g.n_embd,ctx,248056,request,err)) return false;
+        clear_images();
+        CK(cudaMalloc(&image_positions,(size_t)ctx*3*sizeof(int32_t)));
+        CK(cudaMemcpy(image_positions,request.positions.data(),(size_t)ctx*3*sizeof(int32_t),cudaMemcpyHostToDevice));
+        image_request=std::move(request); image_active=true;
+        return true;
+    }
+    void image_embeddings(float* output, int64_t p0, int T) {
+        if (!image_active) return;
+        const size_t width=(size_t)m->g.n_embd;
+        for (int t=0;t<T && p0+t<(int64_t)image_request.row_at.size();++t) {
+            const int row=image_request.row_at[(size_t)p0+t];
+            if (row>=0) CK(cudaMemcpyAsync(output+(size_t)t*width,image_request.rows.data()+(size_t)row*width,
+                                          width*sizeof(float),cudaMemcpyHostToDevice,st));
+        }
     }
 
     /// The recurrent state and the cache to a fresh sequence.
@@ -1624,7 +1723,7 @@ struct Engine {
         const int next = needed > cache_stride ? std::min(ctx, (int) ((needed + 16383) / 16384 * 16384)) : cache_stride;
         size_t growth = 0;
         if (next > cache_stride) {
-            const size_t layers = (size_t) m->g.n_qsa_layers();
+            const size_t layers = (size_t) m->g.n_qsa_layers() + (m->has_mtp ? 1 : 0);
             const size_t per_row = (size_t) m->g.n_head_kv * m->g.head_dim;
             growth = 2 * layers * per_row * (next - cache_stride) + per_row * next;
         }
@@ -1698,7 +1797,10 @@ struct Engine {
             apply(L.wk, xq, kx, T);
             apply(L.wv, xq, vx, T);
             auto prep_cache = [&](auto* key, auto* value) {
-                k_attn_prep<<<dim3(H + HKV, T), kThreads, 0, st>>>(qg, kx, vx, L.q_norm, L.k_norm, q, gate, key, value,
+                if (image_active) k_attn_prep_vision<<<dim3(H + HKV, T), kThreads, 0, st>>>(qg,kx,vx,L.q_norm,L.k_norm,q,gate,key,value,
+                    H,HKV,HD,m->n_rot,dpos,cache_stride,m->rope_base,m->eps,
+                    kv_i8 ? kscale[li] : nullptr,kv_i8 ? vscale[li] : nullptr,ctx,image_positions,11,11,10);
+                else k_attn_prep<<<dim3(H + HKV, T), kThreads, 0, st>>>(qg, kx, vx, L.q_norm, L.k_norm, q, gate, key, value,
                                                                 H, HKV, HD, m->n_rot, dpos, cache_stride, m->rope_base, m->eps,
                                                                 kv_i8 ? kscale[li] : nullptr, kv_i8 ? vscale[li] : nullptr, ctx);
             };
@@ -1868,6 +1970,7 @@ struct Engine {
             stream_begin(seq);
         }
         K::iq_embed_rows(m->embd_type, m->embd, m->embd_row, tok, T, N, x, st);
+        image_embeddings(x,p0,T);
         k_rms<<<T, kThreads, 0, st>>>(x, m->layers[0].attn_norm, h, N, m->eps);   // later layers: from k_moe_out
         for (size_t l = 0; l < m->layers.size(); ++l) {
             const bool last = l + 1 == m->layers.size();
@@ -1892,6 +1995,7 @@ struct Engine {
         const int N = (int) g.n_embd;
         if (main_hybrid && lhy(m->layers.size()) && T > hybrid_t && use_mmq) stream_begin({(int) m->layers.size()});
         K::iq_embed_rows(m->embd_type, m->embd, m->embd_row, tok_m, T, N, y, st);
+        image_embeddings(y,p0,T); // The draft head consumes the same projected image rows as the main model.
         k_rms_ld<<<T, kThreads, 0, st>>>(y, N, m->mtp_enorm, mtp_cat, 2 * N, N, m->eps);              // [e | ...]
         k_rms_ld<<<T, kThreads, 0, st>>>(seeds, N, m->mtp_hnorm, mtp_cat + N, 2 * N, N, m->eps);      // [... | h]
         mm(m->eh_proj, mtp_cat, x, T);
@@ -2186,6 +2290,9 @@ struct Engine {
     /// returns the accepted count a and writes the picks of rows 0 .. a (row a's pick is the token after them).
     int spec_step(int x_tok, const std::vector<int32_t>& fix, int D, std::vector<int32_t>& drafts, int32_t* picks) {
         const int N = (int) m->g.n_embd;
+        // Grow before drafting or capturing verification: both heads use the same stride,
+        // and resizing/weight eviction invalidates every graph that held the old pointers.
+        ensure_dense_kv(pos + D + 1);
         if (main_hybrid) D = std::min<int>(D, (int) (kRebalanceEvery - pos % kRebalanceEvery) - 1);
         const int T0 = (int) fix.size() + 1;   // the redo rows and the row of x
         CK(cudaStreamSynchronize(st));
@@ -2554,6 +2661,9 @@ bool is_eos(int t) { return t == 248044 || t == 248046; }
 
 // ------------------------------------------------------------------------------------------------ serve
 int serve(Engine& E) {
+    if (E.m->g.family == strata::ModelFamily::Qwen35Dense)
+        std::printf("INFO context=%d kv=%s spec=%d mtp_max=%d draft_mode=greedy\n", E.ctx,
+                    E.kv_i8 ? "int8" : E.kv_f16 ? "fp16" : "fp32", E.mtp_d > 0 ? 1 : 0, E.mtp_d + 1);
     std::printf("READY %d stop\n", E.ctx);
     std::fflush(stdout);
     std::mutex mu;
@@ -2587,13 +2697,14 @@ int serve(Engine& E) {
             lines.pop_front();
         }
         if (line.empty()) continue;
-        if (line.rfind("GEN ", 0) != 0) {
+        const bool geni = line.rfind("GENI ",0)==0;
+        if (line.rfind("GEN ", 0) != 0 && !geni) {
             std::printf("ERR expected: GEN <max_new> [key=value ...] <id,id,...>\n");
             std::fflush(stdout);
             continue;
         }
         char* p = nullptr;
-        const long long max_new = std::strtoll(line.c_str() + 4, &p, 10);
+        const long long max_new = std::strtoll(line.c_str() + (geni ? 5 : 4), &p, 10);
         Sampling smp;
         for (;;) {
             while (*p == ' ') ++p;
@@ -2614,6 +2725,12 @@ int serve(Engine& E) {
             else if (key == "penalty_present") smp.present = std::strtof(v, nullptr);
             else if (key == "seed") smp.seed = std::strtoull(v, nullptr, 10);
         }
+        std::string image_file;
+        if (geni) {
+            while (*p==' ') ++p;
+            const char* first=p; while (*p && *p!=' ') ++p;
+            image_file.assign(first,(size_t)(p-first));
+        }
         const std::vector<int32_t> ids = parse_ids(p);
         if (max_new < 1 || ids.empty()) {
             std::printf("ERR bad request: max_new or the ids\n");
@@ -2628,6 +2745,14 @@ int serve(Engine& E) {
         bool bad = false;
         for (int32_t t : ids) bad |= t < 0 || t >= (int32_t) E.m->g.n_vocab;
         if (bad) { std::printf("ERR a token id is outside the vocabulary\n"); std::fflush(stdout); continue; }
+        const bool had_images = E.image_active;
+        if (geni) {
+            std::string image_error;
+            if (!E.set_images(image_file,ids,image_error)) {
+                std::printf("ERR %s\n",image_error.c_str()); std::fflush(stdout); continue;
+            }
+        } else E.clear_images();
+        if (geni || had_images) { E.reset(); live.clear(); }
         stop.store(false);
         // the held state continues when the request extends it (the recurrent state cannot step back)
         size_t reuse = 0;
@@ -2723,6 +2848,7 @@ int strata::qwen35::run(int argc, char** argv) {
         else if (a == "--gpu") (void) next();   // applied by strata before the switch (CUDA/HIP_VISIBLE_DEVICES)
         else if (a == "--greedy") {}            // --tokens decodes greedily here anyway
         else if (a == "--serve") serve_mode = true;
+        else if (a == "--vision") {} // GENI is gated by the opt-in STRATA_Q35_VISION profile setting.
         else if (a == "--max-context" || a == "--ctx") ctx = std::atoi(next().c_str());
         else if (a == "--chunk" || a == "--prefill") { const std::string v = next(); chunk = v == "auto" ? 0 : std::atoi(v.c_str()); }
         else if (a == "--tokens") tokens = next();

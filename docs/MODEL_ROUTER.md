@@ -176,3 +176,12 @@ profiles stay visible but cannot replace the active worker.
 The router applies profile sampling defaults to the embedded web UI and keeps browser
 sampling overrides separately per model. This prevents the generic web temperature
 from silently disabling a greedy-only MTP preset.
+
+Screenshot input is available through [separate dense profiles](SCREENSHOT_INPUT.md),
+including Saluki abliterated with MTP on/off and a 256K configured limit. Bundle the CPU
+encoder with `--vision-engine build-vision/bin/strata-vision`; matching mmproj files remain
+external. Nested `@bundle/vision-cpu` paths are resolved before starting the worker.
+The package containing the encoder is about 49.3 MiB on this build.
+
+Token-count requests to `/v1/messages/count_tokens` now load/select their requested profile,
+just like generation. This avoids counting against another loaded model's tokenizer.

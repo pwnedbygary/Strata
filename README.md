@@ -31,12 +31,12 @@ Qwen35 MoE measurements on **October 14, 2026**.
 | OS / runtime | CachyOS Linux, system ROCm 7.2 |
 | Strata engine | Installed Flash engine 0.1.44; native dense development build based on 0.1.44 |
 | Models | Flash-Next IQ3_XXS; Underdog-Saluki 27B IQ2-mix; experimental GSQ Qwen35 MoE |
-| Serving | One model, one request at a time; images disabled |
+| Serving | One model, one request at a time; screenshot input in separate dense profiles |
 
 This is an NVMe-backed full-model configuration. The complete expert pack does not
 fit in the GPU and resident RAM caches; misses read weights from SSD. The upstream
 setup guide normally recommends more RAM for this model. These results do not cover
-Windows, other GPUs, concurrent requests or vision.
+Windows, other GPUs or concurrent requests. Dense screenshot checks are recorded separately below.
 
 ## Native 27B: Saluki on the same PC
 
@@ -201,6 +201,19 @@ remain external, and this first build requires compatible **system ROCm**. It is
 on this PC, not claimed portable across all distributions or GPUs. The original single-model
 server remains available separately. [Registration, API metadata, packaging and limits](docs/MODEL_ROUTER.md).
 [Additional local profiles, active Swift MTP measurements and Tiel limitations](docs/LOCAL_MODEL_PROFILES.md).
+
+Screenshot input is now available in separate Saluki and Swift profiles. The new
+`saluki27-abliterated-mtp-vision` profile uses the embedded head, matching CPU image encoder,
+and an adaptive 262,144-token limit. Two short screenshot checks measured **49.0–49.5
+tokens/s with MTP**, versus **35.9–36.0 with drafting off**, with identical answers.
+The older Swift MTP selections were removed from the local registry at the user's request.
+[Screenshot profiles, setup, measurements and limits](docs/SCREENSHOT_INPUT.md).
+
+Filled coding-context trials measured Saluki MTP at **37.2/35.4 tokens/s at roughly 32K**
+and **16.7/15.8 at roughly 64K** for initial answer/cached follow-up. A later 4800 MT/s RAM
+repeat completed at **32.8/30.4**, with no new kernel messages during that short run.
+Two earlier system resets remain unresolved; these are performance/correctness samples,
+not a long-duration stability guarantee. [Responses, prefill times, memory and limits](bench/results/2026-10-14-coding-context/README.md).
 
 ## What it built
 

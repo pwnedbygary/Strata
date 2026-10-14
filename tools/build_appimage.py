@@ -16,10 +16,13 @@ def main():
     p.add_argument('--appimagetool', type=Path, required=True, help='local official appimagetool executable')
     p.add_argument('--dense-engine', type=Path, default=ROOT/'build-hip/strata')
     p.add_argument('--flash-engine', type=Path, default=ROOT/'engine/strata')
+    p.add_argument('--vision-engine', type=Path, help='optional CPU strata-vision encoder for screenshot profiles')
     a = p.parse_args()
     for file in (a.appimagetool, a.dense_engine, a.flash_engine):
         if not file.is_file():
             p.error(f'Missing {file}')
+    if a.vision_engine and not a.vision_engine.is_file():
+        p.error(f'Missing {a.vision_engine}')
     output = ROOT/'dist'
     build = ROOT/'build-appimage'
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir',
@@ -44,6 +47,13 @@ def main():
     engines.mkdir(parents=True)
     shutil.copy2(a.dense_engine, engines/'dense-hip')
     shutil.copy2(a.flash_engine, engines/'flash-hip')
+    if a.vision_engine:
+        shutil.copy2(a.vision_engine, engines/'vision-cpu')
+        license_dir = appdir/'usr/bin/_internal/licenses/llama.cpp'
+        license_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT/'third_party/llama.cpp/LICENSE', license_dir/'LICENSE')
+        standalone_license = output/'strata-router/_internal/licenses/llama.cpp'
+        shutil.copytree(license_dir, standalone_license, dirs_exist_ok=True)
     # Keep the standalone executable directory equally useful.
     shutil.copytree(engines, output/'strata-router/_internal/engines', dirs_exist_ok=True)
     python_license = Path(sysconfig.get_path('stdlib')) / 'LICENSE.txt'
