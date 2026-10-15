@@ -45,6 +45,7 @@ def main():
     parser.add_argument('--vision', action='store_true', help='add separate CPU screenshot-encoder profiles; requires a vision-enabled build')
     parser.add_argument('--vision-tokens', type=int, default=2048, help='visual-token budget per screenshot (default 2048)')
     parser.add_argument('--saluki-abliterated', action='store_true', help='add 256K Saluki abliterated screenshot profiles with MTP off/on')
+    parser.add_argument('--saluki-128k-tuning', action='store_true', help='opt into tested RX9070XT filled-128K Saluki MTP memory/attention settings; requires the updated engine')
     parser.add_argument('--remove-swift-mtp', action='store_true', help='remove Swift MTP selections from the registry, retaining their files')
     parser.add_argument('--dense-prefill-tuning', action='store_true', help='opt into measured gfx1201/hipBLASLt 100202 dense calibration')
     parser.add_argument('--dense-memory-fit', action='store_true', help='opt into 4K KV growth and a smaller reserve; measured Swift IQ3_S')
@@ -164,9 +165,16 @@ def main():
         tuning = cfg.get('env', {}).get('STRATA_HIPBLASLT_TUNING')
         if tuning and (ROOT/'tools/hip'/Path(tuning).name).is_file():
             cfg['env']['STRATA_HIPBLASLT_TUNING'] = '@bundle/tools/hip/' + Path(tuning).name
-        for drafts in (0,1):
+        for drafts in (0, 2 if args.saluki_128k_tuning else 1):
             profile = name + ('-mtp' if drafts else '')
-            add_vision_profile(cfg, profile, model, mmproj, registry, args.registry.parent, args.vision_tokens, drafts)
+            selected = copy.deepcopy(cfg)
+            if drafts and args.saluki_128k_tuning:
+                selected['env'].update(STRATA_Q35_ATTN_HEAD_REUSE='1', STRATA_Q35_PREFILL_LOAN='1',
+                                       STRATA_Q35_KV_GROW_STEP='4096', STRATA_Q35_ATTN_SCORE_MIB='256',
+                                       STRATA_Q35_RESERVE_MIB='1536', STRATA_Q35_PHYSICAL_RESERVE_MIB='1024',
+                                       STRATA_Q35_ADAPTIVE_WEIGHTS='1', STRATA_Q35_KV_I8='1',
+                                       STRATA_HIPBLASLT_TUNING='@bundle/tools/hip/gfx1201-qwen35-dense-hipblaslt-100202.txt')
+            add_vision_profile(selected, profile, model, mmproj, registry, args.registry.parent, args.vision_tokens, drafts)
             added.append(profile+'-vision')
     if args.remove_swift_mtp:
         for profile in list(registry['profiles']):

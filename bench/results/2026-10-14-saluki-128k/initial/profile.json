@@ -1,0 +1,52 @@
+{
+  "exe": "/home/garyb/Mounts/NVME/Strata/build-hip/strata",
+  "args": [
+    "--native",
+    "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf",
+    "--max-context",
+    "262144",
+    "--prefill",
+    "512",
+    "--mtp",
+    "1",
+    "--vision"
+  ],
+  "fit_max_tokens": true,
+  "cwd": "/home/garyb/.config/strata",
+  "tokenizer": "/home/garyb/Mounts/NVME/Strata/packs/saluki27-abliterated/tokenizer",
+  "model_name": "saluki27-128k-fit-test",
+  "log": "/home/garyb/Mounts/NVME/Strata/local-tuning/saluki-128k-physical/server.log",
+  "lib_dirs": [
+    "/opt/rocm/lib"
+  ],
+  "port": 8096,
+  "backend": "hip",
+  "env": {
+    "STRATA_HIPBLASLT_TUNING": "@bundle/tools/hip/gfx1201-qwen35-dense-hipblaslt-100202.txt",
+    "GPU_PINNED_MIN_XFER_SIZE": "1000000",
+    "STRATA_Q35_DENSE": "1",
+    "STRATA_Q35_NATIVE_LOWBIT": "1",
+    "STRATA_Q35_KV_I8": "1",
+    "STRATA_Q35_ATTN_SCORE_MIB": "128",
+    "STRATA_Q35_ADAPTIVE_WEIGHTS": "1",
+    "STRATA_Q35_ADAPTIVE_MTP": "1",
+    "STRATA_Q35_VISION": "1",
+    "STRATA_Q35_PHYSICAL_RESERVE_MIB": "1536"
+  },
+  "open_browser": false,
+  "arch": "qwen35",
+  "router": {
+    "display_name": "Saluki MTP \u2014 128K validation, physical VRAM reserve"
+  },
+  "sampling": {
+    "temperature": 0
+  },
+  "vision": {
+    "exe": "@bundle/vision-cpu",
+    "model": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf",
+    "mmproj": "/home/garyb/Mounts/NVME/Strata/models/mmproj-Underdog-Saluki-27B-1.0-F16.gguf",
+    "gpu": false,
+    "threads": 4,
+    "max_tokens": 2048
+  }
+}

@@ -229,9 +229,12 @@ it is not yet a validated desktop-stable preset.
 [Settings, measured VRAM headroom and checks](docs/SWIFT_IQ3_S_TUNING.md).
 
 [Current results for all ten profiles, with test sizes and limitations](docs/MODEL_RESULTS.md).
-For longer coding and screenshots, Saluki abliterated with MTP is the strongest measured
-performance choice here: about 33 tokens/s at 32K and 16.6 at 64K. Its 256K setting
-remains a capacity ceiling, not a validated full-window quality or stability result.
+The new opt-in Saluki path completed a **131,020-token coding prompt** with all 13
+code checks and all three distant retrieval checks passing. It measured **243.1 tok/s
+prefill, 18.6 tok/s generation and 16.6 tok/s cached review**, with at least 1,025 MiB
+sampled free physical VRAM. This improves the first filled-128K trial (91.5 / 7.6 tok/s),
+but does not yet meet the 25–30 tok/s target. The 256K ceiling and long-context image
+requests remain unvalidated. [Settings, evidence and limitations](docs/SALUKI_128K.md).
 
 ## What it built
 

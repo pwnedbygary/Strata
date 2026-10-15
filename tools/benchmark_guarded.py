@@ -11,11 +11,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--scope', default='strata-local.scope')
     parser.add_argument('--memory-floor-gib', type=float, default=1)
+    parser.add_argument('--vram-floor-mib', type=int, default=0, help='physical dedicated-GPU floor; 0 disables it')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('command', nargs=argparse.REMAINDER)
     args = parser.parse_args()
     command = args.command[1:] if args.command[:1] == ['--'] else args.command
-    if not command or args.memory_floor_gib <= 0:
+    if not command or args.memory_floor_gib <= 0 or args.vram_floor_mib < 0:
         parser.error('provide a command and a positive memory floor')
     rows = []
     aborted = False
@@ -36,9 +37,11 @@ def main():
                 except (OSError, ValueError):
                     pass
             rows.append(row)
-            if available < args.memory_floor_gib * 2**30:
+            low_vram = args.vram_floor_mib and row.get('vram_free_mib', args.vram_floor_mib) < args.vram_floor_mib
+            if available < args.memory_floor_gib * 2**30 or low_vram:
                 aborted = True
-                print('Benchmark stopped: available RAM fell below the test floor.', flush=True)
+                print('Benchmark stopped: physical VRAM fell below the test floor.' if low_vram else
+                      'Benchmark stopped: available RAM fell below the test floor.', flush=True)
                 subprocess.run(['systemctl', '--user', 'stop', args.scope], check=False)
                 process.terminate()
                 break

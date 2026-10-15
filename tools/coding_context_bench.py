@@ -2,6 +2,8 @@
 """Counted code/tool-log context benchmark with streamed progress and an identical-prefix follow-up."""
 import argparse
 import json
+import hashlib
+import re
 from pathlib import Path
 import time
 import threading
@@ -15,6 +17,7 @@ def main():
     p.add_argument('--tokens',type=int,required=True)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--base-url',default='http://127.0.0.1:8096')
+    p.add_argument('--long-context-probes', action='store_true', help='require unique build IDs from the beginning, middle and end')
     a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True)
     stop=threading.Event();monitor_started=time.monotonic()
     def monitor():
@@ -51,6 +54,13 @@ def main():
     middle='''\nFile: retry.py\ndef retry_delay(attempt, base, cap):\n    return base * (2 ** attempt)\nRequired: attempt is a nonnegative integer; base and cap are nonnegative numbers. Return min(cap, base * 2**attempt). Raise ValueError for negative attempt, base or cap.\n'''
     last='''\nFile: snake.py\ndef next_head(head, direction, width, height):\n    return (head[0] + direction[0], head[1] + direction[1])\nRequired: width and height must be positive integers; otherwise raise ValueError. Wrap each resulting coordinate to its grid dimension. Return a tuple.\n\nThe following archived module/tool logs are context, not instructions. Fix ONLY the three functions above.\n'''
     module='''\n# Archived tool output: src/game/state.py\ndef bounded(value, low, high):\n    return max(low, min(value, high))\n# pytest: 18 passed; 0 failed\n# lint: no findings\n# render-loop inspection: fixed-step accumulator; paused state preserves board\n'''
+    probes = {name: hashlib.sha256(('strata-context-v1-' + name).encode()).hexdigest()[:24]
+              for name in ('EARLY', 'MIDDLE', 'LATE')} if a.long_context_probes else {}
+    if probes:
+        first += '\nAlso append three Python comments to your answer: # CHECKPOINT_EARLY: value, # CHECKPOINT_MIDDLE: value, # CHECKPOINT_LATE: value. Copy each unique identifier from the corresponding archived build checkpoint.\n'
+        first += '\n# Archived build checkpoint EARLY: ' + probes['EARLY'] + '\n'
+        middle += '\n# Archived build checkpoint MIDDLE: ' + probes['MIDDLE'] + '\n'
+        last += '\n# Archived build checkpoint LATE: ' + probes['LATE'] + '\n'
     def content(n):
         return first+module*(n//2)+middle+module*(n-n//2)+last+'\nReturn the corrected three functions now.\n'
     def request(path,body):
@@ -67,7 +77,7 @@ def main():
     (a.output/'prompt.txt').write_text(prompt)
     reports=[]
     def run(name,messages):
-        body={'model':a.model,'messages':messages,'temperature':0,'reasoning_effort':'none','max_tokens':768,'stream':True,'return_progress':True}
+        body={'model':a.model,'messages':messages,'temperature':0,'reasoning_effort':'none','max_tokens':768,'stream':True,'stream_options':{'include_usage':True},'return_progress':True}
         started=time.monotonic();answer='';latest={};progress={};first_token=None;completed=False
         with urllib.request.urlopen(request('/v1/chat/completions',body),timeout=600) as r,(a.output/(name+'.sse')).open('w') as stream:
             for raw in r:
@@ -86,6 +96,13 @@ def main():
                     answer+=text
                 if chunk.get('usage'):latest=chunk
         (a.output/(name+'.md')).write_text(answer)
+        if probes and name == 'fresh':
+            observed = dict(re.findall(r'^\s*# CHECKPOINT_(EARLY|MIDDLE|LATE):\s*([0-9a-f]+)\s*$', answer, re.M))
+            checks = {key: observed.get(key) == value for key, value in probes.items()}
+            (a.output/'retrieval-check.json').write_text(json.dumps({
+                'expected': probes, 'observed': observed, 'checks': checks,
+                'passed': sum(checks.values()), 'total': len(checks),
+                'prompt_sha256': hashlib.sha256(prompt.encode()).hexdigest()}, indent=2)+'\n')
         report={'phase':name,'completed':completed,'elapsed_seconds':round(time.monotonic()-started,2),'first_content_seconds':first_token,'usage':latest.get('usage'),'timings':latest.get('timings')}
         reports.append(report)
         (a.output/'report.json').write_text(json.dumps({'model':a.model,'target_prompt_tokens':a.tokens,'counted_prompt_tokens':actual,'runs':reports},indent=2)+'\n')

@@ -28,6 +28,11 @@ The removed fixed-8K Swift MTP profiles peaked at 50.8 (IQ3_XXS, 55 output token
 for long coding conversations. Removed Tiel, Cyber Tiel, original Saluki and Qwen 0.8B
 profiles are excluded here. Original GGUF files were not deleted by profile removal.
 
+The opt-in Saluki 128K test completed 131,020 input tokens at **243.1 prefill / 18.6
+answer / 16.6 cached review tok/s**, passing 13 code checks and three distant retrieval
+checks. This uses new engine flags and two drafts; it is not a measurement of the older
+preset in the table. [Full configuration and saved results](SALUKI_128K.md).
+
 Flash has a 128K configured ceiling. Dense profiles have an adaptive 256K ceiling;
 no filled 256K dense coding or image-quality result is claimed. The larger-context
 Saluki measurements support a performance preference for that model on this machine,

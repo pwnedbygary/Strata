@@ -1,0 +1,55 @@
+load_hparams: Qwen-VL models require at minimum 1024 image tokens to function correctly on grounding tasks
+load_hparams: if you encounter problems with accuracy, try adding --image-min-tokens 1024
+load_hparams: more info: https://github.com/ggml-org/llama.cpp/issues/16842
+
+strata-vision: model files loaded in 0.3 s
+strata-vision: on the CPU, 4 threads, no warm-up
+[strata] 2026-10-14 21:22:53 engine started: /home/garyb/Mounts/NVME/Strata/build-hip/strata --serve --native /home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf --max-context 262144 --prefill 512 --mtp 2 --vision
+strata-q36: /home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf: 866 tensors (layout checked), 7.83 GiB on the GPU in 0.7 s (the routed experts are placed after the engine's buffers)
+strata-q35: selected HIP device 0000:03:00.0 physical VRAM reserve 1024 MiB
+strata-q35: prefill attention reuses one KV-head scratch pair
+strata-q36: prompt experts on the native grouped kernels
+prefill gemm: hipBLASLt tuning enabled (9 rows, gfx1201, version 100202)
+strata-q36: context 262144 cells, prompt chunk 512, MTP block loaded, 5.96 GiB of VRAM free
+strata-q35: int8 KV, bounded attention scratch
+strata-q35: prefill buffers returned for decode; 0.00 GiB weights file-backed
+prefill gemm: hipBLASLt tuning enabled (9 rows, gfx1201, version 100202)
+strata-q35: prefill buffers returned for decode; 0.00 GiB weights file-backed
+strata-q36: warmed up in 1.0 s (one prompt chunk, a decode step, a speculative step)
+prefill gemm: hipBLASLt tuning enabled (9 rows, gfx1201, version 100202)
+strata-q35: KV capacity 8192 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 12288 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 16384 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 20480 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 24576 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 28672 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 32768 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 36864 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 40960 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 45056 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 49152 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 53248 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 57344 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 61440 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 65536 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 69632 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 73728 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 77824 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 81920 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 86016 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 90112 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 94208 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 98304 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 102400 / 262144, 0.00 GiB weights file-backed
+strata-q35: KV capacity 106496 / 262144, 0.02 GiB weights file-backed
+strata-q35: KV capacity 110592 / 262144, 0.15 GiB weights file-backed
+strata-q35: KV capacity 114688 / 262144, 0.29 GiB weights file-backed
+strata-q35: KV capacity 118784 / 262144, 0.43 GiB weights file-backed
+strata-q35: KV capacity 122880 / 262144, 0.56 GiB weights file-backed
+strata-q35: KV capacity 126976 / 262144, 0.71 GiB weights file-backed
+strata-q35: KV capacity 131072 / 262144, 0.84 GiB weights file-backed
+strata-q35: KV capacity 135168 / 262144, 0.97 GiB weights file-backed
+strata-q35: prefill buffers returned for decode; 0.14 GiB weights file-backed
+prefill gemm: hipBLASLt tuning enabled (9 rows, gfx1201, version 100202)
+strata-q35: KV capacity 139264 / 262144, 1.11 GiB weights file-backed
+strata-q35: prefill buffers returned for decode; 0.28 GiB weights file-backed
