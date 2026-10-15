@@ -1234,6 +1234,18 @@ struct Engine {
     std::vector<CachedWeight> cached_weights;
     size_t cache_cursor = 0;
     int cache_stride = 0;
+    // Opt-in finer growth avoids evicting weights for unused KV cells on tighter cards.
+    int dense_kv_step = [] {
+        const char* value = std::getenv("STRATA_Q35_KV_GROW_STEP");
+        if (!value) return 16384;
+        char* end = nullptr;
+        const long step = std::strtol(value, &end, 10);
+        if (!*value || *end || step < 4096 || step > 65536 || step % 4096) {
+            std::fprintf(stderr, "strata-q35: invalid STRATA_Q35_KV_GROW_STEP; using 16384\n");
+            return 16384;
+        }
+        return (int) step;
+    }();
     strata::artifact::ImageRequest image_request;
     int32_t* image_positions = nullptr;
     bool image_active = false;
@@ -1742,7 +1754,7 @@ struct Engine {
     void ensure_dense_kv(int64_t needed) {
         if (!m->adaptive_dense) return;
         if (needed > ctx) { std::fprintf(stderr,"strata-q35: request exceeds the context limit\n"); std::exit(2); }
-        const int next = needed > cache_stride ? std::min(ctx, (int) ((needed + 16383) / 16384 * 16384)) : cache_stride;
+        const int next = needed > cache_stride ? std::min(ctx, (int) ((needed + dense_kv_step - 1) / dense_kv_step * dense_kv_step)) : cache_stride;
         size_t growth = 0;
         if (next > cache_stride) {
             const size_t layers = (size_t) m->g.n_qsa_layers() + (m->has_mtp ? 1 : 0);

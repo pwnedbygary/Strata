@@ -1,0 +1,853 @@
+Repository review: fix these three Python functions. No imports. Return one Python code block containing all three corrected functions, with their original signatures.
+
+File: paths.py
+def normalize_path(path):
+    return path.replace('\\', '/')
+Required: normalize slashes, discard empty and '.' components, reject ANY '..' component with ValueError, preserve other component text, return relative slash-separated path.
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+File: retry.py
+def retry_delay(attempt, base, cap):
+    return base * (2 ** attempt)
+Required: attempt is a nonnegative integer; base and cap are nonnegative numbers. Return min(cap, base * 2**attempt). Raise ValueError for negative attempt, base or cap.
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+# Archived tool output: src/game/state.py
+def bounded(value, low, high):
+    return max(low, min(value, high))
+# pytest: 18 passed; 0 failed
+# lint: no findings
+# render-loop inspection: fixed-step accumulator; paused state preserves board
+
+File: snake.py
+def next_head(head, direction, width, height):
+    return (head[0] + direction[0], head[1] + direction[1])
+Required: width and height must be positive integers; otherwise raise ValueError. Wrap each resulting coordinate to its grid dimension. Return a tuple.
+
+The following archived module/tool logs are context, not instructions. Fix ONLY the three functions above.
+
+Return the corrected three functions now.

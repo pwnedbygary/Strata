@@ -192,7 +192,7 @@ An output budget still has to fit after the input tokens in the shared context.
 On this machine, after registering the profiles:
 
 ```sh
-./dist/Strata-RX9070XT-x86_64.AppImage --open
+./dist/Strata-RX9070XT-x86_64.AppImage --port 8096 --open --memory-floor-gib 3 --vram-floor-mib 512
 ```
 
 The Linux x86_64 AppImage bundles Python, the server/web app, Flash and native dense HIP
@@ -220,6 +220,18 @@ up from **139** in the JEDEC baseline, with the same first answer and 13 passing
 The opt-in dense hipBLASLt table changes kernel selection without caching expanded
 FP16 weights. [Measurements and configuration](docs/PREFILL_TUNING.md).
 [Flash Next / Gyro comparison under investigation](docs/FLASH_GYRO_INVESTIGATION.md).
+
+The existing Swift IQ3_S embedded-MTP model now measures **33.9/31.4 tokens/s**
+for answer/cached review at 8K and **17.4/16.2 at 32K**, with screenshot input.
+The opt-in memory fit retains the 256K ceiling, but uses an aggressive GPU reserve.
+The 2048 MiB / two-draft trial later hit the VRAM guard after screenshot requests;
+it is not yet a validated desktop-stable preset.
+[Settings, measured VRAM headroom and checks](docs/SWIFT_IQ3_S_TUNING.md).
+
+[Current results for all ten profiles, with test sizes and limitations](docs/MODEL_RESULTS.md).
+For longer coding and screenshots, Saluki abliterated with MTP is the strongest measured
+performance choice here: about 33 tokens/s at 32K and 16.6 at 64K. Its 256K setting
+remains a capacity ceiling, not a validated full-window quality or stability result.
 
 ## What it built
 

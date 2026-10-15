@@ -17,6 +17,8 @@ def main():
     p.add_argument('--model', type=Path, required=True)
     p.add_argument('--engine', type=Path, default=ROOT/'build-hip/strata')
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--kv-grow-step', type=int, choices=range(4096, 65537, 4096), help='opt into finer adaptive KV growth')
+    p.add_argument('--tuning-table', type=Path, default=ROOT/'tools/hip/gfx1201-hipblaslt-100202.txt')
     a = p.parse_args()
     a.output.mkdir(parents=True, exist_ok=True)
     tk = Tokenizer.from_gguf(a.model)
@@ -28,7 +30,9 @@ def main():
     env = dict(os.environ)
     env.update(STRATA_Q35_DENSE='1', STRATA_Q35_NATIVE_LOWBIT='1', STRATA_Q35_KV_I8='1',
                STRATA_Q35_ATTN_SCORE_MIB='128', GPU_PINNED_MIN_XFER_SIZE='1000000')
-    env['STRATA_HIPBLASLT_TUNING'] = str(ROOT/'tools/hip/gfx1201-hipblaslt-100202.txt')
+    env['STRATA_HIPBLASLT_TUNING'] = str(a.tuning_table.resolve())
+    if a.kv_grow_step:
+        env['STRATA_Q35_KV_GROW_STEP'] = str(a.kv_grow_step)
     env['LD_LIBRARY_PATH'] = '/opt/rocm/lib:' + env.get('LD_LIBRARY_PATH', '')
     base = [str(a.engine.resolve()), '--native', str(a.model.resolve()), '--prefill', '512',
             '--mtp', '1', '--tokens', ','.join(map(str, ids)), '--n', '64']

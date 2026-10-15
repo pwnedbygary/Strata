@@ -1,0 +1,37 @@
+{
+  "id": "chatcmpl-b8938668fe3a4107b1befada",
+  "object": "chat.completion",
+  "created": 1792013862,
+  "model": "swift27-iq3-s-embedded-mtp-on-vision",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n  \"file\": \"src/router.py\",\n  \"line\": 87,\n  \"error_code\": \"ERR-2059\",\n  \"message\": \"worker is not ready\"\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 4086,
+    "completion_tokens": 53,
+    "total_tokens": 4139,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 4086,
+    "prompt_ms": 4407.9,
+    "prompt_per_token_ms": 1.079,
+    "prompt_per_second": 927.0,
+    "predicted_n": 53,
+    "predicted_ms": 1483.4,
+    "predicted_per_token_ms": 27.989,
+    "predicted_per_second": 35.7,
+    "draft_n": 27,
+    "draft_n_accepted": 26
+  }
+}

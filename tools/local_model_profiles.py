@@ -22,20 +22,37 @@ def save(path, data):
     os.replace(temporary, path)
 
 
+def apply_dense_tuning(cfg, args):
+    if args.dense_prefill_tuning:
+        cfg['env']['STRATA_HIPBLASLT_TUNING'] = '@bundle/tools/hip/gfx1201-qwen35-dense-hipblaslt-100202.txt'
+    if args.dense_memory_fit:
+        cfg['env'].update(STRATA_Q35_KV_GROW_STEP='4096', STRATA_Q35_RESERVE_MIB=str(args.dense_reserve_mib),
+                          STRATA_Q35_ADAPTIVE_WEIGHTS='1')
+        if cfg['args'][cfg['args'].index('--mtp')+1] != '0':
+            cfg['env']['STRATA_Q35_ADAPTIVE_MTP'] = '1'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--models', type=Path, default=ROOT/'models')
     parser.add_argument('--packs', type=Path, default=ROOT/'packs')
     parser.add_argument('--base-config', type=Path, default=ROOT/'strata-saluki27-adaptive.json')
     parser.add_argument('--registry', type=Path, default=Path.home()/'.config/strata/router.json')
-    parser.add_argument('--swift-mtp', action='store_true', help='opt in to measured 8K/one-draft Swift profiles')
+    parser.add_argument('--swift-mtp', action='store_true', help='enable embedded Swift MTP; context and draft count are configurable')
+    parser.add_argument('--swift-mtp-drafts', type=int, choices=(1,2), default=1, help='greedy Swift MTP proposals per verification (default 1)')
     parser.add_argument('--mtp-context', type=int, default=8192, help='MTP limit, 4K multiples through 256K; larger limits opt into adaptive MTP')
     parser.add_argument('--include-q8-compat', action='store_true', help='explicitly permit lossy 0.8B projection compatibility conversion')
     parser.add_argument('--vision', action='store_true', help='add separate CPU screenshot-encoder profiles; requires a vision-enabled build')
     parser.add_argument('--vision-tokens', type=int, default=2048, help='visual-token budget per screenshot (default 2048)')
     parser.add_argument('--saluki-abliterated', action='store_true', help='add 256K Saluki abliterated screenshot profiles with MTP off/on')
     parser.add_argument('--remove-swift-mtp', action='store_true', help='remove Swift MTP selections from the registry, retaining their files')
+    parser.add_argument('--dense-prefill-tuning', action='store_true', help='opt into measured gfx1201/hipBLASLt 100202 dense calibration')
+    parser.add_argument('--dense-memory-fit', action='store_true', help='opt into 4K KV growth and a smaller reserve; measured Swift IQ3_S')
+    parser.add_argument('--dense-reserve-mib', type=int, default=2048, help='reserve with --dense-memory-fit (1536..8192; default 2048)')
+    parser.add_argument('--only', action='append', choices=['swift27-iq3-s', 'swift27-iq3-xxs', 'saluki27-abliterated'], help='limit newly generated profiles to this family (repeatable)')
     args = parser.parse_args()
+    if not 1536 <= args.dense_reserve_mib <= 8192:
+        parser.error('--dense-reserve-mib must be 1536..8192')
     if args.mtp_context not in range(4096, 262145, 4096):
         parser.error('--mtp-context must be a 4K multiple through 262144')
     if args.vision_tokens not in range(256,4097):
@@ -53,6 +70,8 @@ def main():
     if args.include_q8_compat:
         candidates += [('qwen35-08b-q8-compat', 'Qwen3.5-0.8B-UD-Q5_K_XL.gguf', 'small', False)]
     for name, filename, kind, mtp_file in candidates:
+        if args.only and not any(name == family or name.startswith(family+'-') for family in args.only):
+            continue
         model = args.models/filename
         if not model.is_file():
             continue
@@ -64,17 +83,18 @@ def main():
             title = f'Swift 1.5 27B {quant} — adaptive 256K'
             if mtp_file and args.swift_mtp:
                 cfg['args'][cfg['args'].index('--max-context')+1] = str(args.mtp_context)
-                cfg['args'][cfg['args'].index('--mtp')+1] = '1'
+                cfg['args'][cfg['args'].index('--mtp')+1] = str(args.swift_mtp_drafts)
                 cfg['env'].pop('STRATA_Q35_ADAPTIVE_WEIGHTS', None)
                 cfg['sampling'] = {**cfg.get('sampling', {}), 'temperature': 0}
                 if args.mtp_context > 8192:
                     cfg['env'].update(STRATA_Q35_ADAPTIVE_WEIGHTS='1', STRATA_Q35_ADAPTIVE_MTP='1')
-                title = f'Swift 1.5 27B {quant} — {args.mtp_context//1024}K, MTP drafting on (1 draft)'
+                title = f'Swift 1.5 27B {quant} — {args.mtp_context//1024}K, MTP drafting on ({args.swift_mtp_drafts} draft{"s" if args.swift_mtp_drafts != 1 else ""})'
                 if args.mtp_context > 8192:
                     title += '; adaptive GPU/file weights'
             elif mtp_file:
                 title += '; contains MTP weights, drafting off'
             cfg['router'] = {'display_name': title}
+            apply_dense_tuning(cfg, args)
         else:
             cfg = dict(base)
             cfg['env'] = {k:v for k,v in base.get('env', {}).items() if k == 'STRATA_HIPBLASLT_TUNING'}
@@ -97,7 +117,7 @@ def main():
         path = args.registry.parent/'profiles'/(name+'.json')
         cfg['log'] = str(path.resolve().with_suffix('.log'))
         save(path, cfg)
-        if kind == 'swift' and mtp_file and args.swift_mtp and args.mtp_context > 8192:
+        if kind == 'swift' and mtp_file and args.swift_mtp and args.mtp_context > 8192 and not args.dense_memory_fit:
             fast_name = name + '-fast-8k'
             fast = copy.deepcopy(cfg)
             fast['args'][fast['args'].index('--max-context')+1] = '8192'
@@ -114,11 +134,12 @@ def main():
         if mtp_file:
             registry['profiles'].pop(name+'-file', None)
         added.append(name)
-        if args.vision and kind == 'swift' and not mtp_file:
+        if args.vision and kind == 'swift' and (not mtp_file or args.dense_memory_fit):
             mmproj = args.models/'mmproj-Swift-1.5-Qwen3.8-27B-F16.gguf'
             if mmproj.is_file():
-                add_vision_profile(cfg, name, model, mmproj, registry, args.registry.parent, args.vision_tokens)
-    if args.vision and 'saluki27' in registry['profiles']:
+                add_vision_profile(cfg, name, model, mmproj, registry, args.registry.parent, args.vision_tokens,
+                                   int(cfg['args'][cfg['args'].index('--mtp')+1]))
+    if args.vision and not args.only and 'saluki27' in registry['profiles']:
         entry = registry['profiles']['saluki27']
         source = Path(entry) if isinstance(entry, str) else None
         if source and not source.is_absolute():
@@ -128,7 +149,7 @@ def main():
         mmproj = args.models/'mmproj-Underdog-Saluki-27B-1.0-F16.gguf'
         if model.is_file() and mmproj.is_file():
             add_vision_profile(saluki, 'saluki27', model, mmproj, registry, args.registry.parent, args.vision_tokens)
-    if args.saluki_abliterated:
+    if args.saluki_abliterated and (not args.only or 'saluki27-abliterated' in args.only):
         model = args.models/'Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf'
         mmproj = args.models/'mmproj-Underdog-Saluki-27B-1.0-F16.gguf'
         if not model.is_file() or not mmproj.is_file():
@@ -137,6 +158,7 @@ def main():
         pack = args.packs/name
         extract(model, pack)
         cfg = prepare(base, model, pack/'tokenizer', 262144, 512, attention_score_mib=128)
+        apply_dense_tuning(cfg, args)
         cfg.update(exe='@bundle/dense-hip', cwd=str(args.registry.resolve().parent))
         cfg['router'] = {'display_name': 'Saluki 27B abliterated IQ2-mix — adaptive 256K'}
         tuning = cfg.get('env', {}).get('STRATA_HIPBLASLT_TUNING')
@@ -164,7 +186,8 @@ def main():
     finally:
         temporary.unlink(missing_ok=True)
     print('Registered: '+', '.join(added))
-    print('Restart the router to read the updated registry. Disabled Tiel entries are listed but cannot load.')
+    print('Restart the router to read the updated registry.' +
+          (' Disabled Tiel entries are listed but cannot load.' if any(n in registry['profiles'] for n in ('tiel-coder', 'cyber-tiel')) else ''))
 
 
 def add_vision_profile(base, name, model, mmproj, registry, directory, image_tokens=2048, drafts=0):
@@ -181,7 +204,8 @@ def add_vision_profile(base, name, model, mmproj, registry, directory, image_tok
     cfg['env']['STRATA_Q35_VISION'] = '1'
     cfg['vision'] = {'exe': '@bundle/vision-cpu', 'model': str(model.resolve()),
                      'mmproj': str(mmproj.resolve()), 'gpu': False, 'threads': 4, 'max_tokens': image_tokens}
-    cfg['router'] = {'display_name': base.get('router', {}).get('display_name', name.removesuffix('-vision')) + f' — screenshots, MTP {"on (1 draft)" if drafts else "off"}'}
+    draft_label = f'on ({drafts} draft{"s" if drafts != 1 else ""})' if drafts else 'off'
+    cfg['router'] = {'display_name': base.get('router', {}).get('display_name', name.removesuffix('-vision')) + f' — screenshots, MTP {draft_label}'}
     path = directory/'profiles'/(name+'.json')
     cfg['log'] = str(path.resolve().with_suffix('.log'))
     save(path, cfg)
