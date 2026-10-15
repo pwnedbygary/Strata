@@ -1,3 +1,4 @@
+#include "strata/core/async_job.hpp"
 // src/core/expert_source.cpp - the adapter.  See the header for the three clauses of the contract.
 #include "strata/core/expert_source.hpp"
 #include "strata/core/foresight_swap.hpp"
@@ -3446,6 +3447,43 @@ const uint8_t* FileExpertSource::resident_blob(int64_t layer, int64_t expert) co
     return resident_blob(index);   // through the rotation's ownership table when STRATA_EXCHANGE_ROTATE is on
 }
 
+int64_t FileExpertSource::rebalance_ram(const std::vector<int32_t>& gpu, const std::vector<float>& heat, int limit) {
+    if (limit<=0 || !complement_ready_ || !complement_host_ || exchange_storage_.active() || !staged_.empty() ||
+        gpu.size()!=size_t(blobs_) || heat.size()!=size_t(blobs_) || complement_offsets_.size()!=size_t(blobs_)) return 0;
+    if (std::any_of(override_.begin(),override_.end(),[](const uint8_t* p){return p!=nullptr;}))return 0;
+    struct Move {float gain;int64_t layer;size_t cold,hot;};
+    std::vector<Move> moves;
+    for(int64_t layer=0;layer<n_layers_;++layer){
+        std::vector<size_t> cold,hot;
+        for(int64_t e=0;e<n_expert_;++e){
+            const size_t i=size_t(layer*n_expert_+e);
+            if(gpu[i]>=0 || !(heat[i]>=0))continue;
+            if(complement_offsets_[i]!=kNoComplement)cold.push_back(i);
+            else if(heat[i]>=4)hot.push_back(i);
+        }
+        std::sort(cold.begin(),cold.end(),[&](size_t a,size_t b){return heat[a]<heat[b] || (heat[a]==heat[b] && a<b);});
+        std::sort(hot.begin(),hot.end(),[&](size_t a,size_t b){return heat[a]>heat[b] || (heat[a]==heat[b] && a<b);});
+        for(size_t j=0;j<std::min(cold.size(),hot.size());++j){
+            if(heat[hot[j]]<=2*heat[cold[j]]+4)break;
+            moves.push_back({heat[hot[j]]-heat[cold[j]],layer,cold[j],hot[j]});
+        }
+    }
+    std::sort(moves.begin(),moves.end(),[](const Move& a,const Move& b){return a.gain>b.gain || (a.gain==b.gain && a.hot<b.hot);});
+    std::vector<uint8_t> buffer;int64_t applied=0;
+    for(const Move& m:moves){
+        if(applied>=limit)break;
+        const uint64_t bytes=layer_blob_bytes_[size_t(m.layer)],at=complement_offsets_[m.cold];
+        if(at==kNoComplement || at>complement_bytes_ || bytes>complement_bytes_-at || complement_offsets_[m.hot]!=kNoComplement)continue;
+        buffer.resize(size_t(bytes));
+        if(!copy_from_files(m.layer,int64_t(m.hot)%n_expert_,buffer.data()))continue;
+        // All source bytes were read successfully before touching the existing slot.
+        std::memcpy((uint8_t*)complement_host_+size_t(at),buffer.data(),size_t(bytes));
+        if(!detail::exchange_cache_complement(complement_offsets_,m.cold,m.hot))std::abort();
+        ++applied;
+    }
+    return applied;
+}
+
 const uint8_t* FileExpertSource::blob_stable(int64_t layer, int64_t expert) {
     if (io_pf_ && role_ptr_.empty() && direct_.empty()) {
         if (complement_ready_ && layer >= 0 && expert >= 0 && layer < n_layers_ && expert < n_expert_) {
@@ -3717,6 +3755,9 @@ void expert_pool_dispatch_multi(ExpertDispatch& d, const float* x_f, const int32
     if (!d.usage.empty())
         for (int64_t i = 0; i < n_tok * k; ++i)
             if (ids[i] >= 0 && ids[i] < d.n_expert) d.usage[(size_t) d.layers * (size_t) d.n_expert + (size_t) ids[i]] += 1.0f;
+    if(d.ram_heat && d.ram_heat->size()==d.usage.size())
+        for(int64_t i=0;i<n_tok*k;++i)if(ids[i]>=0 && ids[i]<d.n_expert)
+            (*d.ram_heat)[size_t(d.layers)*size_t(d.n_expert)+size_t(ids[i])]+=1.0f;
     // ---- plan v0.3 P6: the GPU's share, decided and published FIRST so the GPU starts while the CPU works.
     // Distinct experts in routing order; resident ones and the last pcie_num/256 of the missed ones go to the GPU.
     const int64_t n = n_tok * k;
@@ -3901,6 +3942,10 @@ void expert_pool_dispatch_multi(ExpertDispatch& d, const float* x_f, const int32
         }
     }
     const auto c2 = std::chrono::steady_clock::now();
+    FileExpertSource* file = nullptr;
+    bool overlap = false;
+    static thread_local std::unique_ptr<AsyncJob> io;
+    AsyncJob::Await await{nullptr};
     if (any_cpu) {   // CS-T: the experts the CPU computes, fetched together (the GGUF in place reads them on several threads)
         static thread_local std::vector<int64_t> miss;
         miss.clear();
@@ -3908,9 +3953,28 @@ void expert_pool_dispatch_multi(ExpertDispatch& d, const float* x_f, const int32
             if (kind[i] == -1 && ids[i] >= 0 && ids[i] < d.n_expert &&
                 std::find(miss.begin(), miss.end(), (int64_t) ids[i]) == miss.end())
                 miss.push_back(ids[i]);
-        d.src->prefetch(d.layers, miss.data(), (int64_t) miss.size());
+        static const bool enabled = [] { const char* e = std::getenv("STRATA_RESIDENT_IO_OVERLAP"); return e && std::atoi(e) != 0; }();
+        if (enabled && native && d.plan && !d.peer && d.remote_count == 0 && !miss.empty()) {
+            file = dynamic_cast<FileExpertSource*>(d.src);
+            if (file && !file->exchange_rotation()) {
+                size_t ready = 0;
+                for (int64_t e : miss) ready += file->resident_blob(d.layers, e) != nullptr;
+                overlap = ready > 0 && ready < miss.size();
+            }
+        }
+        if (overlap) {
+            if (!io) std::fprintf(stderr, "strata resident I/O overlap: enabled for mixed RAM/file expert dispatch\n");
+            if (!io) io = std::make_unique<AsyncJob>();
+            const int64_t layer = d.layers;
+            const auto* demand = &miss;
+            io->start([file, layer, demand] { file->prefetch(layer, demand->data(), (int64_t) demand->size()); });
+            await.worker = io.get();
+        } else d.src->prefetch(d.layers, miss.data(), (int64_t) miss.size());
     }
-    int njobs = 0;
+    int njobs = 0, ready_jobs = 0;
+    double ready_ms = 0;
+    auto prepare_jobs = [&](int group) {
+        njobs = 0;
     for (int64_t t = 0; t < n_tok; ++t)
         for (int64_t j = 0; j < k; ++j) {
             const int64_t i = t * k + j;
@@ -3923,6 +3987,7 @@ void expert_pool_dispatch_multi(ExpertDispatch& d, const float* x_f, const int32
                 d.fail_expert = e;
                 return;
             }
+            if (group == 1 && kind[i] != -1) continue;
             if (kind[i] == -2) {            // STRATA_ROUTE_TAIL_SKIP: a skipped tail expert contributes zero
                 std::memset(row, 0, (size_t) H * sizeof(float));
                 ++d.tail_skipped;
@@ -3939,6 +4004,7 @@ void expert_pool_dispatch_multi(ExpertDispatch& d, const float* x_f, const int32
                     std::memset(row, 0, (size_t) H * sizeof(float));
                 continue;
             }
+            if (overlap && ((file->resident_blob(d.layers, e) != nullptr) != (group == 0))) continue;
             ++d.cache_refused;
             int16_t& jo = d.job_of[(size_t) e];
             if (jo < 0) {
@@ -3963,6 +4029,17 @@ void expert_pool_dispatch_multi(ExpertDispatch& d, const float* x_f, const int32
             ++jb.nt;
             ++d.multi_entries;
         }
+    };
+    if (overlap) {
+        prepare_jobs(0); if (d.failed) return;
+        ready_jobs = njobs;
+        const auto t = std::chrono::steady_clock::now();
+        if (njobs > 0) d.pool->run_split_multi_native(lay.fmt[(size_t) d.layers], d.jobs_multi.data(), njobs);
+        ready_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t).count();
+        await.finish();
+        prepare_jobs(1);
+    } else prepare_jobs(-1);
+    if (d.failed) return;
     const auto c3 = std::chrono::steady_clock::now();
     pt("run", njobs);
     if (njobs > 0) {
@@ -3991,13 +4068,13 @@ void expert_pool_dispatch_multi(ExpertDispatch& d, const float* x_f, const int32
     auto ms = [](auto a, auto b) { return std::chrono::duration<double, std::milli>(b - a).count(); };
     d.ms_plan += ms(c0, c1);
     d.ms_actq += ms(c1, c2);
-    d.ms_jobs += ms(c2, c3);
-    d.ms_run += ms(c3, c4);
+    d.ms_jobs += ms(c2, c3) - ready_ms;
+    d.ms_run += ms(c3, c4) + ready_ms;
     for (int64_t i = 0; i < n_tok * k; ++i) {
         const int64_t e = ids[i];
         if (e >= 0 && e < d.n_expert) d.job_of[(size_t) e] = -1;
     }
-    d.multi_misses += njobs;
+    d.multi_misses += njobs + ready_jobs;
     ++d.layers;
     d.experts += n_tok * k;
 }

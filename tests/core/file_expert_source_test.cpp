@@ -830,10 +830,54 @@ void test_foresight_exchange(bool two_phase) {
     src.close();
 }
 
+// Adapted from Gitshop77/GyroStrata (MIT), d940059a.
+void test_ram_rebalance() {
+    using namespace strata::core;using namespace strata::kernels::cpu;
+#if defined(_WIN32)
+    _putenv_s("STRATA_EXCHANGE_ROTATE","0");
+#else
+    setenv("STRATA_EXCHANGE_ROTATE","0",1);
+#endif
+    TempDirectory dir;std::string err;
+    require(expert_layout_load(dir.path.string(),1,5,err),err);
+    const size_t bytes=size_t(BLOB);
+    std::vector<std::vector<uint8_t>> truth(5,std::vector<uint8_t>(bytes));
+    std::ofstream out(dir.path/"experts.bin",std::ios::binary);
+    for(size_t e=0;e<5;++e){
+        for(size_t i=0;i<bytes;++i)truth[e][i]=uint8_t((i*131+e*37)^(i>>8));
+        out.write((const char*)truth[e].data(),std::streamsize(bytes));
+    }
+    out.close();FileExpertSource src;ExpertCache cache;
+    require(src.open(dir.path.string(),1,5,err),err);
+    require(cache.open(2,1,5,BLOB,err),err);
+    for(int e:{2,3}){const int slot=cache.admit(0,e);require(slot>=0 && cache.fill_slot_blocking(slot,truth[e].data(),err),err);}
+    std::vector<std::pair<int32_t,int32_t>> rank;
+    for(int e:{0,1,4,2,3})rank.push_back({0,e});
+    require(src.pin_cache_complement(cache,err,false,{},-1,0,2*bytes,&rank),err);
+    const uint64_t capacity=src.resident_bytes();
+    std::vector<int32_t> gpu{-1,-1,0,1,-1};std::vector<float> heat{0,1,1000,1000,30};
+    require(src.rebalance_ram(gpu,heat,1)==1,"one hot file blob must replace one cold RAM blob");
+    require(src.resident_bytes()==capacity,"RAM capacity changed");
+    require(!src.has_resident(0,0) && src.has_resident(0,4),"replacement ownership");
+    require(std::memcmp(src.resident_blob(0,4),truth[4].data(),bytes)==0,"promoted bytes corrupted");
+    require(std::memcmp(src.blob(0,0),truth[0].data(),bytes)==0,"evicted file fallback corrupted");
+    require(!src.has_resident(0,2) && !src.has_resident(0,3),"GPU ownership must be untouched");
+    require(src.rebalance_ram(gpu,heat,1)==0,"already hot cache should not churn");
+    heat={50,0,1000,1000,0};
+    require(src.rebalance_ram(gpu,heat,1)==1,"reverse workload promotion");
+    require(std::memcmp(src.resident_blob(0,0),truth[0].data(),bytes)==0,"reverse bytes corrupted");
+    require(src.rebalance_ram({},heat,4)==0,"invalid geometry must be refused");
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
     try {
+        if (argc == 2 && std::string(argv[1]) == "--ram-rebalance-gpu") {
+            test_ram_rebalance();
+            std::cout << "RAM rebalance integrity: PASS\n";
+            return 0;
+        }
         test_complement_plan();
         test_resident_lend_region();
         test_split_lend_regions();

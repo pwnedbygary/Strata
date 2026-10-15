@@ -1,0 +1,18 @@
+Test project /home/garyb/Mounts/NVME/Strata/build-hip
+    Start 15: file_expert_source_test
+1/4 Test #15: file_expert_source_test ..........   Passed    0.15 sec
+    Start 82: draft_policy_test
+2/4 Test #82: draft_policy_test ................   Passed    0.00 sec
+    Start 83: async_job_test
+3/4 Test #83: async_job_test ...................   Passed    0.01 sec
+    Start 84: draft_policy_reprobe_test
+4/4 Test #84: draft_policy_reprobe_test ........   Passed    0.00 sec
+
+100% tests passed out of 4
+
+Total Test time (real) =   0.16 sec
+FileExpertSource: RAM budget 0.00 GiB: 2 of the 0.00 GiB of experts the GPU cache does not hold, by profile rank; the rest are read from the files
+FileExpertSource: allocating 0.00 GiB pageable resident cache complement
+FileExpertSource: copied cache complement through layer 1/1 (0.00 GiB, 0 s)
+FileExpertSource: pageable resident cache complement ready: resident 0.00 GiB, pinned 0.00 GiB in 0 s
+RAM rebalance integrity: PASS

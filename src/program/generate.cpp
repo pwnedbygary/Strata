@@ -11898,6 +11898,29 @@ int main(int argc, char** argv) {
             double dt_adapt_wait = 0, dt_adapt_join = 0;   // the tier's wait before a window / join after the draft (ms, summed)
             const int64_t dt_sw0 = ajob ? a_swapped : adapt_nswaps;
             int64_t dec_windows = 0, dec_T = 0;
+            static const int ram_rebalance_limit = [] {
+                const char* value = std::getenv("STRATA_RAM_REBALANCE");
+                if (!value) return 0;
+                char* end = nullptr;
+                const long limit = std::strtol(value, &end, 10);
+                return end != value && *end == '\0' && limit >= 0 && limit <= 512 ? (int) limit : 0;
+            }();
+            const bool ram_rebalance=ram_rebalance_limit && !multi_gpu && !o.adapt_async && o.batch==0 &&
+                o.pipeline_windows<=1 && !aov && src.complement_ready() && !src.exchange_rotation();
+            std::vector<float> ram_usage0(ram_rebalance?drive.d.usage.size():0,0.0f);
+            drive.d.ram_heat=ram_rebalance?&ram_usage0:nullptr;
+            auto maintain_ram=[&]() -> bool {
+                if(!ram_rebalance)return true;
+                if(!ver.wait_commit(err))return false;
+                apply_pending(true);
+                if(cudaDeviceSynchronize()!=cudaSuccess){err="RAM rebalance synchronization";return false;}
+                const auto rt=Clock::now();
+                const int64_t swapped=src.rebalance_ram(host_res,ram_usage0,ram_rebalance_limit);
+                std::fill(ram_usage0.begin(),ram_usage0.end(),0.0f);
+                std::fprintf(stderr,"strata RAM rebalance: %lld hot file experts promoted in %.1f ms; RAM capacity unchanged\n",
+                    (long long)swapped,std::chrono::duration<double,std::milli>(Clock::now()-rt).count());
+                return true;
+            };
             const int64_t decode_hits0 = drive.d.cache_hits;
             // CS-T: the RAM and file tiers of this request (the mmap source; 0 with the arena)
             const int64_t ram0 = src.ram_reads(), files0 = src.file_reads();
@@ -12930,6 +12953,10 @@ int main(int argc, char** argv) {
             //                    not in [lookups])
             //      [lookup-chain accepted] [lookup-chain offered] [suffix accepted] [suffix offered] [windows]
             //      (only with --lookup-chain)
+            drive.d.ram_heat=nullptr;
+            if(ram_rebalance && !cancelled && !nf_hit && !maintain_ram()){
+                std::printf("ERR %s\n",err.c_str());return 1;
+            }
             char chain_txt[128] = "";
             if (o.lookup_chain > 0)
                 std::snprintf(chain_txt, sizeof(chain_txt), " %lld %lld %lld %lld %lld", (long long) chain_ok,

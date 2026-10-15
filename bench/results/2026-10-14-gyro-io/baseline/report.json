@@ -1,0 +1,61 @@
+{
+  "model": "gyro-io-baseline",
+  "target_prompt_tokens": 8192,
+  "counted_prompt_tokens": 8186,
+  "runs": [
+    {
+      "phase": "fresh",
+      "completed": true,
+      "elapsed_seconds": 49.72,
+      "first_content_seconds": 22.006639792998612,
+      "usage": {
+        "prompt_tokens": 8186,
+        "completion_tokens": 278,
+        "total_tokens": 8464,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 8186,
+        "prompt_ms": 21964.3,
+        "prompt_per_token_ms": 2.683,
+        "prompt_per_second": 372.7,
+        "predicted_n": 278,
+        "predicted_ms": 27749.8,
+        "predicted_per_token_ms": 99.819,
+        "predicted_per_second": 10.0,
+        "draft_n": 52,
+        "draft_n_accepted": 35
+      }
+    },
+    {
+      "phase": "follow-up",
+      "completed": true,
+      "elapsed_seconds": 28.96,
+      "first_content_seconds": 7.339745683999354,
+      "usage": {
+        "prompt_tokens": 8505,
+        "completion_tokens": 278,
+        "total_tokens": 8783,
+        "prompt_tokens_details": {
+          "cached_tokens": 8463
+        }
+      },
+      "timings": {
+        "cache_n": 8463,
+        "prompt_n": 42,
+        "prompt_ms": 7202.8,
+        "prompt_per_token_ms": 171.495,
+        "prompt_per_second": 5.8,
+        "predicted_n": 278,
+        "predicted_ms": 21753.4,
+        "predicted_per_token_ms": 78.25,
+        "predicted_per_second": 12.8,
+        "draft_n": 229,
+        "draft_n_accepted": 224
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "baseline": {
+    "minimum_available_ram_gib": 9.005,
+    "minimum_physical_vram_free_mib": 1324,
+    "fresh_checks": 13,
+    "follow_up_checks": 13
+  },
+  "overlap": {
+    "minimum_available_ram_gib": 9.325,
+    "minimum_physical_vram_free_mib": 1398,
+    "fresh_checks": 13,
+    "follow_up_checks": 13
+  },
+  "sync-baseline": {
+    "minimum_available_ram_gib": 10.34,
+    "minimum_physical_vram_free_mib": 1536,
+    "fresh_checks": 13,
+    "follow_up_checks": 13
+  },
+  "sync-rebalance-overlap": {
+    "minimum_available_ram_gib": 10.314,
+    "minimum_physical_vram_free_mib": 1396,
+    "fresh_checks": 13,
+    "follow_up_checks": 13
+  },
+  "synchronized_first_answers_identical": false,
+  "asynchronous_trials_compile_overlap": true,
+  "default_fresh_matches_pre_port": true,
+  "default_follow_up_matches_pre_port": true
+}

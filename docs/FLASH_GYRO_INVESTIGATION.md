@@ -101,3 +101,71 @@ The router's 3 GiB available-RAM and 512 MiB physical-VRAM guards remained activ
 Sampling cannot rule out shorter spikes; this was not a 128K context fill or endurance test.
 The temporary two-profile source server was stopped after testing and the normal
 AppImage server with ten profiles was restored, unloaded.
+
+## Linux/HIP ports: SSD overlap and RAM rebalancing
+
+The source now supports `STRATA_RESIDENT_IO_OVERLAP=1` on Linux as well as Windows.
+A persistent host worker reads missing file experts while the CPU pool computes resident
+experts, then joins before preparing the file jobs. The demand vector and source buffers
+remain alive until that join, including early returns. Peer/remote dispatch, activation
+rotation exchange and non-native kernels retain their old path. The first mixed dispatch
+logs activation, so an enabled variable is not mistaken for proof that overlap ran.
+
+`STRATA_RAM_REBALANCE=512` bounds hot file-to-RAM promotions per completed reply.
+Values 0–512 are accepted; omission and invalid values disable it. Promotion keeps the
+existing RAM capacity, replaces only same-layer cold blobs after successful reads, and
+excludes GPU-owned blobs. It requires single-GPU, unbatched, synchronized dispatch,
+`--adapt-async 0`, no overlapping windows and no active exchange rotation. The engine
+waits for pending commits and synchronizes the GPU before replacing bytes. Do not assume
+it runs with the normal profile's `--adapt-async 1` setting.
+
+HIP build and four source tests passed; an additional GPU-backed RAM integrity regression
+checked capacity, ownership, promoted bytes, evicted file fallback and reversed heat.
+CUDA and SYCL were not built because their toolchains are unavailable on this host.
+The default-path fresh and cached answer bytes match the pre-port run on this workload.
+This is not a claim of exhaustive backend or model parity.
+
+Same-day 8,186-token coding prompt, suffix speculation, MTP off, 128K ceiling, int8 KV,
+9 GiB resident RAM tier and 3 GiB VRAM reserve. Same hardware as above. The final
+synchronized pair ran after compilation finished:
+
+| Synchronized configuration | Fresh prefill tok/s | Fresh output tok/s | Cached output tok/s | Minimum free physical VRAM | Minimum available RAM |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Features off | 341.1 | 10.6 | 13.5 | 1,536 MiB | 10.340 GiB |
+| Overlap + 512 promotions | 354.6 | 10.6 | 15.3 | 1,396 MiB | 10.314 GiB |
+
+The combined run promoted 512 experts after each reply in 651.6 and 647.5 ms. Cached
+output rate improved about 13% in this one pair. Reply lengths differed (284 versus
+278 tokens), so it is not a matched-output latency comparison or a sustained speed claim.
+All fresh and follow-up code answers passed the same thirteen checks; the synchronized
+answers were not byte-identical. The existing tail-skip path and adaptive expert placement
+make window/placement changes relevant to numerical output. No broad code quality or
+long-context retrieval evaluation was performed here.
+
+Earlier asynchronous exploratory runs measured 10.0/12.8 output tok/s with features off
+and 9.7/13.7 with overlap. Compilation overlapped these trials; they are retained for
+transparency, not used to claim performance improvements. The synchronized pair was not
+subject to that compile load. Overlap and rebalancing contributions have not been isolated
+in the final pair. Both new features remain disabled in the normal profiles.
+
+[Raw prompts, replies, code checks, engine logs, timings, memory samples and build hashes](../bench/results/2026-10-14-gyro-io/).
+The 3 GiB RAM and 512 MiB physical-VRAM guards stayed active. These are short 8K tests,
+not endurance or filled-128K tests. No Gyro weights were downloaded or trellis kernels ported.
+
+A separate local executable was built as
+`dist/Strata-RX9070XT-Gyro-IO-experimental-x86_64.AppImage`, with the tested source engine
+bundled for Flash. The regular AppImage was preserved and restored with all ten profiles,
+unloaded. An isolated eleven-profile registry (normal entries plus one experimental Flash
+entry) is at `local-tuning/gyro-io/experimental-router.json`. It uses a 9 GiB RAM tier and
+the synchronized settings above. This local registry contains machine-specific paths and
+is not committed. Stop the current server before running the experimental image:
+
+```sh
+./dist/Strata-RX9070XT-Gyro-IO-experimental-x86_64.AppImage \
+  --registry local-tuning/gyro-io/experimental-router.json \
+  --memory-floor-gib 3 --vram-floor-mib 512 --port 8096
+```
+
+Rebuilding the experimental image requires `tools/build_appimage.py --flash-engine
+build-hip/strata` in addition to its appimagetool and vision-engine arguments; its default
+Flash bundle remains `engine/strata`. Source options alone do not update that bundled binary.
