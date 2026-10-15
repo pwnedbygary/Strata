@@ -6,6 +6,7 @@ import contextlib
 import hmac
 import http.client
 import json
+import math
 import os
 from pathlib import Path
 import secrets
@@ -69,6 +70,9 @@ def model_metadata(name, cfg, state):
             with contextlib.suppress(ValueError, TypeError):
                 context = int(args[at])
     settings = cfg.get('router', {})
+    memory = settings.get('memory_max_gib', 20)
+    if isinstance(memory, bool) or not isinstance(memory, int) or not 2 <= memory <= 512:
+        raise ValueError(f'{name}: router.memory_max_gib must be an integer between 2 and 512')
     cap = settings.get('max_output_tokens')
     if cap is not None and (isinstance(cap, bool) or not isinstance(cap, int) or cap <= 0):
         raise ValueError(f'{name}: router.max_output_tokens must be a positive integer')
@@ -124,10 +128,25 @@ def worker_command(config, port):
     return [sys.executable, str(ROOT / 'serve/server.py'), *args]
 
 
+def physical_vram_free_mib():
+    """Physical AMD VRAM, including other applications; largest card on a one-GPU host."""
+    devices = []
+    for device in Path('/sys/class/drm').glob('card*/device'):
+        try:
+            total = int((device/'mem_info_vram_total').read_text())
+            used = int((device/'mem_info_vram_used').read_text())
+            if total > 2**30:
+                devices.append((total, max(0, total-used)//2**20))
+        except (OSError, ValueError):
+            continue
+    return max(devices)[1] if devices else None
+
+
 class Router:
-    def __init__(self, profiles, default, *, contained=True, startup_timeout=600, memory_floor=1.5):
+    def __init__(self, profiles, default, *, contained=True, startup_timeout=600, memory_floor=1.5, vram_floor=0):
         self.profiles, self.default = profiles, default
         self.contained, self.startup_timeout, self.memory_floor = contained, startup_timeout, memory_floor
+        self.vram_floor = vram_floor
         self.requests = threading.BoundedSemaphore(8)
         self.turn = threading.RLock()
         self.lifecycle = threading.RLock()
@@ -161,6 +180,12 @@ class Router:
                     with self.state_lock:
                         self.error = 'Model stopped: available system RAM fell below the guard threshold'
                     self._stop()
+                elif self.vram_floor > 0 and self.process is not None:
+                    free = physical_vram_free_mib()
+                    if free is not None and free < self.vram_floor:
+                        with self.state_lock:
+                            self.error = 'Model stopped: physical GPU VRAM fell below the guard threshold'
+                        self._stop()
             except (OSError, StopIteration):
                 pass
 
@@ -240,7 +265,7 @@ class Router:
                     subprocess.run(['systemctl', '--user', 'reset-failed', self.unit + '.scope'],
                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     command = ['systemd-run', '--user', '--scope', '--quiet', '--unit=' + self.unit,
-                               '-p', 'MemoryMax=20G', '-p', 'MemorySwapMax=0', *command]
+                               '-p', f'MemoryMax={settings.get("memory_max_gib", 20)}G', '-p', 'MemorySwapMax=0', *command]
                 env = dict(os.environ)
                 env['STRATA_API_KEY'] = self.secret
                 # Frozen Python's library path must not override the external HIP engine's runtime.
@@ -506,7 +531,15 @@ def main(argv=None):
     parser.add_argument('--open', action='store_true')
     parser.add_argument('--allowed-host', action='append', default=[], help='additional Host name or LAN IP for access')
     parser.add_argument('--no-containment', action='store_true', help='development only: disable systemd memory scope')
+    parser.add_argument('--memory-floor-gib', type=float, default=1.5, help='ongoing available-system-RAM guard (default 1.5 GiB)')
+    parser.add_argument('--vram-floor-mib', type=int, default=0, help='opt-in physical AMD VRAM guard; 0 disables it')
     args = parser.parse_args(argv)
+    if not math.isfinite(args.memory_floor_gib) or args.memory_floor_gib <= 0:
+        parser.error('--memory-floor-gib must be finite and positive')
+    if args.vram_floor_mib < 0:
+        parser.error('--vram-floor-mib must be nonnegative')
+    if args.vram_floor_mib and physical_vram_free_mib() is None:
+        parser.error('--vram-floor-mib requires physical AMD VRAM statistics')
     if args.host not in ('127.0.0.1', 'localhost') and not args.api_key:
         parser.error('A non-loopback bind requires --api-key')
     try:
@@ -517,7 +550,8 @@ def main(argv=None):
             subprocess.run(['systemctl', '--user', 'show-environment'], check=True, stdout=subprocess.DEVNULL)
             if subprocess.run(['systemctl', '--user', 'is-active', '--quiet', 'strata-local.scope']).returncode == 0:
                 raise ValueError('Stop strata-local.scope before starting the router')
-        router = Router(profiles, default, contained=not args.no_containment)
+        router = Router(profiles, default, contained=not args.no_containment,
+                        memory_floor=args.memory_floor_gib, vram_floor=args.vram_floor_mib)
         server = ThreadingHTTPServer((args.host, args.port), handler(router, args.api_key))
         server.daemon_threads = True
         if not args.no_containment:

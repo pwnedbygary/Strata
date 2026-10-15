@@ -100,6 +100,28 @@ with **MemoryMax=20G**, **MemorySwapMax=0** and a **1.5 GiB available-system-RAM
 The router stays alive to report load failures and allow another profile to be selected.
 Only one contained router instance is allowed per user. The launcher refuses to coexist
 with the old `strata-local.scope`. Stop the router with Ctrl+C or SIGTERM; it stops its worker.
+
+A profile may opt into a different hard RAM bound with `router.memory_max_gib` (an
+integer from 2 through 512). Omission keeps the original 20 GiB bound; swap stays disabled.
+For example, `"router": {"memory_max_gib": 22}` permits a measured larger expert RAM tier
+without changing other profiles. This is a cgroup ceiling, not preallocated or reserved
+RAM. Restart the router after editing the profile. The existing ongoing RAM guard remains;
+use `tools/benchmark_guarded.py` for an ongoing system-RAM guard during experiments.
+
+On this single-AMD-GPU desktop, the recommended interactive command is:
+
+```sh
+./dist/Strata-RX9070XT-x86_64.AppImage --port 8096 --memory-floor-gib 3 --vram-floor-mib 512
+```
+
+Both guards run every 0.5 seconds while a worker exists. They stop its scope and leave
+the router/UI alive, with a reason in `/router/status`. The physical VRAM guard reads
+AMD sysfs statistics for the largest dedicated card, including other apps; it requires
+those statistics and has not been validated for multi-GPU selection. Defaults remain
+1.5 GiB system RAM and no physical VRAM guard. Guards cannot prevent every brief spike
+or guarantee desktop responsiveness. The hard memory scope does not account for all
+GPU-driver allocations.
+
 The router itself is outside the model scope. These bounds cannot reserve GPU memory against
 other desktop applications or account for every driver allocation.
 

@@ -54,6 +54,33 @@ class RouterTests(unittest.TestCase):
         connection.close()
         return status, data, response_headers
 
+    def test_physical_vram_guard_stops_worker(self):
+        with patch('serve.router.physical_vram_free_mib', return_value=128), patch.object(self.router, '_stop') as stop:
+            self.router.vram_floor = 512
+            self.router.process = object()
+            try:
+                deadline = time.monotonic() + 2
+                while not stop.called and time.monotonic() < deadline:
+                    time.sleep(.02)
+                self.assertTrue(stop.called)
+                self.assertIn('physical GPU VRAM', self.router.error)
+            finally:
+                self.router.process = None
+                self.router.vram_floor = 0
+
+    def test_memory_limit_validation(self):
+        config = Path(self.tmp.name)/'alpha.json'
+        cfg = json.loads(config.read_text())
+        for invalid in (True, 0, 513, '24', 24.5):
+            cfg['router']['memory_max_gib'] = invalid
+            config.write_text(json.dumps(cfg))
+            with self.assertRaisesRegex(ValueError, 'memory_max_gib'):
+                read_registry(self.registry)
+        cfg['router']['memory_max_gib'] = 24
+        config.write_text(json.dumps(cfg))
+        profiles, _ = read_registry(self.registry)
+        self.assertEqual(profiles['alpha'][1]['router']['memory_max_gib'], 24)
+
     def test_discovery_switch_stream_and_unload(self):
         code, data, _ = self.request('/v1/models')
         self.assertEqual(code, 200)
