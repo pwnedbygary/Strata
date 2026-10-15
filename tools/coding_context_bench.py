@@ -7,8 +7,21 @@ import re
 from pathlib import Path
 import time
 import threading
+import os
+import platform
+from datetime import datetime, timezone
 import atexit
 import urllib.request
+
+
+def gpu_voltage_offset(device):
+    """Read the configured offset, not the instantaneous sensor voltage."""
+    try:
+        text = (device / 'pp_od_clk_voltage').read_text()
+    except OSError:
+        return None
+    match = re.search(r'^OD_VDDGFX_OFFSET:\s*\n\s*(-?\d+)\s*m[Vv]\b', text, re.M)
+    return int(match[1]) if match else None
 
 
 def main():
@@ -18,7 +31,24 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--base-url',default='http://127.0.0.1:8096')
     p.add_argument('--long-context-probes', action='store_true', help='require unique build IDs from the beginning, middle and end')
-    a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True)
+    p.add_argument('--require-zero-gpu-offset', action='store_true',
+                   help='refuse to start if the AMD GPU voltage offset is nonzero or cannot be read')
+    a=p.parse_args()
+    if a.require_zero_gpu_offset:
+        offsets=[]
+        for dev in Path('/sys/class/drm').glob('card*/device'):
+            try:
+                if int((dev/'mem_info_vram_total').read_text()) > 2**30:
+                    offsets.append(gpu_voltage_offset(dev))
+            except (OSError,ValueError): continue
+        if not offsets or any(offset != 0 for offset in offsets):
+            p.error('zero GPU voltage offset required; observed '+repr(offsets)+
+                    '. Restore the default voltage in your GPU utility before this benchmark.')
+    a.output.mkdir(parents=True,exist_ok=True)
+    (a.output/'system.json').write_text(json.dumps({
+        'started_utc': datetime.now(timezone.utc).isoformat(),
+        'boot_id': Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
+        'kernel_release': platform.release()}, indent=2)+'\n')
     stop=threading.Event();monitor_started=time.monotonic()
     def monitor():
         with (a.output/'memory.jsonl').open('w') as output:
@@ -31,6 +61,8 @@ def main():
                         total=int((dev/'mem_info_vram_total').read_text())
                         if total>2**30:
                             row['vram_free_mib']=round((total-int((dev/'mem_info_vram_used').read_text()))/2**20)
+                            offset = gpu_voltage_offset(dev)
+                            if offset is not None: row['gpu_voltage_offset_mv'] = offset
                             temperatures={}
                             for sensor in dev.glob('hwmon/hwmon*/temp*_input'):
                                 label=sensor.with_name(sensor.name.replace('_input','_label'))
@@ -38,6 +70,8 @@ def main():
                             row['gpu_temperatures_c']=temperatures
                             for sensor in dev.glob('hwmon/hwmon*/power1_average'):
                                 row['gpu_power_w']=round(int(sensor.read_text())/1e6,1)
+                            for sensor in dev.glob('hwmon/hwmon*/power1_cap'):
+                                row['gpu_power_cap_w']=round(int(sensor.read_text())/1e6,1)
                             break
                     except (OSError,ValueError):continue
                 for sensor in Path('/sys/class/hwmon').glob('hwmon*/name'):
@@ -46,6 +80,8 @@ def main():
                             row['cpu_tctl_c']=int(sensor.with_name('temp1_input').read_text())/1000
                     except (OSError,ValueError):continue
                 output.write(json.dumps(row)+'\n');output.flush()
+                # Preserve recent samples across a hard reset without syncing every row.
+                if int(row['seconds']) % 5 == 0: os.fsync(output.fileno())
     monitor_thread=threading.Thread(target=monitor,daemon=True);monitor_thread.start()
     def close_monitor():
         stop.set();monitor_thread.join(timeout=2)

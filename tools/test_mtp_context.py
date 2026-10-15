@@ -19,6 +19,8 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--kv-grow-step', type=int, choices=range(4096, 65537, 4096), help='opt into finer adaptive KV growth')
     p.add_argument('--tuning-table', type=Path, default=ROOT/'tools/hip/gfx1201-hipblaslt-100202.txt')
+    p.add_argument('--attention-lt', action='store_true', help='exercise opt-in grouped attention LT in adaptive runs')
+    p.add_argument('--token-buffer-loan', action='store_true', help='exercise opt-in decode token-buffer shrink in adaptive runs')
     a = p.parse_args()
     a.output.mkdir(parents=True, exist_ok=True)
     tk = Tokenizer.from_gguf(a.model)
@@ -38,10 +40,14 @@ def main():
             '--mtp', '1', '--tokens', ','.join(map(str, ids)), '--n', '64']
     def run(name, context, adaptive=False, cycle=False):
         settings = dict(env)
+        settings.pop('STRATA_Q35_ATTN_LT', None)
+        settings.pop('STRATA_Q35_TOKEN_BUFFER_LOAN', None)
         settings.pop('STRATA_Q35_ADAPTIVE_WEIGHTS', None)
         settings.pop('STRATA_Q35_ADAPTIVE_MTP', None)
         if adaptive:
             settings.update(STRATA_Q35_ADAPTIVE_WEIGHTS='1', STRATA_Q35_ADAPTIVE_MTP='1')
+            if a.attention_lt: settings['STRATA_Q35_ATTN_LT']='1'
+            if a.token_buffer_loan: settings['STRATA_Q35_TOKEN_BUFFER_LOAN']='1'
         cmd = base + ['--max-context', str(context)] + (['--test-dense-cache-cycle'] if cycle else [])
         print(name, flush=True)
         result = subprocess.run(cmd, env=settings, capture_output=True, text=True)

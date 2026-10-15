@@ -1294,6 +1294,8 @@ struct Engine {
     size_t dense_physical_reserve = 0;
     std::string dense_physical_device;
     bool dense_head_reuse = false;
+    bool dense_attention_lt = false;
+    bool dense_token_loan = false;
     bool dense_prefill_loan = false, dense_prefill_live = true;
     uint8_t* weight_scratch = nullptr;
     uint8_t* weight_host[2] = {};
@@ -1474,8 +1476,18 @@ struct Engine {
         if (dense_head_reuse && (!dense || !kv_i8)) {
             std::fprintf(stderr, "strata-q35: head reuse requires dense int8 KV\n"); std::exit(2);
         }
+        const char* attention_lt = std::getenv("STRATA_Q35_ATTN_LT");
+        dense_attention_lt = attention_lt && std::strcmp(attention_lt, "1") == 0;
+        if (dense_attention_lt && (!dense_head_reuse || !model.adaptive_dense)) {
+            std::fprintf(stderr, "strata-q35: attention LT requires adaptive dense head reuse\n"); std::exit(2);
+        }
         const char* loan = std::getenv("STRATA_Q35_PREFILL_LOAN");
         dense_prefill_loan = model.adaptive_dense && dense_head_reuse && loan && std::strcmp(loan,"1")==0;
+        const char* token_loan = std::getenv("STRATA_Q35_TOKEN_BUFFER_LOAN");
+        dense_token_loan = token_loan && std::strcmp(token_loan, "1") == 0;
+        if (dense_token_loan && !dense_prefill_loan) {
+            std::fprintf(stderr, "strata-q35: token buffer loan requires prefill loan\n"); std::exit(2);
+        }
         if (dense) kAttScoreFloats = (size_t) 8 << 20;
         const char* score_env = dense ? std::getenv("STRATA_Q35_ATTN_SCORE_MIB") : nullptr;
         if (score_env) {
@@ -1680,11 +1692,47 @@ struct Engine {
         }
         use_graph = graph_requested && std::all_of(cached_weights.begin(), cached_weights.end(), [](const CachedWeight& w) { return w.device != nullptr; });
     }
+    std::vector<std::pair<float**, size_t>> dense_token_buffers() {
+        const auto& g = m->g;
+        const size_t N=g.n_embd, C=g.ssm_conv_channels, H=g.n_head*g.head_dim;
+        const size_t KV=g.n_head_kv*g.head_dim, Kp=std::max<int64_t>(1,m->top_k);
+        std::vector<std::pair<float**, size_t>> result = {
+            {&x,N},{&h,N},{&y,N},{&hmain,N},{&qkv,C},{&hc,C},
+            {&z,(size_t)g.ssm_value_dim},{&alpha,(size_t)g.ssm_v_heads},
+            {&beta,(size_t)g.ssm_v_heads},{&gdn_y,(size_t)g.ssm_value_dim},
+            {&qg,2*H},{&kx,KV},{&vx,KV},{&q,H},{&gate,H},{&att,H},
+            {&logits_r,(size_t)g.n_expert+1},{&eparts,Kp*N},{&moe_out,N},
+            {&sg,(size_t)g.n_ff_shexp},{&su,(size_t)g.n_ff_shexp},
+            {&shh,(size_t)g.n_ff_shexp},{&sy,N},{&sgate,1},{&ewts,Kp}};
+        if(m->has_mtp) { result.push_back({&mtp_cat,2*N}); result.push_back({&hmtp,N}); }
+        return result;
+    }
+    size_t dense_token_loan_bytes() {
+        if(!dense_token_loan) return 0;
+        size_t rows=0; for(const auto& entry:dense_token_buffers()) rows+=entry.second;
+        return rows*(tmax-kVerify)*sizeof(float);
+    }
+    void resize_dense_token_buffers(bool expand) {
+        if(!dense_token_loan) return;
+        CK(cudaStreamSynchronize(st)); reset_graphs();
+        for(const auto& entry:dense_token_buffers()) {
+            float*& ptr=*entry.first;
+            const size_t old_rows=expand?kVerify:tmax, new_rows=expand?tmax:kVerify;
+            // Preserve verification rows (including MTP hidden seeds) across pointer changes.
+            std::vector<float> saved(entry.second*kVerify);
+            CK(cudaMemcpy(saved.data(),ptr,saved.size()*sizeof(float),cudaMemcpyDeviceToHost));
+            free_dense_allocation(ptr,old_rows*entry.second*sizeof(float));
+            ptr=dalloc(new_rows*entry.second);
+            CK(cudaMemcpy(ptr,saved.data(),saved.size()*sizeof(float),cudaMemcpyHostToDevice));
+        }
+    }
+
     void prepare_dense_prefill() {
         if (!dense_prefill_loan || dense_prefill_live) return;
         const size_t kv_bytes = 2 * (size_t) cache_stride * m->g.head_dim * sizeof(__half);
         trim_dense_weights(dense_reserve + kv_bytes + kAttScoreFloats * 6 +
-                           (size_t) gemm_scratch_elems * 2 + (128u << 20));
+                           (size_t) gemm_scratch_elems * 2 + dense_token_loan_bytes() + (128u << 20));
+        resize_dense_token_buffers(true);
         k16=dalloc_t<__half>((size_t)cache_stride*m->g.head_dim);
         v16=dalloc_t<__half>((size_t)cache_stride*m->g.head_dim);
         att_s=dalloc(kAttScoreFloats); att_p16=dalloc_t<__half>(kAttScoreFloats);
@@ -1702,6 +1750,8 @@ struct Engine {
         free_dense_allocation(k16,bytes); free_dense_allocation(v16,bytes);
         free_dense_allocation(att_s,kAttScoreFloats*4); free_dense_allocation(att_p16,kAttScoreFloats*2);
         k16=nullptr;v16=nullptr;att_s=nullptr;att_p16=nullptr;dense_prefill_live=false;
+        resize_dense_token_buffers(false);
+        if(dense_token_loan) std::fprintf(stderr,"strata-q35: decode token buffers returned %.1f MiB\n",dense_token_loan_bytes()/1048576.0);
         restore_dense_weights();
         size_t off=0;for(const auto& w:cached_weights)if(!w.device)off+=w.bytes;
         std::fprintf(stderr,"strata-q35: prefill buffers returned for decode; %.2f GiB weights file-backed\n",off/1073741824.0);
@@ -1970,19 +2020,30 @@ struct Engine {
     }
 
     void attention_per_head(size_t li, int T, int64_t p0, int H, int HKV, int HD) {
-        const int P = (int) p0 + T, ldp = (P + 7) / 8 * 8, G = H / HKV;
+        const int live = (int) p0 + T;
+        // Pad only to already allocated KV capacity. Future rows are zeroed and
+        // causally masked, giving tuned GEMMs stable shapes without extra storage.
+        const int P = dense_attention_lt && live >= 16384 ? cache_stride : live;
+        const int ldp = (P + 7) / 8 * 8, G = H / HKV;
         const int tq = (int) std::max<int64_t>(1, std::min<int64_t>(T, kAttScoreFloats / ((size_t) G * ldp)));
         const float one = 1.0f, zero = 0.0f;
         for (int kvh = 0; kvh < HKV; ++kvh) {
-            k_kv_i8_f16<<<grid1((int64_t) P * HD), kThreads, 0, st>>>(
+            k_kv_i8_f16<<<grid1((int64_t) live * HD), kThreads, 0, st>>>(
                 reinterpret_cast<const int8_t*>(kc[li]) + (size_t) kvh * cache_stride * HD,
                 reinterpret_cast<const int8_t*>(vc[li]) + (size_t) kvh * cache_stride * HD,
                 kscale[li] + (size_t) kvh * ctx, vscale[li] + (size_t) kvh * ctx,
-                k16, v16, cache_stride, P, HD, 1, ctx);
+                k16, v16, cache_stride, live, HD, 1, ctx);
+            if (P > live) {
+                CK(cudaMemsetAsync(k16 + (size_t)live * HD, 0, (size_t)(P-live)*HD*sizeof(__half), st));
+                CK(cudaMemsetAsync(v16 + (size_t)live * HD, 0, (size_t)(P-live)*HD*sizeof(__half), st));
+            }
             for (int t0 = 0; t0 < T; t0 += tq) {
                 const int nt = std::min(tq, T - t0);
                 k_pack_attention_queries<<<grid1((int64_t) G * nt * HD), kThreads, 0, st>>>(q,q16,H,G,HD,kvh,t0,nt);
-                if (cublasGemmEx(blas, CUBLAS_OP_T, CUBLAS_OP_N, P, G * nt, HD, &one,
+                if (dense_attention_lt) {
+                    gemm->f16(reinterpret_cast<const uint16_t*>(q16), reinterpret_cast<const uint16_t*>(k16),
+                              att_s, G * nt, P, HD, ldp);
+                } else if (cublasGemmEx(blas, CUBLAS_OP_T, CUBLAS_OP_N, P, G * nt, HD, &one,
                     k16, CUDA_R_16F, HD, q16, CUDA_R_16F, HD, &zero,
                     att_s, CUDA_R_32F, ldp, CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT) != CUBLAS_STATUS_SUCCESS) {
                     std::fprintf(stderr, "strata-q35: grouped attention scores failed\n"); std::exit(1);
@@ -2019,7 +2080,8 @@ struct Engine {
         for (auto& x : gates) x = (int(rng()%2001)-1000)/1000.f;
         CK(cudaMemcpy(q,queries.data(),count*4,cudaMemcpyHostToDevice));
         CK(cudaMemcpy(gate,gates.data(),count*4,cudaMemcpyHostToDevice));
-        for (int P : {1024,4096,std::min(ctx,131072)}) {
+        for (int P : {1024,4096,16383,16385,131020,std::min(ctx,131072)}) {
+            if (P > ctx) continue;
             ensure_dense_kv(P);
             std::vector<int8_t> keys((size_t) HKV*P*HD),values(keys.size());
             std::vector<float> scales((size_t) HKV*P);

@@ -1,0 +1,6 @@
+{
+  "min_available_ram_gib": 23.201,
+  "min_free_vram_mib": 1007,
+  "sample_interval_seconds": 1,
+  "power_cap_w": []
+}

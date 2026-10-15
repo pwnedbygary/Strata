@@ -1,0 +1,11 @@
+Running as unit: strata-native-fit.scope; invocation ID: 6ac89d9b5c49430da7b577de21e902b8
+strata-q36: /home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf: 866 tensors (layout checked), 7.83 GiB on the GPU in 0.7 s (the routed experts are placed after the engine's buffers)
+strata-q35: selected HIP device 0000:03:00.0 physical VRAM reserve 1024 MiB
+strata-q35: prefill attention reuses one KV-head scratch pair
+strata-q36: prompt experts on the native grouped kernels
+prefill gemm: hipBLASLt tuning enabled (67 rows, gfx1201, version 100202)
+strata-q36: context 262144 cells, prompt chunk 512, MTP block loaded, 5.96 GiB of VRAM free
+strata-q35: int8 KV, bounded attention scratch
+ATTENTION_DECODE_TEST P=4096 T=1 reference_ms=0.0907 grouped_ms=0.9338 max_abs=7.7130098e-06 relative_l2=0.00031323685
+strata-q35: KV capacity 131072 / 262144, 0.56 GiB weights file-backed
+ATTENTION_DECODE_TEST P=131020 T=1 reference_ms=4.2612 grouped_ms=9.0729 max_abs=1.0264863e-05 relative_l2=0.0021226513

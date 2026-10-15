@@ -170,10 +170,11 @@ def main():
             selected = copy.deepcopy(cfg)
             if drafts and args.saluki_128k_tuning:
                 selected['env'].update(STRATA_Q35_ATTN_HEAD_REUSE='1', STRATA_Q35_PREFILL_LOAN='1',
+                                       STRATA_Q35_ATTN_LT='1', STRATA_Q35_TOKEN_BUFFER_LOAN='1',
                                        STRATA_Q35_KV_GROW_STEP='4096', STRATA_Q35_ATTN_SCORE_MIB='256',
                                        STRATA_Q35_RESERVE_MIB='1536', STRATA_Q35_PHYSICAL_RESERVE_MIB='1024',
                                        STRATA_Q35_ADAPTIVE_WEIGHTS='1', STRATA_Q35_KV_I8='1',
-                                       STRATA_HIPBLASLT_TUNING='@bundle/tools/hip/gfx1201-qwen35-dense-hipblaslt-100202.txt')
+                                       STRATA_HIPBLASLT_TUNING='@bundle/tools/hip/gfx1201-qwen35-long-context-hipblaslt-100202.txt')
             add_vision_profile(selected, profile, model, mmproj, registry, args.registry.parent, args.vision_tokens, drafts)
             added.append(profile+'-vision')
     if args.remove_swift_mtp:

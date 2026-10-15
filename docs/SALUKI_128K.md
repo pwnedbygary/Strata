@@ -52,6 +52,51 @@ were not built on this machine. All new optimization flags default off.
 This establishes usable text retrieval at 128K, but misses the desired 25–30 tok/s
 and does not establish an overall speed advantage over upstream llama.cpp.
 
+## Further attention and decode-buffer tuning
+
+A clean repeat with a constant reported 374 W GPU cap completed the same 131020-token
+prompt. This describes the power cap, not confirmed stock voltage; voltage offset
+was not recorded during those runs. The preceding exploratory run changed from a 250 W cap to unrestricted mid-run;
+its 302.1 / 19.5 / 18.1 tok/s results are archived separately, not used for the comparison.
+
+| Opt-in Strata preset | Fresh prefill | Answer decode | Cached review decode |
+| --- | ---: | ---: | ---: |
+| Previous head reuse / prefill loan | 243.1 tok/s / 539.0 s | 18.6 tok/s | 16.6 tok/s |
+| Tuned attention / token-buffer loan | 302.3 tok/s / 433.4 s | 19.7 tok/s | 18.0 tok/s |
+
+The new first answer was byte-identical and again passed 13 code checks and all three
+retrieval checks. Both phases had all weights GPU-resident during generation. Shrinking
+per-token work buffers from 512 rows to eight returned 325 MiB, preserving verification
+rows and MTP hidden seeds. Buffers expand again for prefill, with weight placement and
+graph pointers updated. Fixed/growing/reset native tests retained all 64 token IDs and
+draft counts. The clean run sampled at least 1044 MiB free physical VRAM and 23.864 GiB
+available RAM. Its cached review returned first content after 1.40 s.
+
+These additional settings are enabled by `--saluki-128k-tuning` in the updated generator:
+
+```json
+{
+  "STRATA_Q35_ATTN_LT": "1",
+  "STRATA_Q35_TOKEN_BUFFER_LOAN": "1",
+  "STRATA_HIPBLASLT_TUNING": "@bundle/tools/hip/gfx1201-qwen35-long-context-hipblaslt-100202.txt"
+}
+```
+
+The attention path pads to already allocated KV capacity, zeroes future rows and keeps
+causal masking. This stabilizes matrix shapes and permits split reductions on the final
+partial chunk. The new table retains the original nine projection rows and adds 58
+attention shapes. Every selected GEMM passed finite-output, relative L2, absolute-error
+and padding-canary validation. Whole-attention numerical checks include 16383, 16385,
+131020 and 131072 positions; maximum observed absolute error was 2.62e-7.
+
+A separate experiment using this prefill GEMM path for single-row decode was rejected:
+at 131020 positions it took 9.07 ms versus 4.26 ms for the existing decode kernel, and
+relative L2 error 0.00212 exceeded the 0.0005 test limit. Production decoding retains the
+original kernel. This is why the verified gain is mostly in prefill, despite eliminating
+weight offload during decode. The 25–30 tok/s target remains unmet.
+
+[Answers, timing, memory, calibration and rejected-probe evidence](../bench/results/2026-10-14-saluki-attention-lt/).
+
 ## Same-day upstream comparison
 
 Official llama.cpp commit `a0e6dc7384edb8f5d927155e1d26c10b4a310e6d`, HIP gfx1201,
@@ -89,3 +134,35 @@ profiles still reset the text prefix for image requests, so screenshot-heavy lon
 can require another full prefill. No long-context image benchmark is claimed.
 
 [Saved answers, timing reports and memory samples](../bench/results/2026-10-14-saluki-128k/).
+
+## Freeze investigation, October 15
+
+The user reported a later hard freeze. The previous boot's persisted journal ends at
+01:21 EDT without an orderly shutdown; no OOM kill, GPU timeout/reset or machine-check
+fault was recorded near that end. The saved clean benchmark completed at 22:59 EDT
+on October 14 and the AppImage build at 23:01. These times do not establish when or
+why the machine froze. The current GPU reports a -50 mV offset, also present in the
+active saved LACT profile. Its setting at the freeze is not established. An undervolt
+is a plausible lead, not a confirmed diagnosis; driver, platform and application causes
+are not excluded. No voltage, clock, fan or power settings were changed by this investigation.
+
+The rebuilt normal router was restored with ten profiles and no GPU model loaded.
+Its bundled dense executable has the same SHA256 as the measured source build.
+The new AppImage's post-reboot GPU smoke test is deferred while the active undervolt
+is unresolved. CPU profile checks, the physical-memory reader test and Python syntax
+checks pass. CUDA and SYCL remain unbuilt on this machine.
+
+Future context benchmarks record the boot ID, UTC start time, kernel release, reported
+GPU voltage offset and power cap. Memory samples are flushed every second and synced
+to disk every five seconds; a hard lock can still lose data. To refuse a new benchmark
+before any model request when the reported voltage offset is nonzero or unavailable:
+
+```sh
+.venv/bin/python tools/coding_context_bench.py --model saluki27-abliterated-mtp-vision \
+  --tokens 131072 --long-context-probes --require-zero-gpu-offset \
+  --output local-tuning/stock-voltage-128k
+```
+
+This only checks the exposed GPU voltage offset at startup; it does not establish
+stock CPU/RAM/clocks or guarantee stability. RAM/VRAM guards cannot prevent every
+GPU or platform hard lock. [Kernel documentation for the voltage-offset interface](https://docs.kernel.org/gpu/amdgpu/thermal.html#pp-od-clk-voltage).
