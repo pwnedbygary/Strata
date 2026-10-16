@@ -1,0 +1,74 @@
+{
+  "model_repository": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF",
+  "model_revision": "5348543e0147355ac9cbcb031184a3546350988e",
+  "files": [
+    {
+      "path": "IQ1_M/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00001-of-00002.gguf",
+      "size": 29608446496,
+      "lfs": {
+        "size": 29608446496,
+        "sha256": "e11083ba855e7666b48ea3f2db6a9c3a20c18751a012cc24f948de91b7087fad",
+        "pointer_size": 136
+      }
+    },
+    {
+      "path": "IQ1_M/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00002-of-00002.gguf",
+      "size": 28800138432,
+      "lfs": {
+        "size": 28800138432,
+        "sha256": "316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113",
+        "pointer_size": 136
+      }
+    },
+    {
+      "path": "mmproj-Qwen3.8-Flash-Next-BF16.gguf",
+      "size": 907543008,
+      "lfs": {
+        "size": 907543008,
+        "sha256": "b1a82259702816a5330d7bd7607cd9676b11780e79ff7348c21103ff3ce49bd0",
+        "pointer_size": 134
+      }
+    }
+  ],
+  "fork_revision": "e3caf4d92c4024bf4c89522ed08e04085fd1dcef",
+  "upstream_revision": "296b59d2f73c8f04a805df29c2fa97655adace78",
+  "unbiased_revision": "b124b59ce48e4d53abd14d1fd08979350fc27358",
+  "gpu_voltage_offset_mv": -50,
+  "download_verified": true,
+  "first_transfer_sha256": "3657a79d4aa406df274b7c25192c94e395dee7c3f69b49abeb78900e8496e441",
+  "verified_first_shard_sha256": "e11083ba855e7666b48ea3f2db6a9c3a20c18751a012cc24f948de91b7087fad",
+  "comparison_settings": {
+    "context": 131072,
+    "near_full_prompt_target": 130048,
+    "resident_budget_gib": 11,
+    "vram_reserve_mib": 5120,
+    "kv": "int8",
+    "kv_resident": 32768,
+    "mtp_head": false,
+    "suffix_drafts": 3,
+    "adapt_async": 0,
+    "pool_workers": 8,
+    "frontend": "same fork Python frontend for both engine binaries",
+    "route_tail_skip": 7,
+    "scope_memory_max_gib": 20,
+    "scope_swap_max_gib": 0,
+    "available_ram_floor_gib": 3,
+    "physical_vram_floor_mib": 512
+  },
+  "unbiased_smoke": {
+    "model": "existing verified IQ3_XXS",
+    "configured_context": 131072,
+    "filled_context_test": false,
+    "hip_build_adaptation": "CMake only; 7 missing diagnostic guards and frontend HIP target",
+    "gpu_smoke": "correct addition function",
+    "performance_claim": false
+  },
+  "cpu_ggml_quant_sources_match": true,
+  "full_routing_control": {
+    "engine": "fork",
+    "route_tail_skip": 0,
+    "prompt": "same Snake prompt as initial practical suite",
+    "max_tokens": 6144,
+    "comparison_kind": "separate opt-in quality control; cold startup timings are not a matched warm speed comparison"
+  }
+}

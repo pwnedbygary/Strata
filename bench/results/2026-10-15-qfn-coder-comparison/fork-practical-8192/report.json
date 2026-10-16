@@ -1,0 +1,127 @@
+{
+  "suite_version": 1,
+  "seed": 20261013,
+  "temperature": 0,
+  "model": "qfn-coder-iq1-m-fork",
+  "engine": "0.1.44",
+  "max_context": 131072,
+  "engine_settings": {
+    "model": "qfn-coder-iq1-m-fork",
+    "max_context": 131072,
+    "images": false,
+    "version": "0.1.44",
+    "logit_bias": 1,
+    "context": 131072,
+    "kv": "int8",
+    "kv_resident": 32768,
+    "expert_slots": 3302,
+    "expert_cache_mib": 6442,
+    "expert_slots_primary": 3302,
+    "expert_cache_primary_mib": 6442,
+    "spec": 6,
+    "mtp_max": 4,
+    "lookup": 3,
+    "vram_free_mib": 5010,
+    "cvec": 0,
+    "arena_mib": 11262,
+    "pool_workers": 8,
+    "pcie_frac": "0.55",
+    "spec_min_p": "0.50",
+    "conversation_cache_mib": 0,
+    "conversation_cache_slots": 4,
+    "conversation_cache_min_free_mib": 2560,
+    "conversation_cache_min_tokens": 0,
+    "tail_role_token": -1,
+    "vram_elastic": 0,
+    "engine": "0.1.44"
+  },
+  "trials": [
+    {
+      "case": "snake",
+      "repeat": 0,
+      "max_tokens": 8192,
+      "prompt_sha256": "e42e7fc4b602708271c1430ca9de3c70077c67b7b08bb946764259f710649777",
+      "artifact_sha256": "6160dbd3577ccd56d0fb11fda861eb625e904e8784fece95325da5ef93dd2e5e",
+      "artifact": "snake-0.html",
+      "wall_seconds": 275.8795939480042,
+      "finish_reason": "length",
+      "fenced_output": true,
+      "usage": {
+        "prompt_tokens": 472,
+        "completion_tokens": 8192,
+        "total_tokens": 8664,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 472,
+        "prompt_ms": 4998.4,
+        "prompt_per_token_ms": 10.59,
+        "prompt_per_second": 94.4,
+        "predicted_n": 8192,
+        "predicted_ms": 270877.6,
+        "predicted_per_token_ms": 33.066,
+        "predicted_per_second": 30.2,
+        "draft_n": 5577,
+        "draft_n_accepted": 5360
+      },
+      "checks": {},
+      "browser": {
+        "status": "completed",
+        "checks": {
+          "api_present": false
+        },
+        "page_errors": [],
+        "screenshot": "snake-0.html.png"
+      },
+      "manual_visual_review": "not_done"
+    },
+    {
+      "case": "lighthouse_svg",
+      "repeat": 0,
+      "max_tokens": 8192,
+      "prompt_sha256": "f691d40688840ae63848a8bb8c0f01c36991a95bf03522dbaa5983996dea0c49",
+      "artifact_sha256": "32e4bc2d5de295dbdbc7661349ae579f3595d95e447361794a8cd54ca12153fe",
+      "artifact": "lighthouse_svg-0.svg",
+      "wall_seconds": 280.39108868400217,
+      "finish_reason": "length",
+      "fenced_output": false,
+      "usage": {
+        "prompt_tokens": 279,
+        "completion_tokens": 8192,
+        "total_tokens": 8471,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 279,
+        "prompt_ms": 4476.3,
+        "prompt_per_token_ms": 16.044,
+        "prompt_per_second": 62.3,
+        "predicted_n": 8192,
+        "predicted_ms": 275911.0,
+        "predicted_per_token_ms": 33.681,
+        "predicted_per_second": 29.7,
+        "draft_n": 4696,
+        "draft_n_accepted": 4298
+      },
+      "checks": {
+        "valid_svg": false,
+        "error": "unclosed token: line 129, column 4"
+      },
+      "browser": {
+        "status": "completed",
+        "checks": {
+          "svg_rendered": true
+        },
+        "page_errors": [],
+        "screenshot": "lighthouse_svg-0.svg.png"
+      },
+      "manual_visual_review": "not_done"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "normalization": "Remove only from typing import List; replace List annotation names with builtin list. Original artifact and raw rejection retained. No function-body changes.",
+  "checks": {
+    "empty": true,
+    "touching": true,
+    "unsorted": true,
+    "negative": true,
+    "duplicate": true,
+    "nested": true,
+    "input_unchanged": true,
+    "reversed_rejected": true,
+    "boolean_rejected": true,
+    "float_rejected": true,
+    "malformed_rejected": true
+  }
+}

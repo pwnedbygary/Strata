@@ -1,0 +1,172 @@
+{
+  "suite_version": 1,
+  "seed": 20261013,
+  "temperature": 0,
+  "model": "qfn-coder-iq1-m-upstream",
+  "engine": "0.1.44.1",
+  "max_context": 131072,
+  "engine_settings": {
+    "model": "qfn-coder-iq1-m-upstream",
+    "max_context": 131072,
+    "images": false,
+    "version": "0.1.44.1",
+    "logit_bias": 1,
+    "context": 131072,
+    "kv": "int8",
+    "kv_resident": 32768,
+    "expert_slots": 3302,
+    "expert_cache_mib": 6442,
+    "expert_slots_primary": 3302,
+    "expert_cache_primary_mib": 6442,
+    "spec": 6,
+    "mtp_max": 4,
+    "lookup": 3,
+    "vram_free_mib": 5010,
+    "cvec": 0,
+    "arena_mib": 11262,
+    "pool_workers": 8,
+    "pcie_frac": "0.55",
+    "spec_min_p": "0.50",
+    "conversation_cache_mib": 0,
+    "conversation_cache_slots": 4,
+    "conversation_cache_min_free_mib": 2560,
+    "conversation_cache_min_tokens": 0,
+    "tail_role_token": -1,
+    "vram_elastic": 0,
+    "engine": "0.1.44.1"
+  },
+  "trials": [
+    {
+      "case": "snake",
+      "repeat": 0,
+      "max_tokens": 6144,
+      "prompt_sha256": "e42e7fc4b602708271c1430ca9de3c70077c67b7b08bb946764259f710649777",
+      "artifact_sha256": "6615127b4b6d83331bf7b79e3f752088b531e7ec8ed57200069198b530fddec0",
+      "artifact": "snake-0.html",
+      "wall_seconds": 204.660685887,
+      "finish_reason": "length",
+      "fenced_output": false,
+      "usage": {
+        "prompt_tokens": 472,
+        "completion_tokens": 6144,
+        "total_tokens": 6616,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 472,
+        "prompt_ms": 5331.7,
+        "prompt_per_token_ms": 11.296,
+        "prompt_per_second": 88.5,
+        "predicted_n": 6144,
+        "predicted_ms": 199324.4,
+        "predicted_per_token_ms": 32.442,
+        "predicted_per_second": 30.8,
+        "draft_n": 3887,
+        "draft_n_accepted": 3807
+      },
+      "checks": {},
+      "browser": {
+        "status": "completed",
+        "checks": {
+          "api_present": false
+        },
+        "page_errors": [],
+        "screenshot": "snake-0.html.png"
+      },
+      "manual_visual_review": "not_done"
+    },
+    {
+      "case": "merge_intervals",
+      "repeat": 0,
+      "max_tokens": 3072,
+      "prompt_sha256": "60871fd10bf4a9b638278976306dfd9fa21ca159c828ef9fd9bf08ca0f5a7666",
+      "artifact_sha256": "3f0c413c73ed23825d8eb35197410b726506e233b9d78f059724bb94e24738bd",
+      "artifact": "merge_intervals-0.py",
+      "wall_seconds": 30.025942195003154,
+      "finish_reason": "stop",
+      "fenced_output": true,
+      "usage": {
+        "prompt_tokens": 308,
+        "completion_tokens": 457,
+        "total_tokens": 765,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 308,
+        "prompt_ms": 4573.9,
+        "prompt_per_token_ms": 14.85,
+        "prompt_per_second": 67.3,
+        "predicted_n": 457,
+        "predicted_ms": 25448.1,
+        "predicted_per_token_ms": 55.685,
+        "predicted_per_second": 18.0,
+        "draft_n": 31,
+        "draft_n_accepted": 14
+      },
+      "checks": {
+        "restricted_function_check": false,
+        "error": "only functions and docstrings are allowed at module level"
+      },
+      "browser": {
+        "status": "not_run"
+      },
+      "manual_visual_review": "not_applicable"
+    },
+    {
+      "case": "lighthouse_svg",
+      "repeat": 0,
+      "max_tokens": 4096,
+      "prompt_sha256": "f691d40688840ae63848a8bb8c0f01c36991a95bf03522dbaa5983996dea0c49",
+      "artifact_sha256": "6e324d6fcaa4bb179dc8a1ecc0531fe9dec1014de9e7ce250269732f2afc6065",
+      "artifact": "lighthouse_svg-0.svg",
+      "wall_seconds": 123.51799306199973,
+      "finish_reason": "stop",
+      "fenced_output": false,
+      "usage": {
+        "prompt_tokens": 279,
+        "completion_tokens": 3052,
+        "total_tokens": 3331,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 279,
+        "prompt_ms": 4625.0,
+        "prompt_per_token_ms": 16.577,
+        "prompt_per_second": 60.3,
+        "predicted_n": 3052,
+        "predicted_ms": 118889.6,
+        "predicted_per_token_ms": 38.955,
+        "predicted_per_second": 25.7,
+        "draft_n": 1403,
+        "draft_n_accepted": 606
+      },
+      "checks": {
+        "valid_svg": true,
+        "viewbox": true,
+        "editable_layers": true,
+        "palette": true,
+        "vector_only": true,
+        "shape_count": true,
+        "accessible": true
+      },
+      "browser": {
+        "status": "completed",
+        "checks": {
+          "svg_rendered": true
+        },
+        "page_errors": [],
+        "screenshot": "lighthouse_svg-0.svg.png"
+      },
+      "manual_visual_review": "Viewed saved screenshot: recognizable lighthouse, sea, sky and light beam. Structural checks pass; subjective design quality is not scored."
+    }
+  ]
+}

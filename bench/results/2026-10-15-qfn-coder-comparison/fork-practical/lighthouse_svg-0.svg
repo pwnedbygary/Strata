@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="ttl dsc">
+  <title id="ttl">Lighthouse in a Storm</title>
+  <desc id="dsc">A lighthouse on a rocky outcrop casts a warm beam of light across a stormy sea beneath dark clouds.</desc>
+  <defs>
+    <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#D7E3FC"/>
+    </linearGradient>
+    <linearGradient id="gSea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D7E3FC"/>
+      <stop offset="1" stop-color="#0B1220"/>
+    </linearGradient>
+    <linearGradient id="gBeam" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F8C46C" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#F8C46C" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="gBeamL" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#F8C46C" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#F8C46C" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="gTower" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D7E3FC"/>
+      <stop offset="0.55" stop-color="#D7E3FC"/>
+      <stop offset="0.55" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#0B1220"/>
+    </linearGradient>
+    <linearGradient id="gRock" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#0B1220" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+
+  <g id="sky">
+    <rect x="0" y="0" width="512" height="512" fill="url(#gSky)"/>
+    <path d="M 40 150 Q 100 110 160 150 Q 220 110 280 150 Q 340 110 400 150 Q 460 110 512 150 L 512 0 L 0 0 Z" fill="#0B1220" opacity="0.9"/>
+    <path d="M 0 120 Q 60 90 120 120 Q 180 90 240 120 Q 300 90 360 120 Q 420 90 480 120 Q 512 100 512 120 L 512 0 L 0 0 Z" fill="#0B1220" opacity="0.7"/>
+    <path d="M 0 170 Q 80 140 160 170 Q 240 140 320 170 Q 400 140 480 170 Q 512 160 512 170 L 512 0 L 0 0 Z" fill="#0B1220" opacity="0.5"/>
+  </g>
+
+  <g id="sea">
+    <path d="M 0 300 Q 64 285 128 300 Q 192 285 256 300 Q 320 285 384 300 Q 448 285 512 300 L 512 512 L 0 512 Z" fill="url(#gSea)"/>
+    <path d="M 0 340 Q 64 325 128 340 Q 192 325 256 340 Q 320 325 384 340 Q 448 325 512 340 L 512 512 L 0 512 Z" fill="#0B1220" opacity="0.35"/>
+    <path d="M 0 380 Q 64 365 128 380 Q 192 365 256 380 Q 320 365 384 380 Q 448 365 512 380 L 512 512 L 0 512 Z" fill="#0B1220" opacity="0.5"/>
+    <path d="M 0 420 Q 64 405 128 420 Q 192 405 256 420 Q 320 405 384 420 Q 448 405 512 420 L 512 512 L 0 512 Z" fill="#0B1220" opacity="0.65"/>
+    <path d="M 0 460 Q 64 445 128 460 Q 192 445 256 460 Q 320 445 384 460 Q 448 445 512 460 L 512 512 L 0 512 Z" fill="#0B1220" opacity="0.8"/>
+    <path d="M 0 300 Q 64 285 128 300 Q 192 285 256 300 Q 320 285 384 300 Q 448 285 512 300" fill="none" stroke="#D7E3FC" stroke-width="2" opacity="0.6"/>
+    <path d="M 0 340 Q 64 325 128 340 Q 192 325 256 340 Q 320 325 384 340 Q 448 325 512 340" fill="none" stroke="#D7E3FC" stroke-width="1.5" opacity="0.4"/>
+    <path d="M 0 380 Q 64 365 128 380 Q 192 365 256 380 Q 320 365 384 380 Q 448 365 512 380" fill="none" stroke="#D7E3FC" stroke-width="1" opacity="0.3"/>
+  </g>
+
+  <g id="lighthouse">
+    <path d="M 190 300 L 322 300 L 300 340 L 212 340 Z" fill="url(#gRock)"/>
+    <path d="M 220 300 L 292 300 L 280 250 L 232 250 Z" fill="url(#gTower)"/>
+    <path d="M 232 250 L 280 250 L 276 230 L 236 230 Z" fill="#0B1220"/>
+    <path d="M 236 230 L 276 230 L 272 210 L 240 210 Z" fill="#D7E3FC"/>
+    <path d="M 240 210 L 272 210 L 268 195 L 244 195 Z" fill="#0B1220"/>
+    <path d="M 244 195 L 268 195 L 264 180 L 248 180 Z" fill="#D7E3FC"/>
+    <path d="M 248 180 L 264 180 L 260 165 L 252 165 Z" fill="#0B1220"/>
+    <path d="M 252 165 L 260 165 L 258 155 L 254 155 Z" fill="#D7E3FC"/>
+    <path d="M 254 155 L 258 155 L 256 145 L 256 145 Z" fill="#0B1220"/>
+    <path d="M 250 155 L 262 155 L 262 145 L 250 145 Z" fill="#0B1220"/>
+    <path d="M 250 145 L 262 145 L 260 135 L 252 135 Z" fill="#D7E3FC"/>
+    <path d="M 252 135 L 260 135 L 258 125 L 254 125 Z" fill="#0B1220"/>
+    <path d="M 254 125 L 258 125 L 256 115 L 256 115 Z" fill="#D7E3FC"/>
+    <path d="M 256 115 L 256 105 L 256 105 Z" fill="#0B1220"/>
+    <path d="M 253 115 L 259 115 L 259 108 L 253 108 Z" fill="#0B1220"/>
+    <path d="M 254 108 L 258 108 L 256 100 L 256 100 Z" fill="#D7E3FC"/>
+    <path d="M 255 100 L 257 100 L 256 92 L 256 92 Z" fill="#0B1220"/>
+    <path d="M 256 92 L 256 85 L 256 85 Z" fill="#0B1220"/>
+    <path d="M 254 92 L 258 92 L 258 88 L 254 88 Z" fill="#0B1220"/>
+    <path d="M 255 88 L 257 88 L 256 80 L 256 80 Z" fill="#D7E3FC"/>
+    <path d="M 256 80 L 256 72 L 256 72 Z" fill="#0B1220"/>
+    <path d="M 255 80 L 257 80 L 257 76 L 255 76 Z" fill="#0B1220"/>
+    <path d="M 256 76 L 256 68 L 256 68 Z" fill="#D7E3FC"/>
+    <path d="M 256 68 L 256 60 L 256 60 Z" fill="#0B1220"/>
+    <path d="M 255 68 L 257 68 L 257 64 L 255 64 Z" fill="#0B1220"/>
+    <path d="M 256 64 L 256 56 L 256 56 Z" fill="#D7E3FC"/>
+    <path d="M 256 56 L 256 48 L 256 48 Z" fill="#0B1220"/>
+    <path d="M 255 56 L 257 56 L 257 52 L 255 52 Z" fill="#0B1220"/>
+    <path d="M 256 52 L 256 44 L 256 44 Z" fill="#D7E3FC"/>
+    <path d="M 256 44 L 256 36 L 256 36 Z" fill="#0B1220"/>
+    <path d="M 255 44 L 257 44 L 257 40 L 255 40 Z" fill="#0B1220"/>
+    <path d="M 256 40 L 256 32 L 256 32 Z" fill="#D7E3FC"/>
+    <path d="M 256 32 L 256 24 L 256 24 Z" fill="#0B1220"/>
+    <path d="M 255 32 L 257 32 L 257 28 L 255 28 Z" fill="#0B1220"/>
+    <path d="M 256 28 L 256 20 L 256 20 Z" fill="#D7E3FC"/>
+    <path d="M 256 20 L 256 12 L 256 12 Z" fill="#0B1220"/>
+    <path d="M 255 20 L 257 20 L 257 16 L 255 16 Z" fill="#0B1220"/>
+    <path d="M 256 16 L 256 8 L 256 8 Z" fill="#D7E3FC"/>
+    <path d="M 256 8 L 256 0 L 256 0 Z" fill="#0B1220"/>
+    <path d="M 255 8 L 257 8 L 257 4 L 255 4 Z" fill="#0B1220"/>
+    <path d="M 256 4 L 256 0 L 256 0 Z" fill="#D7E3FC"/>
+    <path d="M 256 0 L 256 0 L 256 0 Z" fill="#0B1220"/>
+    <path d="M 255 0 L 257 0 L 257 0 L 255 0 Z" fill="#0B1220"/>
+    <path d="M 256 0 L 256 0 L 256 0 Z" fill="#D7E3FC"/>
+    <path d="M 256 0 L 256 0 L 256 0 Z" fill="#0B1220"/>
+    <path d="M 255 0 L 257 0 L 257 0 L 255 0 Z" fill="#0B1220"/>
+    <path d="M 256 0 L 256 0 L 256 0 Z" fill="#D7E3FC"/>
+    <path d="M 256 0 L 256 0 L 256 0 Z" fill="#0B1220"/>
+    <path d="M 25

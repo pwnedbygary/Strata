@@ -38,6 +38,20 @@ fit in the GPU and resident RAM caches; misses read weights from SSD. The upstre
 setup guide normally recommends more RAM for this model. These results do not cover
 Windows, other GPUs or concurrent requests. Dense screenshot checks are recorded separately below.
 
+## QFN Coder IQ1_M comparison
+
+The separately downloaded, SHA-verified GSQ-RCO Coder IQ1_M was tested on October 15,
+2026 against a clean upstream HIP engine using the same frontend and memory settings.
+At 130,028 input tokens, this fork measured **990.4 tok/s prefill / 17.9 tok/s decode**;
+upstream measured **979.8 / 17.7**. These single runs are effectively tied. Both passed
+three retrieval probes and 12/13 bounded code checks. Practical artifact results were
+mixed; repetition can produce a high token rate without producing a working game.
+This experiment does not replace the IQ3_XXS recommendation or establish an overall
+speedup over upstream. RAM was at 4800 MT/s and the user-requested −50 mV offset remained.
+
+[Settings, artifacts and comparison limits](bench/results/2026-10-15-qfn-coder-comparison/README.md) ·
+[UnbiasedStrata HIP feasibility review](docs/UNBIASED_STRATA_REVIEW.md)
+
 ## Native 27B: Saluki on the same PC
 
 The tested dense model is **Underdog-Saluki-27B-1.0-IQ2-mix.gguf**, a 7.36 GiB file

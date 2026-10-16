@@ -1,0 +1,1665 @@
+{
+  "aborted": false,
+  "samples": [
+    {
+      "seconds": 0.0,
+      "available_gib": 21.191,
+      "vram_free_mib": 13410
+    },
+    {
+      "seconds": 0.5,
+      "available_gib": 20.821,
+      "vram_free_mib": 11073
+    },
+    {
+      "seconds": 1.0,
+      "available_gib": 19.121,
+      "vram_free_mib": 8071
+    },
+    {
+      "seconds": 1.5,
+      "available_gib": 18.995,
+      "vram_free_mib": 1241
+    },
+    {
+      "seconds": 2.0,
+      "available_gib": 19.002,
+      "vram_free_mib": 1241
+    },
+    {
+      "seconds": 2.5,
+      "available_gib": 18.974,
+      "vram_free_mib": 1183
+    },
+    {
+      "seconds": 3.0,
+      "available_gib": 19.049,
+      "vram_free_mib": 1183
+    },
+    {
+      "seconds": 3.51,
+      "available_gib": 19.12,
+      "vram_free_mib": 1183
+    },
+    {
+      "seconds": 4.01,
+      "available_gib": 19.153,
+      "vram_free_mib": 1219
+    },
+    {
+      "seconds": 4.51,
+      "available_gib": 19.209,
+      "vram_free_mib": 1219
+    },
+    {
+      "seconds": 5.01,
+      "available_gib": 19.199,
+      "vram_free_mib": 1215
+    },
+    {
+      "seconds": 5.51,
+      "available_gib": 19.201,
+      "vram_free_mib": 1217
+    },
+    {
+      "seconds": 6.01,
+      "available_gib": 19.194,
+      "vram_free_mib": 1363
+    },
+    {
+      "seconds": 6.51,
+      "available_gib": 19.222,
+      "vram_free_mib": 1363
+    },
+    {
+      "seconds": 7.01,
+      "available_gib": 19.224,
+      "vram_free_mib": 1363
+    },
+    {
+      "seconds": 7.51,
+      "available_gib": 19.168,
+      "vram_free_mib": 1342
+    },
+    {
+      "seconds": 8.01,
+      "available_gib": 19.312,
+      "vram_free_mib": 1346
+    },
+    {
+      "seconds": 8.51,
+      "available_gib": 19.288,
+      "vram_free_mib": 1346
+    },
+    {
+      "seconds": 9.01,
+      "available_gib": 19.313,
+      "vram_free_mib": 1227
+    },
+    {
+      "seconds": 9.51,
+      "available_gib": 19.37,
+      "vram_free_mib": 1245
+    },
+    {
+      "seconds": 10.01,
+      "available_gib": 19.513,
+      "vram_free_mib": 1245
+    },
+    {
+      "seconds": 10.51,
+      "available_gib": 19.483,
+      "vram_free_mib": 1245
+    },
+    {
+      "seconds": 11.01,
+      "available_gib": 19.623,
+      "vram_free_mib": 1245
+    },
+    {
+      "seconds": 11.51,
+      "available_gib": 19.687,
+      "vram_free_mib": 1245
+    },
+    {
+      "seconds": 12.01,
+      "available_gib": 19.77,
+      "vram_free_mib": 1249
+    },
+    {
+      "seconds": 12.51,
+      "available_gib": 20.081,
+      "vram_free_mib": 1203
+    },
+    {
+      "seconds": 13.01,
+      "available_gib": 20.397,
+      "vram_free_mib": 1346
+    },
+    {
+      "seconds": 13.52,
+      "available_gib": 20.573,
+      "vram_free_mib": 1346
+    },
+    {
+      "seconds": 14.02,
+      "available_gib": 20.622,
+      "vram_free_mib": 1378
+    },
+    {
+      "seconds": 14.52,
+      "available_gib": 20.746,
+      "vram_free_mib": 1378
+    },
+    {
+      "seconds": 15.02,
+      "available_gib": 20.742,
+      "vram_free_mib": 1378
+    },
+    {
+      "seconds": 15.52,
+      "available_gib": 20.741,
+      "vram_free_mib": 1400
+    },
+    {
+      "seconds": 16.02,
+      "available_gib": 20.8,
+      "vram_free_mib": 1408
+    },
+    {
+      "seconds": 16.52,
+      "available_gib": 20.991,
+      "vram_free_mib": 1408
+    },
+    {
+      "seconds": 17.02,
+      "available_gib": 21.269,
+      "vram_free_mib": 1254
+    },
+    {
+      "seconds": 17.52,
+      "available_gib": 21.532,
+      "vram_free_mib": 1211
+    },
+    {
+      "seconds": 18.02,
+      "available_gib": 21.804,
+      "vram_free_mib": 1211
+    },
+    {
+      "seconds": 18.52,
+      "available_gib": 21.977,
+      "vram_free_mib": 1211
+    },
+    {
+      "seconds": 19.02,
+      "available_gib": 22.092,
+      "vram_free_mib": 1243
+    },
+    {
+      "seconds": 19.52,
+      "available_gib": 22.203,
+      "vram_free_mib": 1243
+    },
+    {
+      "seconds": 20.02,
+      "available_gib": 22.286,
+      "vram_free_mib": 1394
+    },
+    {
+      "seconds": 20.52,
+      "available_gib": 22.317,
+      "vram_free_mib": 1396
+    },
+    {
+      "seconds": 21.02,
+      "available_gib": 22.333,
+      "vram_free_mib": 1392
+    },
+    {
+      "seconds": 21.52,
+      "available_gib": 22.357,
+      "vram_free_mib": 1392
+    },
+    {
+      "seconds": 22.02,
+      "available_gib": 21.52,
+      "vram_free_mib": 1392
+    },
+    {
+      "seconds": 22.52,
+      "available_gib": 20.332,
+      "vram_free_mib": 1347
+    },
+    {
+      "seconds": 23.02,
+      "available_gib": 19.27,
+      "vram_free_mib": 1347
+    },
+    {
+      "seconds": 23.53,
+      "available_gib": 18.246,
+      "vram_free_mib": 1347
+    },
+    {
+      "seconds": 24.03,
+      "available_gib": 18.077,
+      "vram_free_mib": 1382
+    },
+    {
+      "seconds": 24.53,
+      "available_gib": 17.509,
+      "vram_free_mib": 1382
+    },
+    {
+      "seconds": 25.03,
+      "available_gib": 17.125,
+      "vram_free_mib": 1232
+    },
+    {
+      "seconds": 25.53,
+      "available_gib": 16.698,
+      "vram_free_mib": 1232
+    },
+    {
+      "seconds": 26.03,
+      "available_gib": 16.063,
+      "vram_free_mib": 1232
+    },
+    {
+      "seconds": 26.53,
+      "available_gib": 15.639,
+      "vram_free_mib": 1232
+    },
+    {
+      "seconds": 27.03,
+      "available_gib": 15.399,
+      "vram_free_mib": 1232
+    },
+    {
+      "seconds": 27.53,
+      "available_gib": 15.316,
+      "vram_free_mib": 1189
+    },
+    {
+      "seconds": 28.03,
+      "available_gib": 14.914,
+      "vram_free_mib": 1340
+    },
+    {
+      "seconds": 28.53,
+      "available_gib": 14.972,
+      "vram_free_mib": 1372
+    },
+    {
+      "seconds": 29.03,
+      "available_gib": 14.699,
+      "vram_free_mib": 1368
+    },
+    {
+      "seconds": 29.53,
+      "available_gib": 14.614,
+      "vram_free_mib": 1368
+    },
+    {
+      "seconds": 30.03,
+      "available_gib": 14.532,
+      "vram_free_mib": 1365
+    },
+    {
+      "seconds": 30.53,
+      "available_gib": 14.408,
+      "vram_free_mib": 1380
+    },
+    {
+      "seconds": 31.04,
+      "available_gib": 14.624,
+      "vram_free_mib": 1380
+    },
+    {
+      "seconds": 31.54,
+      "available_gib": 14.476,
+      "vram_free_mib": 1380
+    },
+    {
+      "seconds": 32.04,
+      "available_gib": 14.363,
+      "vram_free_mib": 1384
+    },
+    {
+      "seconds": 32.54,
+      "available_gib": 14.261,
+      "vram_free_mib": 1340
+    },
+    {
+      "seconds": 33.04,
+      "available_gib": 14.411,
+      "vram_free_mib": 1190
+    },
+    {
+      "seconds": 33.54,
+      "available_gib": 14.307,
+      "vram_free_mib": 1221
+    },
+    {
+      "seconds": 34.04,
+      "available_gib": 14.247,
+      "vram_free_mib": 1221
+    },
+    {
+      "seconds": 34.54,
+      "available_gib": 14.184,
+      "vram_free_mib": 1221
+    },
+    {
+      "seconds": 35.04,
+      "available_gib": 14.353,
+      "vram_free_mib": 1221
+    },
+    {
+      "seconds": 35.54,
+      "available_gib": 14.264,
+      "vram_free_mib": 1223
+    },
+    {
+      "seconds": 36.04,
+      "available_gib": 14.169,
+      "vram_free_mib": 1374
+    },
+    {
+      "seconds": 36.54,
+      "available_gib": 14.131,
+      "vram_free_mib": 1374
+    },
+    {
+      "seconds": 37.04,
+      "available_gib": 14.033,
+      "vram_free_mib": 1370
+    },
+    {
+      "seconds": 37.54,
+      "available_gib": 13.908,
+      "vram_free_mib": 1346
+    },
+    {
+      "seconds": 38.04,
+      "available_gib": 13.389,
+      "vram_free_mib": 1346
+    },
+    {
+      "seconds": 38.54,
+      "available_gib": 13.543,
+      "vram_free_mib": 1378
+    },
+    {
+      "seconds": 39.04,
+      "available_gib": 13.44,
+      "vram_free_mib": 1378
+    },
+    {
+      "seconds": 39.54,
+      "available_gib": 13.401,
+      "vram_free_mib": 1394
+    },
+    {
+      "seconds": 40.04,
+      "available_gib": 13.341,
+      "vram_free_mib": 1398
+    },
+    {
+      "seconds": 40.54,
+      "available_gib": 13.255,
+      "vram_free_mib": 1398
+    },
+    {
+      "seconds": 41.05,
+      "available_gib": 13.205,
+      "vram_free_mib": 1247
+    },
+    {
+      "seconds": 41.55,
+      "available_gib": 13.375,
+      "vram_free_mib": 1247
+    },
+    {
+      "seconds": 42.05,
+      "available_gib": 13.299,
+      "vram_free_mib": 1247
+    },
+    {
+      "seconds": 42.55,
+      "available_gib": 13.165,
+      "vram_free_mib": 1204
+    },
+    {
+      "seconds": 43.05,
+      "available_gib": 13.128,
+      "vram_free_mib": 1204
+    },
+    {
+      "seconds": 43.55,
+      "available_gib": 13.073,
+      "vram_free_mib": 1236
+    },
+    {
+      "seconds": 44.05,
+      "available_gib": 12.991,
+      "vram_free_mib": 1244
+    },
+    {
+      "seconds": 44.55,
+      "available_gib": 12.933,
+      "vram_free_mib": 1244
+    },
+    {
+      "seconds": 45.05,
+      "available_gib": 12.919,
+      "vram_free_mib": 1236
+    },
+    {
+      "seconds": 45.55,
+      "available_gib": 12.846,
+      "vram_free_mib": 1244
+    },
+    {
+      "seconds": 46.05,
+      "available_gib": 12.764,
+      "vram_free_mib": 1390
+    },
+    {
+      "seconds": 46.55,
+      "available_gib": 12.668,
+      "vram_free_mib": 1390
+    },
+    {
+      "seconds": 47.05,
+      "available_gib": 12.837,
+      "vram_free_mib": 1390
+    },
+    {
+      "seconds": 47.55,
+      "available_gib": 12.745,
+      "vram_free_mib": 1348
+    },
+    {
+      "seconds": 48.05,
+      "available_gib": 12.674,
+      "vram_free_mib": 1356
+    },
+    {
+      "seconds": 48.55,
+      "available_gib": 12.607,
+      "vram_free_mib": 1388
+    },
+    {
+      "seconds": 49.05,
+      "available_gib": 12.532,
+      "vram_free_mib": 1233
+    },
+    {
+      "seconds": 49.55,
+      "available_gib": 12.438,
+      "vram_free_mib": 1233
+    },
+    {
+      "seconds": 50.05,
+      "available_gib": 12.372,
+      "vram_free_mib": 1233
+    },
+    {
+      "seconds": 50.56,
+      "available_gib": 12.328,
+      "vram_free_mib": 1235
+    },
+    {
+      "seconds": 51.06,
+      "available_gib": 12.225,
+      "vram_free_mib": 1235
+    },
+    {
+      "seconds": 51.56,
+      "available_gib": 12.172,
+      "vram_free_mib": 1235
+    },
+    {
+      "seconds": 52.06,
+      "available_gib": 12.108,
+      "vram_free_mib": 1243
+    },
+    {
+      "seconds": 52.56,
+      "available_gib": 12.003,
+      "vram_free_mib": 1199
+    },
+    {
+      "seconds": 53.06,
+      "available_gib": 11.716,
+      "vram_free_mib": 1337
+    },
+    {
+      "seconds": 53.56,
+      "available_gib": 11.907,
+      "vram_free_mib": 1369
+    },
+    {
+      "seconds": 54.06,
+      "available_gib": 11.888,
+      "vram_free_mib": 1369
+    },
+    {
+      "seconds": 54.56,
+      "available_gib": 11.879,
+      "vram_free_mib": 1369
+    },
+    {
+      "seconds": 55.06,
+      "available_gib": 12.542,
+      "vram_free_mib": 1369
+    },
+    {
+      "seconds": 55.56,
+      "available_gib": 13.169,
+      "vram_free_mib": 1377
+    },
+    {
+      "seconds": 56.06,
+      "available_gib": 13.103,
+      "vram_free_mib": 1381
+    },
+    {
+      "seconds": 56.56,
+      "available_gib": 13.04,
+      "vram_free_mib": 1381
+    },
+    {
+      "seconds": 57.06,
+      "available_gib": 12.998,
+      "vram_free_mib": 1230
+    },
+    {
+      "seconds": 57.56,
+      "available_gib": 12.925,
+      "vram_free_mib": 1199
+    },
+    {
+      "seconds": 58.06,
+      "available_gib": 12.861,
+      "vram_free_mib": 1199
+    },
+    {
+      "seconds": 58.56,
+      "available_gib": 12.782,
+      "vram_free_mib": 1230
+    },
+    {
+      "seconds": 59.06,
+      "available_gib": 12.732,
+      "vram_free_mib": 1230
+    },
+    {
+      "seconds": 59.56,
+      "available_gib": 12.662,
+      "vram_free_mib": 1230
+    },
+    {
+      "seconds": 60.07,
+      "available_gib": 12.607,
+      "vram_free_mib": 1238
+    },
+    {
+      "seconds": 60.57,
+      "available_gib": 12.558,
+      "vram_free_mib": 1246
+    },
+    {
+      "seconds": 61.07,
+      "available_gib": 12.483,
+      "vram_free_mib": 1385
+    },
+    {
+      "seconds": 61.57,
+      "available_gib": 12.431,
+      "vram_free_mib": 1385
+    },
+    {
+      "seconds": 62.07,
+      "available_gib": 12.374,
+      "vram_free_mib": 1385
+    },
+    {
+      "seconds": 62.57,
+      "available_gib": 12.249,
+      "vram_free_mib": 1334
+    },
+    {
+      "seconds": 63.07,
+      "available_gib": 12.197,
+      "vram_free_mib": 1334
+    },
+    {
+      "seconds": 63.57,
+      "available_gib": 12.138,
+      "vram_free_mib": 1366
+    },
+    {
+      "seconds": 64.07,
+      "available_gib": 12.053,
+      "vram_free_mib": 1370
+    },
+    {
+      "seconds": 64.57,
+      "available_gib": 12.01,
+      "vram_free_mib": 1370
+    },
+    {
+      "seconds": 65.07,
+      "available_gib": 11.956,
+      "vram_free_mib": 1219
+    },
+    {
+      "seconds": 65.57,
+      "available_gib": 11.897,
+      "vram_free_mib": 1221
+    },
+    {
+      "seconds": 66.07,
+      "available_gib": 11.862,
+      "vram_free_mib": 1221
+    },
+    {
+      "seconds": 66.57,
+      "available_gib": 11.82,
+      "vram_free_mib": 1221
+    },
+    {
+      "seconds": 67.07,
+      "available_gib": 11.771,
+      "vram_free_mib": 1221
+    },
+    {
+      "seconds": 67.57,
+      "available_gib": 11.752,
+      "vram_free_mib": 1200
+    },
+    {
+      "seconds": 68.07,
+      "available_gib": 11.737,
+      "vram_free_mib": 1208
+    },
+    {
+      "seconds": 68.57,
+      "available_gib": 11.729,
+      "vram_free_mib": 1239
+    },
+    {
+      "seconds": 69.08,
+      "available_gib": 11.681,
+      "vram_free_mib": 1215
+    },
+    {
+      "seconds": 69.58,
+      "available_gib": 11.751,
+      "vram_free_mib": 1233
+    },
+    {
+      "seconds": 70.08,
+      "available_gib": 11.757,
+      "vram_free_mib": 1379
+    },
+    {
+      "seconds": 70.58,
+      "available_gib": 11.754,
+      "vram_free_mib": 1379
+    },
+    {
+      "seconds": 71.08,
+      "available_gib": 11.787,
+      "vram_free_mib": 1379
+    },
+    {
+      "seconds": 71.58,
+      "available_gib": 11.794,
+      "vram_free_mib": 1379
+    },
+    {
+      "seconds": 72.08,
+      "available_gib": 11.78,
+      "vram_free_mib": 1387
+    },
+    {
+      "seconds": 72.58,
+      "available_gib": 11.724,
+      "vram_free_mib": 1349
+    },
+    {
+      "seconds": 73.08,
+      "available_gib": 11.306,
+      "vram_free_mib": 1139
+    },
+    {
+      "seconds": 73.58,
+      "available_gib": 11.289,
+      "vram_free_mib": 1154
+    },
+    {
+      "seconds": 74.08,
+      "available_gib": 11.283,
+      "vram_free_mib": 1156
+    },
+    {
+      "seconds": 74.58,
+      "available_gib": 11.274,
+      "vram_free_mib": 1156
+    },
+    {
+      "seconds": 75.08,
+      "available_gib": 11.296,
+      "vram_free_mib": 1156
+    },
+    {
+      "seconds": 75.58,
+      "available_gib": 11.284,
+      "vram_free_mib": 1164
+    },
+    {
+      "seconds": 76.08,
+      "available_gib": 11.285,
+      "vram_free_mib": 1168
+    },
+    {
+      "seconds": 76.58,
+      "available_gib": 11.283,
+      "vram_free_mib": 1168
+    },
+    {
+      "seconds": 77.08,
+      "available_gib": 11.282,
+      "vram_free_mib": 1164
+    },
+    {
+      "seconds": 77.58,
+      "available_gib": 11.263,
+      "vram_free_mib": 1121
+    },
+    {
+      "seconds": 78.08,
+      "available_gib": 11.276,
+      "vram_free_mib": 1268
+    },
+    {
+      "seconds": 78.59,
+      "available_gib": 11.283,
+      "vram_free_mib": 1300
+    },
+    {
+      "seconds": 79.09,
+      "available_gib": 11.285,
+      "vram_free_mib": 1300
+    },
+    {
+      "seconds": 79.59,
+      "available_gib": 11.284,
+      "vram_free_mib": 1300
+    },
+    {
+      "seconds": 80.09,
+      "available_gib": 11.287,
+      "vram_free_mib": 1304
+    },
+    {
+      "seconds": 80.59,
+      "available_gib": 11.311,
+      "vram_free_mib": 1306
+    },
+    {
+      "seconds": 81.09,
+      "available_gib": 11.31,
+      "vram_free_mib": 1155
+    },
+    {
+      "seconds": 81.59,
+      "available_gib": 11.308,
+      "vram_free_mib": 1155
+    },
+    {
+      "seconds": 82.09,
+      "available_gib": 11.312,
+      "vram_free_mib": 1155
+    },
+    {
+      "seconds": 82.59,
+      "available_gib": 11.293,
+      "vram_free_mib": 1102
+    },
+    {
+      "seconds": 83.09,
+      "available_gib": 11.294,
+      "vram_free_mib": 1102
+    },
+    {
+      "seconds": 83.59,
+      "available_gib": 11.295,
+      "vram_free_mib": 1134
+    },
+    {
+      "seconds": 84.09,
+      "available_gib": 11.282,
+      "vram_free_mib": 1138
+    },
+    {
+      "seconds": 84.59,
+      "available_gib": 11.289,
+      "vram_free_mib": 1138
+    },
+    {
+      "seconds": 85.09,
+      "available_gib": 11.284,
+      "vram_free_mib": 1281
+    },
+    {
+      "seconds": 85.59,
+      "available_gib": 11.287,
+      "vram_free_mib": 1281
+    },
+    {
+      "seconds": 86.09,
+      "available_gib": 11.316,
+      "vram_free_mib": 1281
+    },
+    {
+      "seconds": 86.59,
+      "available_gib": 11.289,
+      "vram_free_mib": 1281
+    },
+    {
+      "seconds": 87.09,
+      "available_gib": 11.286,
+      "vram_free_mib": 1281
+    },
+    {
+      "seconds": 87.59,
+      "available_gib": 11.246,
+      "vram_free_mib": 1239
+    },
+    {
+      "seconds": 88.1,
+      "available_gib": 11.208,
+      "vram_free_mib": 1007
+    },
+    {
+      "seconds": 88.6,
+      "available_gib": 11.206,
+      "vram_free_mib": 1038
+    },
+    {
+      "seconds": 89.1,
+      "available_gib": 11.205,
+      "vram_free_mib": 884
+    },
+    {
+      "seconds": 89.6,
+      "available_gib": 11.205,
+      "vram_free_mib": 884
+    },
+    {
+      "seconds": 90.1,
+      "available_gib": 11.204,
+      "vram_free_mib": 884
+    },
+    {
+      "seconds": 90.6,
+      "available_gib": 11.202,
+      "vram_free_mib": 906
+    },
+    {
+      "seconds": 91.1,
+      "available_gib": 11.202,
+      "vram_free_mib": 906
+    },
+    {
+      "seconds": 91.6,
+      "available_gib": 11.211,
+      "vram_free_mib": 906
+    },
+    {
+      "seconds": 92.1,
+      "available_gib": 11.212,
+      "vram_free_mib": 1061
+    },
+    {
+      "seconds": 92.6,
+      "available_gib": 11.202,
+      "vram_free_mib": 1018
+    },
+    {
+      "seconds": 93.1,
+      "available_gib": 11.2,
+      "vram_free_mib": 1010
+    },
+    {
+      "seconds": 93.6,
+      "available_gib": 11.204,
+      "vram_free_mib": 1041
+    },
+    {
+      "seconds": 94.1,
+      "available_gib": 11.208,
+      "vram_free_mib": 1041
+    },
+    {
+      "seconds": 94.6,
+      "available_gib": 11.206,
+      "vram_free_mib": 1041
+    },
+    {
+      "seconds": 95.1,
+      "available_gib": 11.19,
+      "vram_free_mib": 1041
+    },
+    {
+      "seconds": 95.6,
+      "available_gib": 11.212,
+      "vram_free_mib": 1043
+    },
+    {
+      "seconds": 96.1,
+      "available_gib": 11.211,
+      "vram_free_mib": 1051
+    },
+    {
+      "seconds": 96.6,
+      "available_gib": 11.211,
+      "vram_free_mib": 1051
+    },
+    {
+      "seconds": 97.1,
+      "available_gib": 11.21,
+      "vram_free_mib": 897
+    },
+    {
+      "seconds": 97.6,
+      "available_gib": 11.182,
+      "vram_free_mib": 871
+    },
+    {
+      "seconds": 98.1,
+      "available_gib": 11.181,
+      "vram_free_mib": 871
+    },
+    {
+      "seconds": 98.6,
+      "available_gib": 11.18,
+      "vram_free_mib": 903
+    },
+    {
+      "seconds": 99.1,
+      "available_gib": 11.168,
+      "vram_free_mib": 903
+    },
+    {
+      "seconds": 99.6,
+      "available_gib": 11.178,
+      "vram_free_mib": 903
+    },
+    {
+      "seconds": 100.11,
+      "available_gib": 11.163,
+      "vram_free_mib": 1057
+    },
+    {
+      "seconds": 100.61,
+      "available_gib": 11.061,
+      "vram_free_mib": 1065
+    },
+    {
+      "seconds": 101.11,
+      "available_gib": 11.052,
+      "vram_free_mib": 1065
+    },
+    {
+      "seconds": 101.61,
+      "available_gib": 11.059,
+      "vram_free_mib": 1065
+    },
+    {
+      "seconds": 102.11,
+      "available_gib": 11.047,
+      "vram_free_mib": 1065
+    },
+    {
+      "seconds": 102.61,
+      "available_gib": 11.036,
+      "vram_free_mib": 1022
+    },
+    {
+      "seconds": 103.11,
+      "available_gib": 11.064,
+      "vram_free_mib": 1022
+    },
+    {
+      "seconds": 103.61,
+      "available_gib": 11.071,
+      "vram_free_mib": 1054
+    },
+    {
+      "seconds": 104.11,
+      "available_gib": 11.142,
+      "vram_free_mib": 1058
+    },
+    {
+      "seconds": 104.61,
+      "available_gib": 11.159,
+      "vram_free_mib": 1058
+    },
+    {
+      "seconds": 105.11,
+      "available_gib": 11.149,
+      "vram_free_mib": 908
+    },
+    {
+      "seconds": 105.61,
+      "available_gib": 11.16,
+      "vram_free_mib": 915
+    },
+    {
+      "seconds": 106.11,
+      "available_gib": 11.16,
+      "vram_free_mib": 915
+    },
+    {
+      "seconds": 106.61,
+      "available_gib": 11.149,
+      "vram_free_mib": 915
+    },
+    {
+      "seconds": 107.11,
+      "available_gib": 11.162,
+      "vram_free_mib": 915
+    },
+    {
+      "seconds": 107.61,
+      "available_gib": 11.13,
+      "vram_free_mib": 873
+    },
+    {
+      "seconds": 108.11,
+      "available_gib": 11.158,
+      "vram_free_mib": 877
+    },
+    {
+      "seconds": 108.61,
+      "available_gib": 11.14,
+      "vram_free_mib": 909
+    },
+    {
+      "seconds": 109.11,
+      "available_gib": 11.13,
+      "vram_free_mib": 1051
+    },
+    {
+      "seconds": 109.61,
+      "available_gib": 11.138,
+      "vram_free_mib": 1051
+    },
+    {
+      "seconds": 110.12,
+      "available_gib": 11.127,
+      "vram_free_mib": 1051
+    },
+    {
+      "seconds": 110.62,
+      "available_gib": 11.153,
+      "vram_free_mib": 1053
+    },
+    {
+      "seconds": 111.12,
+      "available_gib": 11.183,
+      "vram_free_mib": 1053
+    },
+    {
+      "seconds": 111.62,
+      "available_gib": 11.142,
+      "vram_free_mib": 1053
+    },
+    {
+      "seconds": 112.12,
+      "available_gib": 11.13,
+      "vram_free_mib": 1057
+    },
+    {
+      "seconds": 112.62,
+      "available_gib": 11.14,
+      "vram_free_mib": 1015
+    },
+    {
+      "seconds": 113.12,
+      "available_gib": 11.129,
+      "vram_free_mib": 864
+    },
+    {
+      "seconds": 113.62,
+      "available_gib": 11.159,
+      "vram_free_mib": 896
+    },
+    {
+      "seconds": 114.12,
+      "available_gib": 11.141,
+      "vram_free_mib": 896
+    },
+    {
+      "seconds": 114.62,
+      "available_gib": 11.155,
+      "vram_free_mib": 896
+    },
+    {
+      "seconds": 115.12,
+      "available_gib": 11.147,
+      "vram_free_mib": 896
+    },
+    {
+      "seconds": 115.62,
+      "available_gib": 11.152,
+      "vram_free_mib": 903
+    },
+    {
+      "seconds": 116.13,
+      "available_gib": 11.157,
+      "vram_free_mib": 907
+    },
+    {
+      "seconds": 116.63,
+      "available_gib": 11.151,
+      "vram_free_mib": 907
+    },
+    {
+      "seconds": 117.13,
+      "available_gib": 11.158,
+      "vram_free_mib": 903
+    },
+    {
+      "seconds": 117.63,
+      "available_gib": 11.164,
+      "vram_free_mib": 872
+    },
+    {
+      "seconds": 118.13,
+      "available_gib": 11.178,
+      "vram_free_mib": 1019
+    },
+    {
+      "seconds": 118.63,
+      "available_gib": 11.195,
+      "vram_free_mib": 1051
+    },
+    {
+      "seconds": 119.13,
+      "available_gib": 11.183,
+      "vram_free_mib": 1051
+    },
+    {
+      "seconds": 119.63,
+      "available_gib": 11.164,
+      "vram_free_mib": 1051
+    },
+    {
+      "seconds": 120.13,
+      "available_gib": 11.192,
+      "vram_free_mib": 1055
+    },
+    {
+      "seconds": 120.63,
+      "available_gib": 11.21,
+      "vram_free_mib": 1062
+    },
+    {
+      "seconds": 121.13,
+      "available_gib": 11.183,
+      "vram_free_mib": 911
+    },
+    {
+      "seconds": 121.63,
+      "available_gib": 11.187,
+      "vram_free_mib": 911
+    },
+    {
+      "seconds": 122.13,
+      "available_gib": 11.183,
+      "vram_free_mib": 911
+    },
+    {
+      "seconds": 122.63,
+      "available_gib": 11.15,
+      "vram_free_mib": 860
+    },
+    {
+      "seconds": 123.13,
+      "available_gib": 11.111,
+      "vram_free_mib": 860
+    },
+    {
+      "seconds": 123.63,
+      "available_gib": 11.153,
+      "vram_free_mib": 892
+    },
+    {
+      "seconds": 124.13,
+      "available_gib": 11.19,
+      "vram_free_mib": 896
+    },
+    {
+      "seconds": 124.63,
+      "available_gib": 11.175,
+      "vram_free_mib": 896
+    },
+    {
+      "seconds": 125.13,
+      "available_gib": 11.153,
+      "vram_free_mib": 892
+    },
+    {
+      "seconds": 125.63,
+      "available_gib": 11.153,
+      "vram_free_mib": 894
+    },
+    {
+      "seconds": 126.14,
+      "available_gib": 11.175,
+      "vram_free_mib": 1041
+    },
+    {
+      "seconds": 126.64,
+      "available_gib": 11.184,
+      "vram_free_mib": 1041
+    },
+    {
+      "seconds": 127.14,
+      "available_gib": 11.157,
+      "vram_free_mib": 1041
+    },
+    {
+      "seconds": 127.64,
+      "available_gib": 11.163,
+      "vram_free_mib": 1020
+    },
+    {
+      "seconds": 128.14,
+      "available_gib": 11.14,
+      "vram_free_mib": 1024
+    },
+    {
+      "seconds": 128.64,
+      "available_gib": 11.155,
+      "vram_free_mib": 1055
+    },
+    {
+      "seconds": 129.14,
+      "available_gib": 11.109,
+      "vram_free_mib": 905
+    },
+    {
+      "seconds": 129.64,
+      "available_gib": 11.165,
+      "vram_free_mib": 923
+    },
+    {
+      "seconds": 130.14,
+      "available_gib": 11.125,
+      "vram_free_mib": 923
+    },
+    {
+      "seconds": 130.64,
+      "available_gib": 11.169,
+      "vram_free_mib": 923
+    },
+    {
+      "seconds": 131.14,
+      "available_gib": 11.14,
+      "vram_free_mib": 923
+    },
+    {
+      "seconds": 131.64,
+      "available_gib": 11.14,
+      "vram_free_mib": 923
+    },
+    {
+      "seconds": 132.14,
+      "available_gib": 11.143,
+      "vram_free_mib": 927
+    },
+    {
+      "seconds": 132.64,
+      "available_gib": 11.101,
+      "vram_free_mib": 884
+    },
+    {
+      "seconds": 133.14,
+      "available_gib": 11.086,
+      "vram_free_mib": 1027
+    },
+    {
+      "seconds": 133.64,
+      "available_gib": 11.076,
+      "vram_free_mib": 1058
+    },
+    {
+      "seconds": 134.14,
+      "available_gib": 11.064,
+      "vram_free_mib": 1058
+    },
+    {
+      "seconds": 134.64,
+      "available_gib": 11.029,
+      "vram_free_mib": 1058
+    },
+    {
+      "seconds": 135.14,
+      "available_gib": 11.053,
+      "vram_free_mib": 1058
+    },
+    {
+      "seconds": 135.65,
+      "available_gib": 11.078,
+      "vram_free_mib": 1066
+    },
+    {
+      "seconds": 136.15,
+      "available_gib": 11.079,
+      "vram_free_mib": 1070
+    },
+    {
+      "seconds": 136.65,
+      "available_gib": 11.07,
+      "vram_free_mib": 1070
+    },
+    {
+      "seconds": 137.15,
+      "available_gib": 11.086,
+      "vram_free_mib": 919
+    },
+    {
+      "seconds": 137.65,
+      "available_gib": 11.071,
+      "vram_free_mib": 877
+    },
+    {
+      "seconds": 138.15,
+      "available_gib": 11.083,
+      "vram_free_mib": 876
+    },
+    {
+      "seconds": 138.65,
+      "available_gib": 11.053,
+      "vram_free_mib": 908
+    },
+    {
+      "seconds": 139.15,
+      "available_gib": 11.063,
+      "vram_free_mib": 908
+    },
+    {
+      "seconds": 139.65,
+      "available_gib": 11.067,
+      "vram_free_mib": 908
+    },
+    {
+      "seconds": 140.15,
+      "available_gib": 11.073,
+      "vram_free_mib": 912
+    },
+    {
+      "seconds": 140.65,
+      "available_gib": 11.077,
+      "vram_free_mib": 914
+    },
+    {
+      "seconds": 141.15,
+      "available_gib": 11.074,
+      "vram_free_mib": 1057
+    },
+    {
+      "seconds": 141.65,
+      "available_gib": 11.08,
+      "vram_free_mib": 1057
+    },
+    {
+      "seconds": 142.15,
+      "available_gib": 11.062,
+      "vram_free_mib": 1056
+    },
+    {
+      "seconds": 142.65,
+      "available_gib": 11.023,
+      "vram_free_mib": 1011
+    },
+    {
+      "seconds": 143.15,
+      "available_gib": 11.051,
+      "vram_free_mib": 1011
+    },
+    {
+      "seconds": 143.65,
+      "available_gib": 10.936,
+      "vram_free_mib": 1042
+    },
+    {
+      "seconds": 144.15,
+      "available_gib": 10.938,
+      "vram_free_mib": 1046
+    },
+    {
+      "seconds": 144.65,
+      "available_gib": 10.947,
+      "vram_free_mib": 1046
+    },
+    {
+      "seconds": 145.16,
+      "available_gib": 10.916,
+      "vram_free_mib": 893
+    },
+    {
+      "seconds": 145.66,
+      "available_gib": 10.924,
+      "vram_free_mib": 893
+    },
+    {
+      "seconds": 146.16,
+      "available_gib": 10.923,
+      "vram_free_mib": 893
+    },
+    {
+      "seconds": 146.66,
+      "available_gib": 10.926,
+      "vram_free_mib": 893
+    },
+    {
+      "seconds": 147.16,
+      "available_gib": 10.931,
+      "vram_free_mib": 893
+    },
+    {
+      "seconds": 147.66,
+      "available_gib": 10.875,
+      "vram_free_mib": 850
+    },
+    {
+      "seconds": 148.16,
+      "available_gib": 10.864,
+      "vram_free_mib": 854
+    },
+    {
+      "seconds": 148.66,
+      "available_gib": 10.887,
+      "vram_free_mib": 886
+    },
+    {
+      "seconds": 149.16,
+      "available_gib": 10.898,
+      "vram_free_mib": 871
+    },
+    {
+      "seconds": 149.66,
+      "available_gib": 10.915,
+      "vram_free_mib": 871
+    },
+    {
+      "seconds": 150.16,
+      "available_gib": 10.886,
+      "vram_free_mib": 871
+    },
+    {
+      "seconds": 150.66,
+      "available_gib": 10.902,
+      "vram_free_mib": 878
+    },
+    {
+      "seconds": 151.16,
+      "available_gib": 10.905,
+      "vram_free_mib": 878
+    },
+    {
+      "seconds": 151.66,
+      "available_gib": 10.895,
+      "vram_free_mib": 878
+    },
+    {
+      "seconds": 152.16,
+      "available_gib": 10.907,
+      "vram_free_mib": 882
+    },
+    {
+      "seconds": 152.66,
+      "available_gib": 10.897,
+      "vram_free_mib": 839
+    },
+    {
+      "seconds": 153.16,
+      "available_gib": 10.904,
+      "vram_free_mib": 835
+    },
+    {
+      "seconds": 153.66,
+      "available_gib": 10.891,
+      "vram_free_mib": 867
+    },
+    {
+      "seconds": 154.16,
+      "available_gib": 10.94,
+      "vram_free_mib": 867
+    },
+    {
+      "seconds": 154.66,
+      "available_gib": 10.937,
+      "vram_free_mib": 867
+    },
+    {
+      "seconds": 155.17,
+      "available_gib": 10.939,
+      "vram_free_mib": 867
+    },
+    {
+      "seconds": 155.67,
+      "available_gib": 10.94,
+      "vram_free_mib": 869
+    },
+    {
+      "seconds": 156.17,
+      "available_gib": 10.943,
+      "vram_free_mib": 873
+    },
+    {
+      "seconds": 156.67,
+      "available_gib": 10.943,
+      "vram_free_mib": 869
+    },
+    {
+      "seconds": 157.17,
+      "available_gib": 10.944,
+      "vram_free_mib": 1027
+    },
+    {
+      "seconds": 157.67,
+      "available_gib": 10.923,
+      "vram_free_mib": 1003
+    },
+    {
+      "seconds": 158.17,
+      "available_gib": 10.924,
+      "vram_free_mib": 1003
+    },
+    {
+      "seconds": 158.67,
+      "available_gib": 10.923,
+      "vram_free_mib": 1035
+    },
+    {
+      "seconds": 159.17,
+      "available_gib": 10.925,
+      "vram_free_mib": 1039
+    },
+    {
+      "seconds": 159.67,
+      "available_gib": 10.934,
+      "vram_free_mib": 1039
+    },
+    {
+      "seconds": 160.17,
+      "available_gib": 10.935,
+      "vram_free_mib": 1043
+    },
+    {
+      "seconds": 160.67,
+      "available_gib": 10.938,
+      "vram_free_mib": 911
+    },
+    {
+      "seconds": 161.17,
+      "available_gib": 10.939,
+      "vram_free_mib": 911
+    },
+    {
+      "seconds": 161.67,
+      "available_gib": 10.938,
+      "vram_free_mib": 911
+    },
+    {
+      "seconds": 162.17,
+      "available_gib": 11.024,
+      "vram_free_mib": 911
+    },
+    {
+      "seconds": 162.67,
+      "available_gib": 10.989,
+      "vram_free_mib": 868
+    },
+    {
+      "seconds": 163.17,
+      "available_gib": 11.004,
+      "vram_free_mib": 872
+    },
+    {
+      "seconds": 163.67,
+      "available_gib": 11.009,
+      "vram_free_mib": 904
+    },
+    {
+      "seconds": 164.17,
+      "available_gib": 11.009,
+      "vram_free_mib": 908
+    },
+    {
+      "seconds": 164.67,
+      "available_gib": 11.023,
+      "vram_free_mib": 900
+    },
+    {
+      "seconds": 165.17,
+      "available_gib": 11.025,
+      "vram_free_mib": 1047
+    },
+    {
+      "seconds": 165.67,
+      "available_gib": 13.382,
+      "vram_free_mib": 1054
+    }
+  ]
+}

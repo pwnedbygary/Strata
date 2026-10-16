@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--url', default='http://127.0.0.1:8096')
+    parser.add_argument('--model', default='strata', help='API model ID (default: strata)')
     parser.add_argument('--cases', default='snake,merge_intervals,lighthouse_svg')
     parser.add_argument('--repeats', type=int, default=1)
     parser.add_argument('--output-dir', type=Path, required=True)
@@ -63,7 +64,7 @@ def main():
             prompt = f"Practical benchmark v{suite['version']}, task {case['id']}, repeat {repeat}.\n" + source
             print(f"Generating {case['id']} ({repeat + 1}/{args.repeats}) ...", flush=True)
             started = time.monotonic()
-            result = request('/v1/chat/completions', {'model': 'strata', 'temperature': 0, 'top_p': 1,
+            result = request('/v1/chat/completions', {'model': args.model, 'temperature': 0, 'top_p': 1,
                        'seed': args.seed, 'presence_penalty': 0, 'frequency_penalty': 0,
                        'reasoning_effort': 'none', 'max_tokens': max_tokens,
                        'messages': [{'role': 'user', 'content': prompt}]})

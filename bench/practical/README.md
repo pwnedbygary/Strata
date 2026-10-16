@@ -12,6 +12,11 @@ hardware or adaptive engine runs.
 .venv/bin/python tools/benchmark_practical.py --output-dir benchmark-results/iq3
 ```
 
+For router mode, use `--model MODEL_ID` to select a registered profile, for example
+`--model qfn-coder-iq1-m`. The default remains `strata` for single-model servers.
+Load the chosen profile before starting the runner so the initial status metadata
+belongs to the model being tested.
+
 The configuration helper also exposes the same runner as
 `tools/hardware_profile.py benchmark --output-dir benchmark-results/current`.
 

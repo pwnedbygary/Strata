@@ -2,6 +2,11 @@
 import fs from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import path from 'node:path';
+// Honor explicit browser settings; otherwise reuse this repository's isolated install.
+if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
+  const localBrowsers = path.resolve('.benchmark-tools/browsers');
+  try { if ((await fs.stat(localBrowsers)).isDirectory()) process.env.PLAYWRIGHT_BROWSERS_PATH = localBrowsers; } catch {}
+}
 const [kind, file] = process.argv.slice(2);
 let browser;
 try {

@@ -1,0 +1,60 @@
+{
+  "exe": "/home/garyb/Mounts/NVME/Strata/build-hip/strata",
+  "args": [
+    "--pack",
+    "/home/garyb/Mounts/NVME/Strata/packs/qfn-coder-iq1-m",
+    "--native",
+    "/home/garyb/Mounts/NVME/Strata/models/qfn-coder-iq1-m/IQ1_M/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00001-of-00002.gguf",
+    "--ple-gguf",
+    "/home/garyb/Mounts/NVME/Strata/models/qfn-coder-iq1-m/IQ1_M/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00002-of-00002.gguf",
+    "--expert-profile",
+    "/home/garyb/Mounts/NVME/Strata/packs/qfn-coder-iq1-m/expert-profile.bin",
+    "--spec",
+    "4",
+    "--spec-min-p",
+    "0.5",
+    "--max-context",
+    "131072",
+    "--kv",
+    "int8",
+    "--kv-resident",
+    "32768",
+    "--expert-cache",
+    "auto",
+    "--prefill",
+    "auto",
+    "--resident-budget-gib",
+    "11",
+    "--vram-reserve-mib",
+    "5120",
+    "--adapt-async",
+    "0",
+    "--aux-cpus",
+    "auto",
+    "--pool-workers",
+    "8"
+  ],
+  "fit_max_tokens": true,
+  "cwd": "/home/garyb/.config/strata",
+  "tokenizer": "/home/garyb/Mounts/NVME/Strata/packs/qfn-coder-iq1-m/tokenizer",
+  "model_name": "qfn-coder-iq1-m-fork",
+  "log": "/home/garyb/Mounts/NVME/Strata/local-tuning/qfn-coder-comparison/fork-server.log",
+  "lib_dirs": [
+    "/opt/rocm/lib"
+  ],
+  "port": 8096,
+  "backend": "hip",
+  "env": {
+    "STRATA_HIPBLASLT_TUNING": "/home/garyb/Mounts/NVME/Strata/tools/hip/gfx1201-hipblaslt-100202.txt",
+    "STRATA_RESIDENT_PIN": "1",
+    "STRATA_STAGE_PIN": "0",
+    "STRATA_RESIDENT_HEADROOM_GIB": "4",
+    "STRATA_PIN_GUARD": "2",
+    "STRATA_PIN_RESERVE_GIB": "4",
+    "STRATA_UNBUFFERED_LOAD": "1"
+  },
+  "open_browser": false,
+  "router": {
+    "display_name": "QFN Coder IQ1_M \u2014 fork comparison"
+  }
+}

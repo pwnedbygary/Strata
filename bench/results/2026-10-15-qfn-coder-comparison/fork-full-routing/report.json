@@ -1,0 +1,82 @@
+{
+  "suite_version": 1,
+  "seed": 20261013,
+  "temperature": 0,
+  "model": "qfn-coder-iq1-m-full-routing",
+  "engine": "0.1.44",
+  "max_context": 131072,
+  "engine_settings": {
+    "model": "qfn-coder-iq1-m-full-routing",
+    "max_context": 131072,
+    "images": false,
+    "version": "0.1.44",
+    "logit_bias": 1,
+    "context": 131072,
+    "kv": "int8",
+    "kv_resident": 32768,
+    "expert_slots": 3302,
+    "expert_cache_mib": 6442,
+    "expert_slots_primary": 3302,
+    "expert_cache_primary_mib": 6442,
+    "spec": 6,
+    "mtp_max": 4,
+    "lookup": 3,
+    "vram_free_mib": 5010,
+    "cvec": 0,
+    "arena_mib": 11262,
+    "pool_workers": 8,
+    "pcie_frac": "0.55",
+    "spec_min_p": "0.50",
+    "conversation_cache_mib": 0,
+    "conversation_cache_slots": 4,
+    "conversation_cache_min_free_mib": 2560,
+    "conversation_cache_min_tokens": 0,
+    "tail_role_token": -1,
+    "vram_elastic": 0,
+    "engine": "0.1.44"
+  },
+  "trials": [
+    {
+      "case": "snake",
+      "repeat": 0,
+      "max_tokens": 6144,
+      "prompt_sha256": "e42e7fc4b602708271c1430ca9de3c70077c67b7b08bb946764259f710649777",
+      "artifact_sha256": "ac1b7a42ee74f046da4c9c9ae04f6e469df100ed64951223cfb7a9b870bfe434",
+      "artifact": "snake-0.html",
+      "wall_seconds": 412.3669229770021,
+      "finish_reason": "length",
+      "fenced_output": false,
+      "usage": {
+        "prompt_tokens": 472,
+        "completion_tokens": 6144,
+        "total_tokens": 6616,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 472,
+        "prompt_ms": 16486.3,
+        "prompt_per_token_ms": 34.929,
+        "prompt_per_second": 28.6,
+        "predicted_n": 6144,
+        "predicted_ms": 395876.4,
+        "predicted_per_token_ms": 64.433,
+        "predicted_per_second": 15.5,
+        "draft_n": 1658,
+        "draft_n_accepted": 1556
+      },
+      "checks": {},
+      "browser": {
+        "status": "completed",
+        "checks": {
+          "api_present": false
+        },
+        "page_errors": [],
+        "screenshot": "snake-0.html.png"
+      },
+      "manual_visual_review": "not_done"
+    }
+  ]
+}

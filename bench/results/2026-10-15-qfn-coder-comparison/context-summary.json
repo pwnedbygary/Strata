@@ -1,0 +1,46 @@
+[
+  {
+    "run": "fork-8k",
+    "input_tokens": 8136,
+    "prefill_tps": 459.7,
+    "decode_tps": 16.4,
+    "cached_decode_tps": 14.4,
+    "code_checks": "12/13",
+    "retrieval_checks": "3/3",
+    "min_available_ram_gib": 8.859,
+    "min_physical_free_vram_mib": 1750
+  },
+  {
+    "run": "upstream-8k",
+    "input_tokens": 8136,
+    "prefill_tps": 368.6,
+    "decode_tps": 17.2,
+    "cached_decode_tps": 14.3,
+    "code_checks": "12/13",
+    "retrieval_checks": "3/3",
+    "min_available_ram_gib": 8.13,
+    "min_physical_free_vram_mib": 1935
+  },
+  {
+    "run": "fork-128k",
+    "input_tokens": 130028,
+    "prefill_tps": 990.4,
+    "decode_tps": 17.9,
+    "cached_decode_tps": 16.2,
+    "code_checks": "12/13",
+    "retrieval_checks": "3/3",
+    "min_available_ram_gib": 7.846,
+    "min_physical_free_vram_mib": 1747
+  },
+  {
+    "run": "upstream-128k",
+    "input_tokens": 130028,
+    "prefill_tps": 979.8,
+    "decode_tps": 17.7,
+    "cached_decode_tps": 20.1,
+    "code_checks": "12/13",
+    "retrieval_checks": "3/3",
+    "min_available_ram_gib": 6.25,
+    "min_physical_free_vram_mib": 1746
+  }
+]
