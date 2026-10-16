@@ -6,12 +6,37 @@ including its dense Qwen35 path. Attribution is in `frontend/NOTICE.md` and
 `frontend/LICENSE`. Python remains available for setup, development and the legacy
 server, but is not bundled or invoked by the native AppImage runtime.
 
+## Engine selection
+
+The unified package includes the native Strata engine and local llama.cpp executables.
+Automatic routing reads GGUF metadata without loading weights: a `qwen4exp` MoE
+with a matching prepared expert pack uses Strata's VRAM/RAM/SSD tiers. Dense and
+unverified MoE models use llama.cpp. A measured native preference may be bound to
+an exact model path and file size, as with this machine's Swift IQ3_S profiles;
+changing that model removes the preference. This is a conservative compatibility
+rule, not support for every MoE in the tiered engine.
+
+The sidebar selects Automatic, llama.cpp or Strata, then Vulkan or ROCm when
+llama.cpp is selected. Dedicated builds are preferred when packaged; combined
+builds are explicit fallback choices. Backend selection is saved per profile and
+applies on Load. Switching engines releases the previous worker first. Both
+engines share the memory scope and per-user model lock. External harnesses still
+use the same `/v1` address, with routing details included in `/v1/models`.
+
+llama.cpp uses Flash Attention, one slot, Q8 KV and CPU vision by default. Tune
+exposes its actual microbatch, fit margin, KV precision and draft count. Native
+Strata controls remain available on the native path. Configured context is a
+ceiling; longer contexts and backend combinations require separate validation.
+Live llama.cpp rates are estimates from observed progress until final timings
+arrive; completed rates use its reported timings. KV payload and expert-tier
+counters are unavailable when the selected backend does not provide them.
+
 ## Run
 
 ```sh
-./dist/Strata-Native-RX9070XT-x86_64.AppImage
+./dist/Strata-Unified-RX9070XT-x86_64.AppImage
 # Or select another local registry / port:
-./dist/Strata-Native-RX9070XT-x86_64.AppImage \
+./dist/Strata-Unified-RX9070XT-x86_64.AppImage \
   --registry "$HOME/.config/strata/router.json" --port 8096
 ```
 
@@ -22,8 +47,8 @@ a claim that a completely filled window has passed validation. The UI supports
 streaming text, inline screenshots, model switching, stopping and memory release.
 
 One model worker is resident at a time. Direct worker invocation outside a finite
-cgroup memory budget is refused; router mode creates the bounded scope automatically. The native worker takes a per-user lock;
-a second native worker fails before loading weights. Model switches drain the
+cgroup memory budget is refused; router mode creates the bounded scope automatically. Both worker types take a per-user lock;
+a second model worker fails before loading weights. Model switches drain the
 current request before stopping its scope and loading the next. Workers use
 systemd user scopes with 20 GiB memory and zero scope swap by default; the profile
 can specify `router.memory_max_gib`. Startup caps that budget against currently
@@ -33,7 +58,10 @@ an unbounded generation queue. Physical-system floors default to 3 GiB
 available RAM and 512 MiB free dedicated VRAM. The monitor stops the worker if
 those floors are crossed. Admission uses an additional 1 GiB host / 256 MiB GPU
 margin. Active generation checks those softer limits at progress/token boundaries
-and sends STOP, drains the response, and returns an explicit error. HTTP thread
+and sends STOP, drains the response, and returns an explicit error. The external
+llama.cpp supervisor checks the same soft floors every 200 ms and terminates its
+backend if headroom is lost. Cancellation disconnects the upstream request;
+backend process shutdown remains available through Release memory. HTTP thread
 and queue counts are bounded. The engine child dies if its supervising worker
 crashes. Systemd remains the final process-memory boundary; it is not a substitute
 for preflight and adaptive weight offload. Strata cannot reserve memory against
@@ -142,8 +170,21 @@ cmake -S . -B build-hip -DSTRATA_ENABLE_CUDA=OFF -DSTRATA_ENABLE_HIP=ON \
   -DCMAKE_HIP_ARCHITECTURES=gfx1201 -DCMAKE_BUILD_TYPE=Release
 cmake --build build-hip --target strata-native -j 3
 python tools/build_native_appimage.py --appimagetool /path/to/local/appimagetool \
-  --runtime-file /path/to/local/runtime-x86_64
+  --runtime-file /path/to/local/runtime-x86_64 \
+  --llama-build-dir /path/to/combined-llama-build \
+  --rocm-build-dir /path/to/rocm-only-llama-build \
+  --vulkan-binary /path/to/tested/vulkan/llama \
+  --output dist/Strata-Unified-RX9070XT-x86_64.AppImage
 ```
+
+Build the external llama executables from the same pinned source revision when
+comparing backend builds. The tested external checkout is
+`a2878d30df0130dde503a7d9ba30d3d21bd71b9f`; enable `LLAMA_BUILD_APP`,
+`LLAMA_BUILD_SERVER` and `LLAMA_BUILD_COMMON`. Set `GGML_HIP=ON`,
+`GGML_VULKAN=OFF`, and `AMDGPU_TARGETS=gfx1201` for ROCm-only, or reverse
+HIP/Vulkan for Vulkan-only. The combined build enables both. These are separate
+from the native engine's llama dependency pin above. Packaging reads existing
+build directories and never downloads dependencies.
 
 The package script uses Python at build time only. It includes native code,
 licenses, expert-ranking data and tuning tables, with no Python interpreter,

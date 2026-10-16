@@ -1,0 +1,8 @@
+{
+  "samples": 197,
+  "ram_available_min_gib": 22.874,
+  "vram_free_min_mib": 1838,
+  "gpu_voltage_offset_mv": [
+    -50
+  ]
+}

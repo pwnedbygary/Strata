@@ -1,0 +1,89 @@
+{
+  "active": "saluki27-abliterated-mtp-vision",
+  "loading": null,
+  "error": null,
+  "default": "saluki27-abliterated-mtp-vision",
+  "profiles": [
+    "flash-iq3",
+    "saluki27-abliterated-mtp-vision",
+    "swift27-iq3-s-mtp",
+    "swift27-iq3-s-mtp-vision",
+    "swift27-iq3-xxs",
+    "swift27-iq3-xxs-vision"
+  ],
+  "loaded": true,
+  "reload_required": false,
+  "external_model_busy": false,
+  "profile": {
+    "id": "saluki27-abliterated-mtp-vision",
+    "object": "model",
+    "owned_by": "local",
+    "name": "Saluki IQ2-mix \u00b7 128K \u00b7 screenshots",
+    "description": "Automatic uses the measured Vulkan path, Q8 KV and MTP off. Select Strata to use native MTP.",
+    "context_length": 131072,
+    "inference": {
+      "policy": "llama",
+      "engine": "llama",
+      "automatic_engine": "llama",
+      "preferred_compute": "rocm-combined",
+      "device": "ROCm0",
+      "build": "combined",
+      "reason": "Explicit engine selection",
+      "model": {
+        "architecture": "qwen35",
+        "experts": 0,
+        "detected": true
+      }
+    },
+    "meta": {
+      "n_ctx": 131072,
+      "max_output_tokens": 131064
+    },
+    "sampling_defaults": {
+      "temperature": 0
+    },
+    "model_architecture": "qwen35",
+    "local_files": {
+      "model": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-abliterated/IQ2-mix-MTP/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf",
+      "expert_pack": "",
+      "mtp_head": "",
+      "projector": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0/vision/F16/mmproj-Underdog-Saluki-27B-1.0-F16.gguf"
+    },
+    "max_output_tokens": 131064,
+    "available": true,
+    "strata": {
+      "backend": "ROCm0",
+      "kv_precision": "q8_0",
+      "mtp": "off",
+      "prefill_chunk": "512",
+      "adaptive_weights": false,
+      "vision_encoder": "CPU",
+      "resident_ram_gib": "auto",
+      "physical_reserve_mib": "1024"
+    },
+    "architecture": {
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ]
+    },
+    "capabilities": {
+      "streaming": true,
+      "tools": true,
+      "vision": true,
+      "image_generation": false
+    }
+  },
+  "runtime": "native-c++",
+  "memory_policy": {
+    "worker_limit_mib": 20480,
+    "available_ram_floor_gib": 3.0,
+    "physical_vram_floor_mib": 512,
+    "admission_ram_floor_gib": 4.0,
+    "admission_vram_floor_mib": 768,
+    "scope_swap_mib": 0
+  }
+}

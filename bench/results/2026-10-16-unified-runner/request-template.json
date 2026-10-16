@@ -1,0 +1,26 @@
+{
+  "endpoint": "/v1/chat/completions",
+  "body": {
+    "model": "saluki27-abliterated-mtp-vision",
+    "messages": [
+      {
+        "role": "user",
+        "content": "<exact contents of coding-8k-prompt.txt>"
+      }
+    ],
+    "max_tokens": 768,
+    "temperature": 0,
+    "reasoning_effort": "none",
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "cache_prompt": false
+  },
+  "prompt_sha256": "fb93f767f4ab0f425fbc70a785c2a1cf7d3e73e6627bde2625e2d581b0e16e43",
+  "load_endpoint": "/router/load",
+  "load_body": {
+    "model": "saluki27-abliterated-mtp-vision",
+    "engine_policy": "llama",
+    "compute_backend": "vulkan | rocm | rocm-combined"
+  }
+}

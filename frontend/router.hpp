@@ -116,7 +116,26 @@ class Router {
     pid_t pid = -1;
     std::atomic<int> port{0};
     std::atomic<uint64_t> worker_budget_mib{0};
-    std::mutex turn, state, lifecycle;
+    std::mutex turn, state, lifecycle, clients_mutex, metrics_mutex;
+    std::vector<std::weak_ptr<httplib::Client>> clients;
+    std::atomic<bool> request_cancelled{false};
+    common_json last_timings=common_json::object(),last_progress=common_json::object();
+    std::chrono::steady_clock::time_point request_started{}, first_output{};
+    long long observed_generated=0;
+    void track(const std::shared_ptr<httplib::Client> &c) {
+        std::lock_guard<std::mutex> lock(clients_mutex);clients.erase(std::remove_if(clients.begin(),clients.end(),[](auto &w){return w.expired();}),clients.end());clients.push_back(c);
+        std::lock_guard<std::mutex> metrics(metrics_mutex);request_cancelled=false;last_timings=common_json::object();last_progress=common_json::object();request_started=std::chrono::steady_clock::now();first_output={};observed_generated=0;
+    }
+    void observe(const common_json &answer) {
+        std::lock_guard<std::mutex> lock(metrics_mutex);
+        if(answer.contains("prompt_progress")&&answer["prompt_progress"].is_object())last_progress=answer["prompt_progress"];
+        if(answer.contains("timings")&&answer["timings"].is_object())last_timings=answer["timings"];
+        if(first_output==std::chrono::steady_clock::time_point{}&&answer.contains("choices"))
+            for(const auto &choice:answer["choices"])if(choice.contains("delta"))for(const char *field:{"content","reasoning_content"})if(choice["delta"].contains(field)&&choice["delta"][field].is_string()&&!choice["delta"][field].template get<std::string>().empty())first_output=std::chrono::steady_clock::now();
+    }
+    void cancel_clients() {request_cancelled=true;std::lock_guard<std::mutex> lock(clients_mutex);for(auto &weak:clients)if(auto c=weak.lock())c->stop();}
+    bool llama_active() {std::lock_guard<std::mutex> lock(state);return !active.empty()&&active_metadata.value("inference",common_json::object()).value("engine","")=="llama";}
+
     std::atomic<bool> closed{false};
     std::thread guard;
     double ram_floor = requested_ram_floor;
@@ -174,7 +193,7 @@ class Router {
                         std::lock_guard<std::mutex> l(lifecycle);
                         running = pid > 0;
                         if (running) {
-                            int st;
+                            int st=0;
                             auto result = waitpid(pid, &st, WNOHANG);
                             if (result == pid || (result < 0 && errno == ECHILD)) {
                                 pid = -1;
@@ -183,7 +202,7 @@ class Router {
                                 std::lock_guard<std::mutex> s(state);
                                 active.clear();
                                 if (error.empty())
-                                    error = "Model worker exited; load again to restart";
+                                    error = WIFEXITED(st)&&WEXITSTATUS(st)==75?"Backend stopped to preserve system memory headroom; release other applications or lower memory settings":"Model worker exited; load again to restart";
                             }
                         }
                     }
@@ -255,6 +274,7 @@ class Router {
         if (!worker_config.empty()) { std::error_code ec; fs::remove(worker_config, ec); worker_config.clear(); }
         std::lock_guard<std::mutex> s(state);
         active.clear();
+        {std::lock_guard<std::mutex> metrics(metrics_mutex);last_timings=common_json::object();last_progress=common_json::object();request_started=std::chrono::steady_clock::now();first_output={};observed_generated=0;request_cancelled=false;}
         tuning_dirty = false;
         worker_budget_mib = 0;
     }
@@ -318,20 +338,20 @@ class Router {
             {
                 std::lock_guard<std::mutex> l(lifecycle);
                 worker_config = native_config::temporary(cfg, fs::temp_directory_path());
-                pid = spawn({"systemd-run", "--user", "--scope", "--collect", "--quiet", "--unit=" + unit, "-p",
-                             "MemoryMax=" + std::to_string(budget_mib) + "M", "-p",
-                             "MemoryHigh=" + std::to_string(budget_mib * 9 / 10) + "M", "-p", "MemorySwapMax=0", "-p", "OOMPolicy=kill",
-                             (native_profiles::executable_dir() / "strata-native").string(), "--config",
-                             worker_config.string(), "--model-id", name, "--port", std::to_string(port),
-                             "--memory-floor-gib", std::to_string(ram_floor),
-                             "--vram-floor-mib", std::to_string(vram_floor)});
+                std::vector<std::string> cmd={"systemd-run", "--user", "--scope", "--collect", "--quiet", "--unit=" + unit, "-p",
+                    "MemoryMax="+std::to_string(budget_mib)+"M","-p","MemoryHigh="+std::to_string(budget_mib*9/10)+"M","-p","MemorySwapMax=0","-p","OOMPolicy=kill"};
+                if(native_backend::resolve(cfg)["engine"]=="llama") {
+                    cmd.insert(cmd.end(),{(native_profiles::executable_dir()/"strata-native").string(),"--llama-worker",std::to_string(getpid()),std::to_string((uint64_t)((ram_floor+1)*1024)),std::to_string(vram_floor+256)});
+                    auto backend=native_backend::command(cfg,name,port,native_profiles::executable_dir());cmd.insert(cmd.end(),backend.begin(),backend.end());
+                } else cmd.insert(cmd.end(),{(native_profiles::executable_dir()/"strata-native").string(),"--config",worker_config.string(),"--model-id",name,"--port",std::to_string(port),"--memory-floor-gib",std::to_string(ram_floor),"--vram-floor-mib",std::to_string(vram_floor)});
+                pid=spawn(cmd);
             }
             auto c = client();
             c->set_read_timeout(1);
             for (int i = 0; i < 3600 && !closed; i++) {
                 {
                     std::lock_guard<std::mutex> l(lifecycle);
-                    int st;
+                    int st=0;
                     if (pid < 0 || waitpid(pid, &st, WNOHANG) != 0)
                         throw std::runtime_error("Model worker exited while loading; see terminal log");
                 }
@@ -368,7 +388,7 @@ class Router {
     common_json tuning(const std::string &name) {
         std::lock_guard<std::mutex> lock(config_mutex);
         if (!profiles.count(name)) throw std::runtime_error("Unknown model: " + name);
-        return {{"model", name}, {"dense", native_tuning::dense(profiles.at(name))},
+        return {{"model", name}, {"inference",native_backend::resolve(profiles.at(name))}, {"dense", native_tuning::dense(profiles.at(name))},
                 {"values", native_tuning::values(profiles.at(name))},
                 {"files", native_tuning::files(profiles.at(name))}, {"registry", registry_path.string()},
                 {"saved", overrides.value(name, common_json::object())},
@@ -495,7 +515,10 @@ inline int run(const std::string &registry, int port, const std::string &host) {
         try {
             auto b = common_json::parse_no_throw(req.body);
             std::lock_guard<std::mutex> l(router.turn);
-            router.load(b.at("model").template get<std::string>(), true);
+            auto name=b.at("model").template get<std::string>();common_json settings=common_json::object();
+            for(const char *key:{"engine_policy","compute_backend"})if(b.contains(key))settings[key]=b[key];
+            if(!settings.empty())router.save_tuning(name,settings,false);
+            router.load(name, true);
             json(res, 200, router.status());
         } catch (const std::exception &e) {
             json(res, 503, {{"error", {{"message", e.what()}}}});
@@ -506,6 +529,7 @@ inline int run(const std::string &registry, int port, const std::string &host) {
         if (!status.at("loaded").template get<bool>()) {
             json(res, 200, {{"cancel_requested", false}}); return;
         }
+        if(router.llama_active()){router.cancel_clients();json(res,200,{{"cancel_requested",true}});return;}
         auto c = router.client(); c->set_read_timeout(2);
         auto answer = c->Post("/cancel", "{}", "application/json");
         if (!answer) { json(res, 503, {{"error", {{"message", "Worker cancellation failed"}}}}); return; }
@@ -537,15 +561,26 @@ inline int run(const std::string &registry, int port, const std::string &host) {
             json(res, 400, {{"error", {{"message", "JSON object required"}}}});
             return;
         }
+        std::function<bool(const common_json &)> remote_image=[&](const common_json &value) {
+            if(value.is_object()) {
+                const auto type=value.contains("type")&&value["type"].is_string()?value["type"].template get<std::string>():std::string();
+                if(type=="image"&&value.contains("source")&&value["source"].is_object()&&value["source"].value("type",std::string())=="url")return true;
+                if((type=="image_url"||type=="input_image")&&value.contains("image_url")) {auto u=value["image_url"];auto url=u.is_string()?u.template get<std::string>():u.is_object()?u.value("url",std::string()):"";if(url.rfind("data:image/",0)!=0)return true;}
+                for(auto it=value.begin();it!=value.end();++it)if(remote_image(it.value()))return true;
+            }else if(value.is_array())for(const auto &item:value)if(remote_image(item))return true;
+            return false;
+        };
+        if(remote_image(body)){json(res,400,{{"error",{{"message","Use inline base64 screenshots; remote image fetching is disabled"}}}});return;}
         auto name = pick(router, body);
         bool stream = body.value("stream", false);
         if (!stream) {
             try {
                 router.load(name);
-                auto c = router.client();
+                auto c = router.client();router.track(c);
                 auto answer = c->Post(req.path, req.body, "application/json");
                 if (!answer)
-                    throw std::runtime_error("Worker connection failed");
+                    throw std::runtime_error(router.request_cancelled.load()?"Request cancelled":"Worker connection failed");
+                router.observe(common_json::parse_no_throw(answer->body));
                 res.status = answer->status;
                 res.set_content(answer->body, answer->get_header_value("Content-Type"));
             } catch (const std::exception &e) {
@@ -558,9 +593,14 @@ inline int run(const std::string &registry, int port, const std::string &host) {
                                                                   size_t, httplib::DataSink &sink) {
             try {
                 router.load(name);
-                auto c = router.client();
+                auto c = router.client();router.track(c);std::string event_buffer;
                 auto answer = c->Post(path, httplib::Headers{}, body, "application/json",
-                                      [&](const char *data, size_t n) { return sink.is_writable() && sink.write(data, n); });
+                                      [&](const char *data, size_t n) {
+                    event_buffer.append(data,n);size_t end;
+                    while((end=event_buffer.find('\n'))!=std::string::npos){auto line=event_buffer.substr(0,end);event_buffer.erase(0,end+1);if(line.rfind("data: ",0)==0)router.observe(common_json::parse_no_throw(line.substr(6)));}
+                    if(event_buffer.size()>1024*1024)event_buffer.clear();
+                    return sink.is_writable()&&sink.write(data,n);
+                });
                 if (!answer)
                     throw std::runtime_error("Worker stream disconnected");
             } catch (const std::exception &e) {
@@ -602,6 +642,38 @@ inline int run(const std::string &registry, int port, const std::string &host) {
                 auto worker = native_memory::snapshot(std::to_string(router.pid));
                 s["resources"]["worker_cgroup_bytes"] = worker.cgroup_used;
             }
+        }
+        if(router.llama_active()) {
+            s["engine"]="llama.cpp";s["max_context"]=s["profile"]["context_length"];
+            try {
+                auto c=router.client();c->set_read_timeout(1);auto answer=c->Get("/slots");
+                if(answer&&answer->status==200) {
+                    auto slots=common_json::parse_no_throw(answer->body);
+                    if(slots.is_array()&&!slots.empty()) {
+                        auto slot=slots[0];const bool processing=slot.value("is_processing",false);
+                        long long generated=0;if(slot.contains("next_token")&&slot["next_token"].is_array()&&!slot["next_token"].empty())generated=slot["next_token"][0].value("n_decoded",0LL);
+                        std::lock_guard<std::mutex> lock(router.metrics_mutex);auto now=std::chrono::steady_clock::now();
+                        if(generated>0&&router.first_output==std::chrono::steady_clock::time_point{}){router.first_output=now;router.observed_generated=generated;}
+                        const double elapsed=std::max(.001,std::chrono::duration<double>(now-router.request_started).count());
+                        const double pp=router.first_output==std::chrono::steady_clock::time_point{}?elapsed:std::max(.001,std::chrono::duration<double>(router.first_output-router.request_started).count());
+                        const auto read=slot.value("n_prompt_tokens_processed",0LL);const auto cached=slot.value("n_prompt_tokens_cache",0LL);const auto total=slot.value("n_prompt_tokens",0LL);
+                        s["live"]={{"state",processing?(generated>0?"generating":"reading"):"idle"},{"prompt_total",total},{"prefill_total",std::max(0LL,total-cached)},{"prompt_read",read},{"cached_tokens",cached},{"generated",generated},{"position",total},{"prompt_total_known",!processing},{"prefill_tok_s_mean",read/pp},{"decode_tok_s_mean",std::max(0LL,generated-router.observed_generated)/std::max(.001,elapsed-pp)},{"rates_estimated",processing||router.last_timings.empty()},{"allocated_context",slot.value("n_ctx",0LL)},{"cancelled",router.request_cancelled.load()}};
+                        if(processing&&!router.last_progress.empty()) {
+                            auto &l=s["live"];auto &p=router.last_progress;
+                            l["prompt_total"]=p.value("total",total);l["cached_tokens"]=p.value("cache",cached);
+                            l["prefill_total"]=p.value("total",total)-p.value("cache",cached);
+                            l["prompt_read"]=p.value("processed",read);l["prompt_total_known"]=true;
+                            if(p.value("time_ms",0.0)>0)l["prefill_tok_s_mean"]=p.value("processed",read)*1000.0/p.value("time_ms",1.0);
+                        }
+                        if(!processing&&!router.last_timings.empty()) {
+                            auto &l=s["live"];auto &t=router.last_timings;
+                            l["prefill_tok_s_mean"]=t.value("prompt_per_second",0.0);l["decode_tok_s_mean"]=t.value("predicted_per_second",0.0);
+                            l["generated"]=t.value("predicted_n",generated);l["prompt_read"]=t.value("prompt_n",read);l["prefill_total"]=t.value("prompt_n",read);l["prompt_total"]=t.value("prompt_n",read)+cached;l["rates_estimated"]=false;
+                        }
+                        s["tiers_error"]="llama.cpp owns layer placement; native expert-cache counters do not apply";
+                    }
+                }
+            }catch(const std::exception &e){s["monitor_error"]=e.what();}
         }
         if (s["active"].is_string()) {
             auto name = s["active"].template get<std::string>();

@@ -1,0 +1,250 @@
+{
+  "swift27-iq3-s-mtp": {
+    "loaded": {
+      "active": "swift27-iq3-s-mtp",
+      "loading": null,
+      "error": null,
+      "default": "saluki27-abliterated-mtp-vision",
+      "profiles": [
+        "flash-iq3",
+        "saluki27-abliterated-mtp-vision",
+        "swift27-iq3-s-mtp",
+        "swift27-iq3-s-mtp-vision",
+        "swift27-iq3-xxs",
+        "swift27-iq3-xxs-vision"
+      ],
+      "loaded": true,
+      "reload_required": false,
+      "external_model_busy": false,
+      "profile": {
+        "id": "swift27-iq3-s-mtp",
+        "object": "model",
+        "owned_by": "local",
+        "name": "Swift IQ3_S \u00b7 128K",
+        "description": "Native preferred for measured short-context and cached long-context decode. Select llama.cpp to compare its faster prefill.",
+        "context_length": 131072,
+        "inference": {
+          "policy": "auto",
+          "engine": "strata",
+          "automatic_engine": "strata",
+          "preferred_compute": "vulkan",
+          "device": "hip",
+          "build": "native",
+          "reason": "Measured native preference for this dense profile",
+          "model": {
+            "architecture": "qwen35",
+            "experts": 0,
+            "detected": true
+          }
+        },
+        "meta": {
+          "n_ctx": 131072,
+          "max_output_tokens": 131064
+        },
+        "sampling_defaults": {
+          "temperature": 0
+        },
+        "model_architecture": "qwen35",
+        "local_files": {
+          "model": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/IQ3_S/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+          "expert_pack": "",
+          "mtp_head": "",
+          "projector": ""
+        },
+        "max_output_tokens": 131064,
+        "available": true,
+        "strata": {
+          "backend": "hip",
+          "kv_precision": "int8",
+          "mtp": "1",
+          "prefill_chunk": "512",
+          "adaptive_weights": true,
+          "vision_encoder": "off",
+          "resident_ram_gib": "auto",
+          "physical_reserve_mib": "2048"
+        },
+        "architecture": {
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ]
+        },
+        "capabilities": {
+          "streaming": true,
+          "tools": true,
+          "vision": false,
+          "image_generation": false
+        }
+      },
+      "runtime": "native-c++",
+      "memory_policy": {
+        "worker_limit_mib": 20480,
+        "available_ram_floor_gib": 3.0,
+        "physical_vram_floor_mib": 512,
+        "admission_ram_floor_gib": 4.0,
+        "admission_vram_floor_mib": 768,
+        "scope_swap_mib": 0
+      }
+    },
+    "answer": {
+      "id": "chatcmpl-8c5021b5183f589f",
+      "object": "chat.completion",
+      "created": 1792161889,
+      "model": "swift27-iq3-s-mtp",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "READY"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 17,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens": 2,
+        "total_tokens": 19
+      },
+      "timings": {
+        "prompt_n": 17,
+        "cache_n": 0,
+        "prompt_ms": 831.0,
+        "prompt_per_second": 20.45728038507822,
+        "predicted_n": 2,
+        "predicted_ms": 129.6,
+        "predicted_per_second": 15.4320987654321,
+        "draft_n": 1,
+        "draft_n_accepted": 1
+      }
+    }
+  },
+  "flash-iq3": {
+    "loaded": {
+      "active": "flash-iq3",
+      "loading": null,
+      "error": null,
+      "default": "saluki27-abliterated-mtp-vision",
+      "profiles": [
+        "flash-iq3",
+        "saluki27-abliterated-mtp-vision",
+        "swift27-iq3-s-mtp",
+        "swift27-iq3-s-mtp-vision",
+        "swift27-iq3-xxs",
+        "swift27-iq3-xxs-vision"
+      ],
+      "loaded": true,
+      "reload_required": false,
+      "external_model_busy": false,
+      "profile": {
+        "id": "flash-iq3",
+        "object": "model",
+        "owned_by": "local",
+        "name": "Flash-Next IQ3_XXS \u00b7 128K",
+        "description": "",
+        "context_length": 131072,
+        "inference": {
+          "policy": "auto",
+          "engine": "strata",
+          "automatic_engine": "strata",
+          "preferred_compute": "vulkan",
+          "device": "hip",
+          "build": "native",
+          "reason": "Compatible Flash-Next GGUF and prepared expert pack",
+          "model": {
+            "architecture": "qwen4exp",
+            "experts": 512,
+            "detected": true
+          }
+        },
+        "meta": {
+          "n_ctx": 131072,
+          "max_output_tokens": 131064
+        },
+        "sampling_defaults": {},
+        "model_architecture": "qwen4exp",
+        "local_files": {
+          "model": "/home/garyb/Mounts/NVME/Strata/models/Qwen-Flash-Next/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf",
+          "expert_pack": "/home/garyb/Mounts/NVME/Strata/packs/iq3_xxs",
+          "mtp_head": "/home/garyb/Mounts/NVME/Strata/mtp/rt",
+          "projector": ""
+        },
+        "max_output_tokens": 131064,
+        "available": true,
+        "strata": {
+          "backend": "hip",
+          "kv_precision": "int8",
+          "mtp": "external head",
+          "prefill_chunk": "auto",
+          "adaptive_weights": false,
+          "vision_encoder": "off",
+          "resident_ram_gib": "11",
+          "physical_reserve_mib": "not configured"
+        },
+        "architecture": {
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ]
+        },
+        "capabilities": {
+          "streaming": true,
+          "tools": true,
+          "vision": false,
+          "image_generation": false
+        }
+      },
+      "runtime": "native-c++",
+      "memory_policy": {
+        "worker_limit_mib": 20480,
+        "available_ram_floor_gib": 3.0,
+        "physical_vram_floor_mib": 512,
+        "admission_ram_floor_gib": 4.0,
+        "admission_vram_floor_mib": 768,
+        "scope_swap_mib": 0
+      }
+    },
+    "answer": {
+      "id": "chatcmpl-b987afc1c0f6fda8",
+      "object": "chat.completion",
+      "created": 1792161918,
+      "model": "flash-iq3",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "READY"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 17,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens": 2,
+        "total_tokens": 19
+      },
+      "timings": {
+        "prompt_n": 17,
+        "cache_n": 0,
+        "prompt_ms": 1868.7,
+        "prompt_per_second": 9.09723337079253,
+        "predicted_n": 2,
+        "predicted_ms": 788.8,
+        "predicted_per_second": 2.535496957403651,
+        "draft_n": 3,
+        "draft_n_accepted": 3
+      }
+    }
+  }
+}

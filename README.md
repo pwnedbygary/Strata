@@ -19,14 +19,14 @@ and open it in your browser. Remaining issues are documented below.*
 
 ## Native AppImage: local models, one server
 
-The new opt-in executable keeps this fork's engine and hardware profiles and uses
-an adapted [UnbiasedStrata](https://github.com/robertkarl/UnbiasedStrata) C++ frontend.
+The opt-in unified executable includes Strata and llama.cpp, keeps the hardware
+profiles, and uses an adapted [UnbiasedStrata](https://github.com/robertkarl/UnbiasedStrata) C++ frontend.
 The AppImage runtime includes **no Python interpreter**, model downloader, external
 web assets or remote reporting. It reads the existing local model registry, loads
 one model on demand, and serves the web UI and compatible APIs from one address.
 
 ```sh
-./dist/Strata-Native-RX9070XT-x86_64.AppImage
+./dist/Strata-Unified-RX9070XT-x86_64.AppImage
 # Harness base URL: http://127.0.0.1:8096/v1
 # Model discovery:  http://127.0.0.1:8096/v1/models
 ```
@@ -37,10 +37,18 @@ are not included in either package. The native build currently requires Linux,
 systemd user scopes and compatible host ROCm libraries on the tested AMD machine.
 Windows EXE packaging is deferred.
 
-The model menu retains local text, screenshot and MTP profiles. OpenAI chat,
+Automatic routes compatible prepared Flash-Next MoE to Strata and other models
+to llama.cpp, with an exact-model native preference for measured Swift profiles.
+Select the engine and Vulkan or ROCm before loading; dedicated executables and a
+combined fallback share the same UI/API. The curated menu retains useful text and
+screenshot profiles; benchmark and duplicate profiles are removed. OpenAI chat,
 Anthropic Messages and stateless Responses are supported; client-side harnesses
 execute their own tools. See [native build, API scope and limitations](docs/NATIVE_SERVER.md).
 Configured context ceilings are listed separately from filled-context validation.
+
+The unified Saluki Vulkan check completed **130,028 input tokens at 709 tok/s
+prefill and 34.5 tok/s decode**, with 13/13 coding and 3/3 retrieval checks passing.
+[Integrated backend comparison and validation](bench/results/2026-10-16-unified-runner/README.md).
 
 The UI includes a live **Monitor**, per-profile **Tune** controls, and **Settings**
 for local model/projector/pack paths and screenshot support. Browse selects local
@@ -69,9 +77,10 @@ one model at a time. These are single runs on this PC, not universal rates.
 | Swift IQ3_S | 259 / **4.65 tok/s** | 449 / 2.05 tok/s | 440 / 1.55 tok/s |
 
 All six full-context runs passed 13 bounded code checks and three retrieval probes.
-Native used MTP; the selected llama.cpp configurations disabled it. llama.cpp is a
-separate comparison server, **not the engine behind this native Strata AppImage**.
-The exact native test settings are available locally as `saluki27-128k-text` and
+Native used MTP; the selected llama.cpp configurations disabled it. These measurements
+used separate comparison servers. The unified AppImage now bundles llama.cpp and
+can select that engine from the same UI; the table is the earlier baseline, not
+a new measurement of the unified package. The archived native test settings are `saluki27-128k-text` and
 `swift27-iq3-s-128k-text`; existing vision profiles are retained.
 Native Swift was much faster at short-context decode, but its growing KV eventually
 pushes weights out of the GPU cache. Saluki Vulkan was the strongest full-context

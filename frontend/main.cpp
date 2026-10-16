@@ -15,6 +15,7 @@
 #include "llama.h"
 #include "profiles.hpp"
 #include "router.hpp"
+#include "backend_worker.hpp"
 #include "vision.hpp"
 #include <filesystem>
 #include <fstream>
@@ -810,6 +811,7 @@ bool parse_args(int argc, char **argv, Options &o) {
 } // namespace
 
 int main(int argc, char **argv) {
+    if(argc>1&&std::strcmp(argv[1],"--llama-worker")==0)return native_backend::worker(argc,argv);
     if (argc > 1 && std::strcmp(argv[1], "--engine") == 0) {
 #ifdef __linux__
         ::prctl(PR_SET_NAME, "strata-engine", 0, 0, 0);

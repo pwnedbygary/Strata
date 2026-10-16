@@ -1,0 +1,55 @@
+{
+  "paths_changed": [
+    {
+      "old": "/home/garyb/Mounts/NVME/llama.cpp/models/Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+      "new": "/home/garyb/Mounts/NVME/Strata/models/Tiel-Coder-35B-A3B/Q4_K_XL/Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf"
+    },
+    {
+      "old": "/home/garyb/Mounts/NVME/llama.cpp/models/mmproj-BF16.gguf",
+      "new": "/home/garyb/Mounts/NVME/Strata/models/shared-vision/BF16/mmproj-BF16.gguf"
+    },
+    {
+      "old": "/home/garyb/Mounts/NVME/llama.cpp/models/Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+      "new": "/home/garyb/Mounts/NVME/Strata/models/Cyber-Tiel-Coder-35B-A3B/Q4_K_XL/Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf"
+    },
+    {
+      "old": "/home/garyb/Mounts/NVME/llama.cpp/models/mmproj-BF16.gguf",
+      "new": "/home/garyb/Mounts/NVME/Strata/models/shared-vision/BF16/mmproj-BF16.gguf"
+    },
+    {
+      "old": "/home/garyb/Mounts/NVME/llama.cpp/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS.gguf",
+      "new": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/IQ3_XXS/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS.gguf"
+    },
+    {
+      "old": "/home/garyb/Mounts/NVME/llama.cpp/models/mmproj-Swift-1.5-Qwen3.8-27B-F16.gguf",
+      "new": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/vision/F16/mmproj-Swift-1.5-Qwen3.8-27B-F16.gguf"
+    },
+    {
+      "old": "/home/garyb/Mounts/NVME/llama.cpp/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S.gguf",
+      "new": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/IQ3_S/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S.gguf"
+    },
+    {
+      "old": "/home/garyb/Mounts/NVME/llama.cpp/models/mmproj-Swift-1.5-Qwen3.8-27B-F16.gguf",
+      "new": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/vision/F16/mmproj-Swift-1.5-Qwen3.8-27B-F16.gguf"
+    }
+  ],
+  "removed_compatibility_symlinks": [
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/mmproj-Underdog-Saluki-27B-1.0-F16.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Underdog-Saluki-27B-1.0-IQ2-mix.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/mmproj-Swift-1.5-Qwen3.8-27B-F16.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/mmproj-BF16.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Qwen3.5-0.8B-UD-Q5_K_XL.gguf",
+    "/home/garyb/Mounts/NVME/llama.cpp/models/Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf"
+  ],
+  "only_paths_changed": true,
+  "backup": "/home/garyb/Mounts/NVME/Strata/local-tuning/unified/presets.before-path-migration.ini",
+  "presets_bundled": false
+}

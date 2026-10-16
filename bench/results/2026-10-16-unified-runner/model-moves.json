@@ -1,0 +1,86 @@
+[
+  {
+    "old": "/home/garyb/Mounts/NVME/Strata/models/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Qwen-Flash-Next/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf",
+    "size": 47039860096,
+    "inode": 25712
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/Strata/models/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Qwen-Flash-Next/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf",
+    "size": 28800138432,
+    "inode": 18734
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/Strata/models/mmproj-Underdog-Saluki-27B-1.0-F16.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0/vision/F16/mmproj-Underdog-Saluki-27B-1.0-F16.gguf",
+    "size": 927606912,
+    "inode": 27194
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-IQ2-mix.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0/IQ2-mix/Underdog-Saluki-27B-1.0-IQ2-mix.gguf",
+    "size": 7898369152,
+    "inode": 27190
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/Strata/models/mmproj-Swift-1.5-Qwen3.8-27B-F16.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/vision/F16/mmproj-Swift-1.5-Qwen3.8-27B-F16.gguf",
+    "size": 927606912,
+    "inode": 21994
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/IQ3_S/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S.gguf",
+    "size": 11771546912,
+    "inode": 19692
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/IQ3_XXS/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf",
+    "size": 10442827776,
+    "inode": 19688
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/IQ3_XXS/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS.gguf",
+    "size": 10094357792,
+    "inode": 18895
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/IQ3_S/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+    "size": 12120016896,
+    "inode": 18891
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-abliterated/IQ2-mix-MTP/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf",
+    "size": 8349689920,
+    "inode": 42329
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/llama.cpp/models/Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Cyber-Tiel-Coder-35B-A3B/Q4_K_XL/Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+    "size": 22749880640,
+    "inode": 6373
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/llama.cpp/models/mmproj-BF16.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/shared-vision/BF16/mmproj-BF16.gguf",
+    "size": 902822016,
+    "inode": 6184
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/llama.cpp/models/Qwen3.5-0.8B-UD-Q5_K_XL.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Qwen3.5-0.8B/Q5_K_XL/Qwen3.5-0.8B-UD-Q5_K_XL.gguf",
+    "size": 606585088,
+    "inode": 369
+  },
+  {
+    "old": "/home/garyb/Mounts/NVME/llama.cpp/models/Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+    "new": "/home/garyb/Mounts/NVME/Strata/models/Tiel-Coder-35B-A3B/Q4_K_XL/Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+    "size": 22749880160,
+    "inode": 6176
+  }
+]

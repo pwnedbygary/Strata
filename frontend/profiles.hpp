@@ -1,6 +1,7 @@
 #pragma once
 #include "common.h"
 #include "json.h"
+#include "backend.hpp"
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -74,13 +75,13 @@ inline common_json metadata(const std::string &name, const common_json &cfg) {
     bool vision = cfg.contains("vision") && cfg["vision"].is_object();
     auto env = cfg.value("env", common_json::object());
     auto mtp = option(args, "--mtp", "off");
-    return {
+    common_json result={
         {"id", name},
         {"object", "model"},
         {"owned_by", "local"},
         {"name", r.value("display_name", name)},
         {"description", r.value("description", std::string())},
-        {"context_length", ctx},
+        {"context_length", ctx}, {"inference", native_backend::resolve(cfg)},
         {"meta", {{"n_ctx", ctx}, {"max_output_tokens", ctx - 8}}},
         {"sampling_defaults", cfg.value("sampling", common_json::object())},
         {"model_architecture", cfg.value("arch", "qwen4exp")},
@@ -102,5 +103,16 @@ inline common_json metadata(const std::string &name, const common_json &cfg) {
           {"output_modalities", common_json::array({"text"})}}},
         {"capabilities",
          {{"streaming", true}, {"tools", true}, {"vision", vision}, {"image_generation", false}}}};
+    auto route=result["inference"];
+    if(route["model"].value("detected",false))result["model_architecture"]=route["model"]["architecture"];
+    if(route["engine"]=="llama") {
+        auto settings=cfg.value("inference",common_json::object());
+        result["strata"]["backend"]=route["device"];
+        result["strata"]["kv_precision"]=settings.value("kv","q8_0");
+        result["strata"]["mtp"]=settings.value("mtp",0)>0?std::to_string(settings.value("mtp",0)):"off";
+        result["strata"]["prefill_chunk"]=std::to_string(settings.value("ubatch",512));
+        result["strata"]["adaptive_weights"]=false;
+    }
+    return result;
 }
 } // namespace native_profiles

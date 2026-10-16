@@ -40,6 +40,31 @@ inline std::string local_path(const common_json &value, bool directory, bool ggu
 inline common_json apply(common_json cfg, const common_json &settings) {
     if(!settings.is_object()) throw std::runtime_error("Tuning settings must be an object");
     const bool d=dense(cfg);
+    auto clean=settings;
+    for(const char *key:{"llama_ubatch","llama_fit_target_mib","llama_mtp","llama_kv"})if(clean.contains(key)) {
+        auto value=clean[key];
+        if(std::string(key)=="llama_kv") {
+            if(!value.is_string()||(value!="q8_0"&&value!="q4_0"&&value!="f16"))throw std::runtime_error("Unsupported llama KV type");cfg["inference"]["kv"]=value;
+        }else if(std::string(key)=="llama_ubatch") {
+            auto n=integer(value,128,4096,key);if(n%128)throw std::runtime_error("Microbatch must be a multiple of 128");cfg["inference"]["ubatch"]=n;
+        }else if(std::string(key)=="llama_mtp")cfg["inference"]["mtp"]=integer(value,0,7,key);
+        else cfg["inference"]["fit_target_mib"]=integer(value,1024,8192,key);
+        clean.erase(key);
+    }
+    for(const char *key:{"engine_policy","compute_backend"})if(clean.contains(key)) {
+        if(!clean[key].is_string())throw std::runtime_error("Engine selection must be text");
+        auto value=clean[key].get<std::string>();
+        if(std::string(key)=="engine_policy") {
+            if(value!="auto"&&value!="strata"&&value!="llama")throw std::runtime_error("Unknown engine policy");
+            cfg["inference"]["engine"]=value;
+        } else {
+            if(value!="vulkan"&&value!="vulkan-combined"&&value!="rocm"&&value!="rocm-combined")throw std::runtime_error("Unknown compute backend");
+            cfg["inference"]["device"]=value.rfind("rocm",0)==0?"ROCm0":"Vulkan0";
+            cfg["inference"]["build"]=value.find("combined")==std::string::npos?"auto":"combined";
+        }
+        clean.erase(key);
+    }
+    if(clean.size()!=settings.size())return apply(cfg,clean);
     const std::set<std::string> shared={"context","prefill_chunk","memory_limit_gib","vision_threads","model_path","projector_path","vision_enabled"};
     const std::set<std::string> dense_keys={"mtp_depth","physical_reserve_mib","runtime_reserve_mib","attention_scratch_mib","vision_threads"};
     const std::set<std::string> moe_keys={"spec_window","cpu_workers","ram_cache_gib","vram_reserve_mib","kv_resident","kv_precision","tail_skip","pack_path","ple_path","mtp_path"};
@@ -160,6 +185,13 @@ inline common_json values(const common_json &cfg) {
         result["kv_precision"]=native_profiles::option(args,"--kv","int8");
         result["tail_skip"]=std::stoll(env.value("STRATA_ROUTE_TAIL_SKIP","7"));
     }
+    auto route=native_backend::resolve(cfg);
+    auto inference=cfg.value("inference",common_json::object());
+    result["llama_ubatch"]=inference.value("ubatch",512);
+    result["llama_fit_target_mib"]=inference.value("fit_target_mib",route["device"]=="ROCm0"?4096:2048);
+    result["llama_mtp"]=inference.value("mtp",0);result["llama_kv"]=inference.value("kv","q8_0");
+    result["engine_policy"]=route["policy"];
+    result["compute_backend"]=route["preferred_compute"];
     return result;
 }
 } // namespace native_tuning

@@ -1,0 +1,358 @@
+{
+  "chat": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "READY"
+        }
+      }
+    ],
+    "created": 1792161985,
+    "model": "saluki27-abliterated-mtp-vision",
+    "system_fingerprint": "b10909-a2878d30d",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 2,
+      "prompt_tokens": 17,
+      "total_tokens": 19,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-hNWdqUECX1oavKsEqVf1KxF75pUfV47S",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 17,
+      "prompt_ms": 176.7,
+      "prompt_per_token_ms": 10.394117647058822,
+      "prompt_per_second": 96.20826259196379,
+      "predicted_n": 2,
+      "predicted_ms": 36.529,
+      "predicted_per_token_ms": 36.529,
+      "predicted_per_second": 27.375509868871305
+    }
+  },
+  "stream": "data: {\"choices\":[{\"finish_reason\":null,\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":null}}],\"created\":1792161985,\"id\":\"chatcmpl-04JZAJPlNjMk16zsYNw6P7jHGsxp02Ye\",\"model\":\"saluki27-abliterated-mtp-vision\",\"system_fingerprint\":\"b10909-a2878d30d\",\"object\":\"chat.completion.chunk\"}\n\ndata: {\"choices\":[{\"finish_reason\":null,\"index\":0,\"delta\":{\"content\":\"READY\"}}],\"created\":1792161985,\"id\":\"chatcmpl-04JZAJPlNjMk16zsYNw6P7jHGsxp02Ye\",\"model\":\"saluki27-abliterated-mtp-vision\",\"system_fingerprint\":\"b10909-a2878d30d\",\"object\":\"chat.completion.chunk\"}\n\ndata: {\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"delta\":{}}],\"created\":1792161985,\"id\":\"chatcmpl-04JZAJPlNjMk16zsYNw6P7jHGsxp02Ye\",\"model\":\"saluki27-abliterated-mtp-vision\",\"system_fingerprint\":\"b10909-a2878d30d\",\"object\":\"chat.completion.chunk\",\"timings\":{\"cache_n\":13,\"prompt_n\":4,\"prompt_ms\":104.937,\"prompt_per_token_ms\":26.23425,\"prompt_per_second\":38.118108960614464,\"predicted_n\":2,\"predicted_ms\":33.114,\"predicted_per_token_ms\":33.114,\"predicted_per_second\":30.1987074953192}}\n\ndata: [DONE]\n\n",
+  "anthropic": {
+    "id": "chatcmpl-ud1YhCUbjmNVsyZX2g0f2g0G6ayZghW5",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "thinking",
+        "thinking": "The user wants a minimal response: \"READY only.\" The instruction explicitly says to reply with READY only. So I should just output READY. No extra characters.",
+        "signature": ""
+      }
+    ],
+    "model": "saluki27-abliterated-mtp-vision",
+    "stop_reason": "max_tokens",
+    "stop_sequence": null,
+    "usage": {
+      "cache_read_input_tokens": 0,
+      "input_tokens": 57,
+      "output_tokens": 32
+    }
+  },
+  "responses": {
+    "completed_at": 1792161986,
+    "created_at": 1792161986,
+    "id": "resp_qmqlMJY1Z2HGFNVICp4QPdJXySMB4XnB",
+    "model": "saluki27-abliterated-mtp-vision",
+    "object": "response",
+    "output": [
+      {
+        "content": [
+          {
+            "type": "output_text",
+            "annotations": [],
+            "logprobs": [],
+            "text": "READY"
+          }
+        ],
+        "id": "msg_AZifBrEddveiT4ND4du5Ln6KoOKGNXWn",
+        "role": "assistant",
+        "status": "completed",
+        "type": "message"
+      }
+    ],
+    "status": "completed",
+    "usage": {
+      "input_tokens": 17,
+      "output_tokens": 2,
+      "total_tokens": 19,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      }
+    }
+  },
+  "vision": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Red"
+        }
+      }
+    ],
+    "created": 1792161987,
+    "model": "saluki27-abliterated-mtp-vision",
+    "system_fingerprint": "b10909-a2878d30d",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 2,
+      "prompt_tokens": 124,
+      "total_tokens": 126,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-0xmQXP3vjyFzbLTKdXQSHi8wVyAhESIq",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 124,
+      "prompt_ms": 1065.077,
+      "prompt_per_token_ms": 8.58933064516129,
+      "prompt_per_second": 116.42350740838455,
+      "predicted_n": 2,
+      "predicted_ms": 35.026,
+      "predicted_per_token_ms": 35.026,
+      "predicted_per_second": 28.55021983669274
+    }
+  },
+  "tools": {
+    "choices": [
+      {
+        "finish_reason": "tool_calls",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "read_file",
+                "arguments": "{\"path\":\"main.py\"}"
+              },
+              "id": "GB4HzzaQ59Ur82LBpWILIBntGM1vuxRg"
+            }
+          ]
+        }
+      }
+    ],
+    "created": 1792161988,
+    "model": "saluki27-abliterated-mtp-vision",
+    "system_fingerprint": "b10909-a2878d30d",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 26,
+      "prompt_tokens": 281,
+      "total_tokens": 307,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-taLguCCNw7nDQvyMsGgo7upl0mHLTOv2",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 281,
+      "prompt_ms": 404.327,
+      "prompt_per_token_ms": 1.4388861209964412,
+      "prompt_per_second": 694.9820318702436,
+      "predicted_n": 26,
+      "predicted_ms": 517.64,
+      "predicted_per_token_ms": 20.7056,
+      "predicted_per_second": 48.29611312881539
+    }
+  },
+  "status": {
+    "active": "saluki27-abliterated-mtp-vision",
+    "loading": null,
+    "error": null,
+    "default": "saluki27-abliterated-mtp-vision",
+    "profiles": [
+      "flash-iq3",
+      "saluki27-abliterated-mtp-vision",
+      "swift27-iq3-s-mtp",
+      "swift27-iq3-s-mtp-vision",
+      "swift27-iq3-xxs",
+      "swift27-iq3-xxs-vision"
+    ],
+    "loaded": true,
+    "reload_required": false,
+    "external_model_busy": false,
+    "profile": {
+      "id": "saluki27-abliterated-mtp-vision",
+      "object": "model",
+      "owned_by": "local",
+      "name": "Saluki IQ2-mix \u00b7 128K \u00b7 screenshots",
+      "description": "Automatic uses the measured Vulkan path, Q8 KV and MTP off. Select Strata to use native MTP.",
+      "context_length": 131072,
+      "inference": {
+        "policy": "auto",
+        "engine": "llama",
+        "automatic_engine": "llama",
+        "preferred_compute": "vulkan",
+        "device": "Vulkan0",
+        "build": "tuned-vulkan",
+        "reason": "Dense or unverified MoE architecture: llama.cpp",
+        "model": {
+          "architecture": "qwen35",
+          "experts": 0,
+          "detected": true
+        }
+      },
+      "meta": {
+        "n_ctx": 131072,
+        "max_output_tokens": 131064
+      },
+      "sampling_defaults": {
+        "temperature": 0
+      },
+      "model_architecture": "qwen35",
+      "local_files": {
+        "model": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-abliterated/IQ2-mix-MTP/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf",
+        "expert_pack": "",
+        "mtp_head": "",
+        "projector": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0/vision/F16/mmproj-Underdog-Saluki-27B-1.0-F16.gguf"
+      },
+      "max_output_tokens": 131064,
+      "available": true,
+      "strata": {
+        "backend": "Vulkan0",
+        "kv_precision": "q8_0",
+        "mtp": "off",
+        "prefill_chunk": "512",
+        "adaptive_weights": false,
+        "vision_encoder": "CPU",
+        "resident_ram_gib": "auto",
+        "physical_reserve_mib": "1024"
+      },
+      "architecture": {
+        "input_modalities": [
+          "text",
+          "image"
+        ],
+        "output_modalities": [
+          "text"
+        ]
+      },
+      "capabilities": {
+        "streaming": true,
+        "tools": true,
+        "vision": true,
+        "image_generation": false
+      }
+    },
+    "runtime": "native-c++",
+    "memory_policy": {
+      "worker_limit_mib": 20480,
+      "available_ram_floor_gib": 3.0,
+      "physical_vram_floor_mib": 512,
+      "admission_ram_floor_gib": 4.0,
+      "admission_vram_floor_mib": 768,
+      "scope_swap_mib": 0
+    },
+    "status": "ok",
+    "resources": {
+      "ram_total_bytes": 33201369088,
+      "ram_available_bytes": 25498886144,
+      "swap_total_bytes": 100761853952,
+      "swap_used_bytes": 2530643968,
+      "vram_total_bytes": 17095983104,
+      "vram_used_bytes": 14317662208,
+      "vram_free_bytes": 2778320896,
+      "gpu_busy_percent": 95,
+      "gpu_temperature_c": 45.0,
+      "cpu_total_ticks": 154472817,
+      "cpu_idle_ticks": 148087481,
+      "worker_cgroup_bytes": 10702757888
+    },
+    "engine": "llama.cpp",
+    "max_context": 131072,
+    "live": {
+      "state": "idle",
+      "prompt_total": 281,
+      "prefill_total": 281,
+      "prompt_read": 281,
+      "cached_tokens": 0,
+      "generated": 26,
+      "position": 306,
+      "prompt_total_known": true,
+      "prefill_tok_s_mean": 694.9820318702436,
+      "decode_tok_s_mean": 48.29611312881539,
+      "rates_estimated": false,
+      "allocated_context": 131072,
+      "cancelled": false
+    },
+    "tiers_error": "llama.cpp owns layer placement; native expert-cache counters do not apply",
+    "configured_profile": {
+      "id": "saluki27-abliterated-mtp-vision",
+      "object": "model",
+      "owned_by": "local",
+      "name": "Saluki IQ2-mix \u00b7 128K \u00b7 screenshots",
+      "description": "Automatic uses the measured Vulkan path, Q8 KV and MTP off. Select Strata to use native MTP.",
+      "context_length": 131072,
+      "inference": {
+        "policy": "auto",
+        "engine": "llama",
+        "automatic_engine": "llama",
+        "preferred_compute": "vulkan",
+        "device": "Vulkan0",
+        "build": "tuned-vulkan",
+        "reason": "Dense or unverified MoE architecture: llama.cpp",
+        "model": {
+          "architecture": "qwen35",
+          "experts": 0,
+          "detected": true
+        }
+      },
+      "meta": {
+        "n_ctx": 131072,
+        "max_output_tokens": 131064
+      },
+      "sampling_defaults": {
+        "temperature": 0
+      },
+      "model_architecture": "qwen35",
+      "local_files": {
+        "model": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0-abliterated/IQ2-mix-MTP/Underdog-Saluki-27B-1.0-IQ2-mix-MTP-abliterated.gguf",
+        "expert_pack": "",
+        "mtp_head": "",
+        "projector": "/home/garyb/Mounts/NVME/Strata/models/Underdog-Saluki-27B-1.0/vision/F16/mmproj-Underdog-Saluki-27B-1.0-F16.gguf"
+      },
+      "max_output_tokens": 131064,
+      "available": true,
+      "strata": {
+        "backend": "Vulkan0",
+        "kv_precision": "q8_0",
+        "mtp": "off",
+        "prefill_chunk": "512",
+        "adaptive_weights": false,
+        "vision_encoder": "CPU",
+        "resident_ram_gib": "auto",
+        "physical_reserve_mib": "1024"
+      },
+      "architecture": {
+        "input_modalities": [
+          "text",
+          "image"
+        ],
+        "output_modalities": [
+          "text"
+        ]
+      },
+      "capabilities": {
+        "streaming": true,
+        "tools": true,
+        "vision": true,
+        "image_generation": false
+      }
+    }
+  }
+}

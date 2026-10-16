@@ -1,0 +1,65 @@
+{
+  "exe": "@bundle/flash-hip",
+  "args": [
+    "--pack",
+    "/home/garyb/Mounts/NVME/Strata/packs/iq3_xxs",
+    "--native",
+    "/home/garyb/Mounts/NVME/Strata/models/Qwen-Flash-Next/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf",
+    "--ple-gguf",
+    "/home/garyb/Mounts/NVME/Strata/models/Qwen-Flash-Next/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf",
+    "--expert-profile",
+    "@bundle/data/expert-profile.bin",
+    "--spec",
+    "4",
+    "--spec-min-p",
+    "0.5",
+    "--mtp",
+    "/home/garyb/Mounts/NVME/Strata/mtp/rt",
+    "--max-context",
+    "131072",
+    "--kv",
+    "int8",
+    "--kv-resident",
+    "32768",
+    "--expert-cache",
+    "auto",
+    "--prefill",
+    "auto",
+    "--resident-budget-gib",
+    "11",
+    "--vram-reserve-mib",
+    "3072",
+    "--adapt-async",
+    "1",
+    "--aux-cpus",
+    "auto"
+  ],
+  "fit_max_tokens": true,
+  "cwd": "/home/garyb/.config/strata",
+  "tokenizer": "/home/garyb/Mounts/NVME/Strata/packs/iq3_xxs/tokenizer",
+  "model_name": "qwen3.8-flash-next-iq3_xxs",
+  "log": "/home/garyb/.config/strata/profiles/1.log",
+  "lib_dirs": [
+    "/opt/rocm/lib"
+  ],
+  "port": 8096,
+  "backend": "hip",
+  "env": {
+    "STRATA_HIPBLASLT_TUNING": "@bundle/tools/hip/gfx1201-hipblaslt-100202.txt",
+    "STRATA_RESIDENT_PIN": "1",
+    "STRATA_STAGE_PIN": "0",
+    "STRATA_RESIDENT_HEADROOM_GIB": "4",
+    "STRATA_PIN_GUARD": "2",
+    "STRATA_PIN_RESERVE_GIB": "4",
+    "STRATA_UNBUFFERED_LOAD": "1"
+  },
+  "open_browser": false,
+  "router": {
+    "display_name": "Flash-Next IQ3_XXS \u00b7 128K"
+  },
+  "inference": {
+    "engine": "auto",
+    "device": "Vulkan0",
+    "build": "auto"
+  }
+}

@@ -1,0 +1,74 @@
+#pragma once
+#include "json.h"
+#include "gguf.h"
+#include <filesystem>
+#include <fstream>
+#include <algorithm>
+#include <stdexcept>
+#include <mutex>
+#include <map>
+#include <string>
+#include <vector>
+namespace native_backend {
+namespace fs = std::filesystem;
+inline std::string arg(const common_json &cfg,const std::string &key,const std::string &fallback="") {
+    auto args=cfg.at("args").get<std::vector<std::string>>();std::string value=fallback;
+    for(size_t i=0;i+1<args.size();++i)if(args[i]==key)value=args[i+1];return value;
+}
+inline common_json inspect(const std::string &file) {
+    static std::mutex mutex;static std::map<std::string,std::pair<fs::file_time_type,common_json>> cache;
+    std::lock_guard<std::mutex> lock(mutex);std::error_code ec;auto stamp=fs::last_write_time(file,ec);
+    if(ec)return {{"architecture","unknown"},{"experts",0},{"detected",false}};
+    if(cache.count(file)&&cache[file].first==stamp)return cache[file].second;
+    gguf_init_params params{true,nullptr};auto *g=gguf_init_from_file(file.c_str(),params);
+    if(!g)return {{"architecture","unknown"},{"experts",0},{"detected",false}};
+    auto arch_key=gguf_find_key(g,"general.architecture");std::string arch=arch_key>=0&&gguf_get_kv_type(g,arch_key)==GGUF_TYPE_STRING?gguf_get_val_str(g,arch_key):"unknown";
+    auto key=gguf_find_key(g,(arch+".expert_count").c_str());uint64_t count=0;
+    if(key>=0) {auto type=gguf_get_kv_type(g,key);if(type==GGUF_TYPE_UINT32)count=gguf_get_val_u32(g,key);else if(type==GGUF_TYPE_UINT64)count=gguf_get_val_u64(g,key);}
+    gguf_free(g);common_json result={{"architecture",arch},{"experts",count},{"detected",true}};
+    if(cache.size()>128)cache.clear();cache[file]={stamp,result};return result;
+}
+inline common_json resolve(const common_json &cfg) {
+    auto settings=cfg.value("inference",common_json::object());auto policy=settings.value("engine","auto");
+    if(policy!="auto"&&policy!="strata"&&policy!="llama")throw std::runtime_error("Unknown engine policy");
+    auto info=inspect(arg(cfg,"--native"));auto pack=arg(cfg,"--pack");
+    bool tiered=info.value("architecture","")=="qwen4exp"&&info.value("experts",0)>0&&fs::is_regular_file(fs::path(pack)/"index.txt");
+    if(tiered&&fs::is_regular_file(fs::path(pack)/"experts.bin.src.json")) {
+        std::ifstream f(fs::path(pack)/"experts.bin.src.json");std::string bytes((std::istreambuf_iterator<char>(f)),{});
+        auto manifest=common_json::parse_no_throw(bytes);bool match=false;
+        if(manifest.is_object()&&manifest.contains("shards"))for(const auto &shard:manifest["shards"])
+            if(shard.value("name",std::string())==fs::path(arg(cfg,"--native")).filename().string()&&shard.value("size",0ULL)==fs::file_size(arg(cfg,"--native")))match=true;
+        tiered=match;
+    }
+    std::error_code size_error;auto model_size=fs::file_size(arg(cfg,"--native"),size_error);
+    bool measured=!size_error&&settings.value("auto_model",std::string())==arg(cfg,"--native") && settings.value("auto_size",0ULL)==model_size;
+    auto automatic=tiered?std::string("strata"):measured?settings.value("auto_engine",std::string("llama")):std::string("llama");
+    if(automatic!="strata"&&automatic!="llama")throw std::runtime_error("Invalid automatic engine preference");
+    std::string engine=policy=="auto"?automatic:policy;
+    auto device=settings.value("device","Vulkan0");auto build=settings.value("build","auto");
+    auto exe=fs::read_symlink("/proc/self/exe").parent_path();
+    bool tuned=fs::is_regular_file(exe/"llama-vulkan");
+    bool rocm=fs::is_regular_file(exe/"llama-rocm/bin/llama");
+    return {{"policy",policy},{"engine",engine},{"automatic_engine",automatic},{"preferred_compute",device=="ROCm0"?(build=="combined"?"rocm-combined":"rocm"):build=="combined"?"vulkan-combined":"vulkan"},{"device",engine=="llama"?device:cfg.value("backend","hip")},
+        {"build",engine=="llama"?(device=="Vulkan0"&&build=="auto"&&tuned?"tuned-vulkan":device=="ROCm0"&&build=="auto"&&rocm?"rocm-only":"combined"):"native"},
+        {"reason",policy!="auto"?"Explicit engine selection":tiered?"Compatible Flash-Next GGUF and prepared expert pack":automatic=="strata"?"Measured native preference for this dense profile":"Dense or unverified MoE architecture: llama.cpp"},
+        {"model",info}};
+}
+inline std::vector<std::string> command(const common_json &cfg,const std::string &name,int port,const fs::path &bin) {
+    auto r=resolve(cfg);auto settings=cfg.value("inference",common_json::object());
+    auto file=bin/"llama-dual/bin/llama";
+    if(r["build"]=="tuned-vulkan"&&fs::is_regular_file(bin/"llama-vulkan"))file=bin/"llama-vulkan";
+    if(r["build"]=="rocm-only")file=bin/"llama-rocm/bin/llama";
+    if(!fs::is_regular_file(file))throw std::runtime_error("Bundled llama.cpp executable is missing");
+    std::vector<std::string> cmd={"env","-u","LLAMA_ARG_MODEL","-u","LLAMA_ARG_MODELS_PRESET","-u","LLAMA_ARG_DEVICE",
+        "LD_LIBRARY_PATH="+(r["build"]=="rocm-only"?bin/"llama-rocm/bin":bin/"llama-dual/bin").string()+":/opt/rocm/lib",file.string(),"serve","--model",arg(cfg,"--native"),"--alias",name,
+        "--host","127.0.0.1","--port",std::to_string(port),"--offline","--no-ui","--slots","--metrics","--parallel","1","--threads","8","--threads-batch","8",
+        "--ctx-size",arg(cfg,"--max-context","131072"),"--device",r["device"].get<std::string>(),"--flash-attn","on",
+        "--cache-type-k",settings.value("kv","q8_0"),"--cache-type-v",settings.value("kv","q8_0"),"--batch-size","2048",
+        "--ubatch-size",std::to_string(settings.value("ubatch",512)),"--fit","on","--fit-target",std::to_string(settings.value("fit_target_mib",r["device"]=="ROCm0"?4096:2048)),
+        "--cache-ram","0","--spec-type",settings.value("mtp",0)>0?"draft-mtp":"none","--spec-draft-n-max",std::to_string(std::max(1,settings.value("mtp",0)))};
+    if(cfg.contains("vision")){cmd.insert(cmd.end(),{"--mmproj",cfg["vision"].at("mmproj").get<std::string>(),"--no-mmproj-offload"});}
+    else cmd.push_back("--no-mmproj");
+    return cmd;
+}
+}

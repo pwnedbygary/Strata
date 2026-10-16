@@ -1,0 +1,116 @@
+[
+  {
+    "backend": "vulkan",
+    "route": {
+      "policy": "llama",
+      "engine": "llama",
+      "automatic_engine": "llama",
+      "preferred_compute": "vulkan",
+      "device": "Vulkan0",
+      "build": "tuned-vulkan",
+      "reason": "Explicit engine selection",
+      "model": {
+        "architecture": "qwen35",
+        "experts": 0,
+        "detected": true
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 6351.947,
+      "prompt_per_token_ms": 0.780721116027532,
+      "prompt_per_second": 1280.8671105095807,
+      "predicted_n": 333,
+      "predicted_ms": 6998.026,
+      "predicted_per_token_ms": 21.07839156626506,
+      "predicted_per_second": 47.441950058487926
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 13.358231652004179,
+    "checks_passed": 13
+  },
+  {
+    "backend": "rocm",
+    "route": {
+      "policy": "llama",
+      "engine": "llama",
+      "automatic_engine": "llama",
+      "preferred_compute": "rocm",
+      "device": "ROCm0",
+      "build": "rocm-only",
+      "reason": "Explicit engine selection",
+      "model": {
+        "architecture": "qwen35",
+        "experts": 0,
+        "detected": true
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 11646.292,
+      "prompt_per_token_ms": 1.4314518190757128,
+      "prompt_per_second": 698.5914486773988,
+      "predicted_n": 333,
+      "predicted_ms": 26350.574,
+      "predicted_per_token_ms": 79.36919879518072,
+      "predicted_per_second": 12.599346033221137
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 38.006898516003275,
+    "checks_passed": 13
+  },
+  {
+    "backend": "rocm-combined",
+    "route": {
+      "policy": "llama",
+      "engine": "llama",
+      "automatic_engine": "llama",
+      "preferred_compute": "rocm-combined",
+      "device": "ROCm0",
+      "build": "combined",
+      "reason": "Explicit engine selection",
+      "model": {
+        "architecture": "qwen35",
+        "experts": 0,
+        "detected": true
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 11912.382,
+      "prompt_per_token_ms": 1.4641570796460177,
+      "prompt_per_second": 682.9868283270298,
+      "predicted_n": 333,
+      "predicted_ms": 26549.369,
+      "predicted_per_token_ms": 79.96797891566264,
+      "predicted_per_second": 12.505005297866026
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 38.47261790200719,
+    "checks_passed": 13
+  }
+]

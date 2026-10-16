@@ -1,0 +1,6 @@
+{
+  "file": "Strata-Unified-RX9070XT-x86_64.AppImage",
+  "bytes": 79473144,
+  "sha256": "92ea3e26bade41110530b0e58ac1e5388f0075a23e9dbceff0c6f1534a11a5bb",
+  "note": "Final package adds monitor timestamp/estimate corrections after the throughput trial; inference executables and settings unchanged."
+}
