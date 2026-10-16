@@ -58,9 +58,9 @@ inline common_json apply(common_json cfg, const common_json &settings) {
             if(value!="auto"&&value!="strata"&&value!="llama")throw std::runtime_error("Unknown engine policy");
             cfg["inference"]["engine"]=value;
         } else {
-            if(value!="vulkan"&&value!="vulkan-combined"&&value!="rocm"&&value!="rocm-combined")throw std::runtime_error("Unknown compute backend");
+            if(value!="vulkan"&&value!="rocm")throw std::runtime_error("Unknown compute backend");
             cfg["inference"]["device"]=value.rfind("rocm",0)==0?"ROCm0":"Vulkan0";
-            cfg["inference"]["build"]=value.find("combined")==std::string::npos?"auto":"combined";
+            cfg["inference"]["build"]="auto";
         }
         clean.erase(key);
     }

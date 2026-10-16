@@ -17,8 +17,7 @@ changing that model removes the preference. This is a conservative compatibility
 rule, not support for every MoE in the tiered engine.
 
 The sidebar selects Automatic, llama.cpp or Strata, then Vulkan or ROCm when
-llama.cpp is selected. Dedicated builds are preferred when packaged; combined
-builds are explicit fallback choices. Backend selection is saved per profile and
+llama.cpp is selected. Only the dedicated Vulkan and ROCm builds are packaged. Backend selection is saved per profile and
 applies on Load. Switching engines releases the previous worker first. Both
 engines share the memory scope and per-user model lock. External harnesses still
 use the same `/v1` address, with routing details included in `/v1/models`.
@@ -171,7 +170,6 @@ cmake -S . -B build-hip -DSTRATA_ENABLE_CUDA=OFF -DSTRATA_ENABLE_HIP=ON \
 cmake --build build-hip --target strata-native -j 3
 python tools/build_native_appimage.py --appimagetool /path/to/local/appimagetool \
   --runtime-file /path/to/local/runtime-x86_64 \
-  --llama-build-dir /path/to/combined-llama-build \
   --rocm-build-dir /path/to/rocm-only-llama-build \
   --vulkan-binary /path/to/tested/vulkan/llama \
   --output dist/Strata-Unified-RX9070XT-x86_64.AppImage
@@ -182,7 +180,7 @@ comparing backend builds. The tested external checkout is
 `a2878d30df0130dde503a7d9ba30d3d21bd71b9f`; enable `LLAMA_BUILD_APP`,
 `LLAMA_BUILD_SERVER` and `LLAMA_BUILD_COMMON`. Set `GGML_HIP=ON`,
 `GGML_VULKAN=OFF`, and `AMDGPU_TARGETS=gfx1201` for ROCm-only, or reverse
-HIP/Vulkan for Vulkan-only. The combined build enables both. These are separate
+HIP/Vulkan for Vulkan-only. Combined builds were compared separately and are not included in the AppImage. These are separate
 from the native engine's llama dependency pin above. Packaging reads existing
 build directories and never downloads dependencies.
 

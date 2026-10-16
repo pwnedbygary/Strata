@@ -10,9 +10,8 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--appimagetool',type=Path,required=True)
     p.add_argument('--runtime-file',type=Path,required=True,help='Already downloaded AppImage runtime; packaging does not fetch it')
-    p.add_argument('--llama-build-dir',type=Path,required=True,help='Local llama.cpp build with HIP and Vulkan; copied with its shared libraries')
-    p.add_argument('--rocm-build-dir',type=Path,help='Optional dedicated ROCm build with bin/llama and shared libraries')
-    p.add_argument('--vulkan-binary',type=Path,help='Optional locally tested Vulkan-only executable')
+    p.add_argument('--rocm-build-dir',type=Path,required=True,help='Dedicated ROCm build with bin/llama and shared libraries')
+    p.add_argument('--vulkan-binary',type=Path,required=True,help='Locally tested Vulkan-only executable')
     p.add_argument('--binary',type=Path,default=ROOT/'build-hip/frontend/strata-native')
     p.add_argument('--output',type=Path,default=ROOT/'dist/Strata-Native-RX9070XT-x86_64.AppImage')
     a=p.parse_args()
@@ -22,9 +21,6 @@ def main():
     if appdir.exists():shutil.rmtree(appdir)
     bindir=appdir/'usr/bin';bindir.mkdir(parents=True)
     shutil.copy2(a.binary,bindir/'strata-native')
-    llama=a.llama_build_dir.resolve()/'bin'
-    if not (llama/'llama').is_file():p.error('llama build needs bin/llama')
-    shutil.copytree(llama,bindir/'llama-dual/bin',symlinks=True)
     if a.rocm_build_dir:
         rocm=a.rocm_build_dir.resolve()/'bin'
         if not (rocm/'llama').is_file():p.error('ROCm build needs bin/llama')

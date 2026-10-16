@@ -1,6 +1,6 @@
 {
   "file": "Strata-Unified-RX9070XT-x86_64.AppImage",
-  "bytes": 79473144,
-  "sha256": "92ea3e26bade41110530b0e58ac1e5388f0075a23e9dbceff0c6f1534a11a5bb",
-  "note": "Final package adds monitor timestamp/estimate corrections after the throughput trial; inference executables and settings unchanged."
+  "bytes": 48396792,
+  "sha256": "7155bcb5341de4701f6c52b119541ff83345bcf9fb2f456e03f2a1c01d77a5ad",
+  "note": "Dedicated Vulkan and ROCm only; combined backend removed after comparison. Inference executables/settings used for Vulkan and ROCm-only timings are unchanged."
 }

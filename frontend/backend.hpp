@@ -45,23 +45,19 @@ inline common_json resolve(const common_json &cfg) {
     auto automatic=tiered?std::string("strata"):measured?settings.value("auto_engine",std::string("llama")):std::string("llama");
     if(automatic!="strata"&&automatic!="llama")throw std::runtime_error("Invalid automatic engine preference");
     std::string engine=policy=="auto"?automatic:policy;
-    auto device=settings.value("device","Vulkan0");auto build=settings.value("build","auto");
-    auto exe=fs::read_symlink("/proc/self/exe").parent_path();
-    bool tuned=fs::is_regular_file(exe/"llama-vulkan");
-    bool rocm=fs::is_regular_file(exe/"llama-rocm/bin/llama");
-    return {{"policy",policy},{"engine",engine},{"automatic_engine",automatic},{"preferred_compute",device=="ROCm0"?(build=="combined"?"rocm-combined":"rocm"):build=="combined"?"vulkan-combined":"vulkan"},{"device",engine=="llama"?device:cfg.value("backend","hip")},
-        {"build",engine=="llama"?(device=="Vulkan0"&&build=="auto"&&tuned?"tuned-vulkan":device=="ROCm0"&&build=="auto"&&rocm?"rocm-only":"combined"):"native"},
+    auto device=settings.value("device","Vulkan0");
+    if(device!="Vulkan0"&&device!="ROCm0")throw std::runtime_error("Unknown compute device");
+    return {{"policy",policy},{"engine",engine},{"automatic_engine",automatic},{"preferred_compute",device=="ROCm0"?"rocm":"vulkan"},{"device",engine=="llama"?device:cfg.value("backend","hip")},
+        {"build",engine=="llama"?(device=="Vulkan0"?"tuned-vulkan":"rocm-only"):"native"},
         {"reason",policy!="auto"?"Explicit engine selection":tiered?"Compatible Flash-Next GGUF and prepared expert pack":automatic=="strata"?"Measured native preference for this dense profile":"Dense or unverified MoE architecture: llama.cpp"},
         {"model",info}};
 }
 inline std::vector<std::string> command(const common_json &cfg,const std::string &name,int port,const fs::path &bin) {
     auto r=resolve(cfg);auto settings=cfg.value("inference",common_json::object());
-    auto file=bin/"llama-dual/bin/llama";
-    if(r["build"]=="tuned-vulkan"&&fs::is_regular_file(bin/"llama-vulkan"))file=bin/"llama-vulkan";
-    if(r["build"]=="rocm-only")file=bin/"llama-rocm/bin/llama";
+    auto file=r["build"]=="rocm-only"?bin/"llama-rocm/bin/llama":bin/"llama-vulkan";
     if(!fs::is_regular_file(file))throw std::runtime_error("Bundled llama.cpp executable is missing");
     std::vector<std::string> cmd={"env","-u","LLAMA_ARG_MODEL","-u","LLAMA_ARG_MODELS_PRESET","-u","LLAMA_ARG_DEVICE",
-        "LD_LIBRARY_PATH="+(r["build"]=="rocm-only"?bin/"llama-rocm/bin":bin/"llama-dual/bin").string()+":/opt/rocm/lib",file.string(),"serve","--model",arg(cfg,"--native"),"--alias",name,
+        "LD_LIBRARY_PATH="+(r["build"]=="rocm-only"?(bin/"llama-rocm/bin").string()+":/opt/rocm/lib":std::string("/opt/rocm/lib")),file.string(),"serve","--model",arg(cfg,"--native"),"--alias",name,
         "--host","127.0.0.1","--port",std::to_string(port),"--offline","--no-ui","--slots","--metrics","--parallel","1","--threads","8","--threads-batch","8",
         "--ctx-size",arg(cfg,"--max-context","131072"),"--device",r["device"].get<std::string>(),"--flash-attn","on",
         "--cache-type-k",settings.value("kv","q8_0"),"--cache-type-v",settings.value("kv","q8_0"),"--batch-size","2048",

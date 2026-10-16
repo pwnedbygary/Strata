@@ -5,8 +5,11 @@ RX 9070 XT 16 GiB, Ryzen 7 7800X3D, 32 GiB DDR5-4800, Linux. The authorized
 stability. One model worker at a time; 20 GiB cgroup ceiling, no scope swap,
 physical RAM/VRAM guards. The normal 8096 server was unloaded during QA on 8097.
 
-The unified AppImage contains native Strata plus the existing fast Vulkan
-executable, a newly built ROCm-only llama app and the combined ROCm/Vulkan app.
+The initial validation package contained native Strata, the existing fast Vulkan
+executable, a new ROCm-only llama app and the combined ROCm/Vulkan app. At the
+user's request the final package includes only dedicated Vulkan and ROCm builds
+plus Strata; combined options and binaries were removed. The comparison below
+records the earlier test, not an additional shipped backend.
 External llama source revision: `a2878d30df0130dde503a7d9ba30d3d21bd71b9f`.
 ROCm-only and combined were built with GCC 16.2.1; the retained Vulkan build
 reports Clang 22.1.8. This is not a controlled comparison of compiler effects.

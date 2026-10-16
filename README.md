@@ -39,8 +39,7 @@ Windows EXE packaging is deferred.
 
 Automatic routes compatible prepared Flash-Next MoE to Strata and other models
 to llama.cpp, with an exact-model native preference for measured Swift profiles.
-Select the engine and Vulkan or ROCm before loading; dedicated executables and a
-combined fallback share the same UI/API. The curated menu retains useful text and
+Select the engine and Vulkan or ROCm before loading; dedicated executables share the same UI/API. The curated menu retains useful text and
 screenshot profiles; benchmark and duplicate profiles are removed. OpenAI chat,
 Anthropic Messages and stateless Responses are supported; client-side harnesses
 execute their own tools. See [native build, API scope and limitations](docs/NATIVE_SERVER.md).

@@ -16,8 +16,8 @@ int main() {
     std::ofstream(dir/"index.txt")<<"test";cfg["args"].push_back("--pack");cfg["args"].push_back(dir.string());
     assert(native_backend::resolve(cfg)["engine"]=="strata");
     cfg["inference"]={{"engine","llama"},{"device","ROCm0"}};
-    auto route=native_backend::resolve(cfg);assert(route["engine"]=="llama"&&route["device"]=="ROCm0"&&route["build"]=="combined");
-    std::filesystem::create_directories(dir/"llama-dual/bin");std::ofstream(dir/"llama-dual/bin/llama")<<"test";
+    auto route=native_backend::resolve(cfg);assert(route["engine"]=="llama"&&route["device"]=="ROCm0"&&route["build"]=="rocm-only");
+    std::filesystem::create_directories(dir/"llama-rocm/bin");std::ofstream(dir/"llama-rocm/bin/llama")<<"test";
     auto command=native_backend::command(cfg,"test",1234,dir);
     auto find=[&](const std::string &key){auto it=std::find(command.begin(),command.end(),key);assert(it!=command.end());return *++it;};
     assert(find("--device")=="ROCm0"&&find("--host")=="127.0.0.1"&&find("--ctx-size")=="131072");
