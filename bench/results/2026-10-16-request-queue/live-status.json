@@ -1,0 +1,10 @@
+{
+  "active": "cyber-tiel-coder",
+  "loading": null,
+  "error": null,
+  "request_queue": {
+    "waiting": 0,
+    "estimated_bytes": 3972440,
+    "max_requests": 5
+  }
+}

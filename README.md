@@ -44,6 +44,8 @@ screenshot profiles; benchmark and duplicate profiles are removed. OpenAI chat,
 Anthropic Messages and stateless Responses are supported; client-side harnesses
 execute their own tools. See [native build, API scope and limitations](docs/NATIVE_SERVER.md).
 Configured context ceilings are listed separately from filled-context validation.
+Parallel coding-agent requests can use the opt-in [bounded FIFO queue](docs/REQUEST_QUEUE.md):
+one generation at a time, with streaming keep-alives for waiting requests.
 
 The unified Saluki Vulkan check completed **130,028 input tokens at 709 tok/s
 prefill and 34.5 tok/s decode**, with 13/13 coding and 3/3 retrieval checks passing.

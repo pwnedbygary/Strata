@@ -218,3 +218,8 @@ Per-profile thinking-mode sampling defaults are exposed by model discovery and
 fill omitted API values. Explicit client values win. Chat starts with reasoning
 enabled and a blank temperature override. See [sampling recommendations and
 precedence](SAMPLING.md).
+
+Coding harnesses with parallel subagents can opt into `"queue_requests": true`
+in the router registry. This installation enables it: one request generates,
+up to four wait, and SSE keep-alives avoid routine busy-retry collisions. Payload
+and wait bounds remain enforced. See [request queue behavior and limits](REQUEST_QUEUE.md).

@@ -1,0 +1,6 @@
+{
+  "file": "Strata-Unified-RX9070XT-x86_64.AppImage",
+  "bytes": 48409080,
+  "sha256": "acc6fca13fb95d2bf1cccfc8decb335b2d445c1fbbefdce0773be8195cd14d8c",
+  "note": "Opt-in FIFO request queue enabled in installed registry. Dedicated inference executables and model/sampling settings unchanged. Desktop AppImage has the same hash."
+}

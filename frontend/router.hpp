@@ -1,5 +1,6 @@
 #pragma once
 #include "sampling.hpp"
+#include "request_queue.hpp"
 #include "profiles.hpp"
 #include "tuning.hpp"
 #include "config_store.hpp"
@@ -118,6 +119,8 @@ class Router {
     std::atomic<int> port{0};
     std::atomic<uint64_t> worker_budget_mib{0};
     std::mutex turn, state, lifecycle, clients_mutex, metrics_mutex;
+    native_requests::Queue request_queue;
+    bool queue_enabled=false;
     std::vector<std::weak_ptr<httplib::Client>> clients;
     std::atomic<bool> request_cancelled{false};
     common_json last_timings=common_json::object(),last_progress=common_json::object();
@@ -144,6 +147,7 @@ class Router {
     explicit Router(const fs::path &registry) {
         registry_path = fs::absolute(registry);
         auto r = native_profiles::read(registry);
+        queue_enabled=r.value("queue_requests",false);
         auto base = fs::absolute(registry).parent_path();
         for (auto it = r.at("profiles").begin(); it != r["profiles"].end(); ++it) {
             fs::path p = native_profiles::path(it.value().get<std::string>(), base);
@@ -237,7 +241,7 @@ class Router {
         common_json names = common_json::array();
         for (auto &p : profiles)
             names.push_back(p.first);
-        return {{"active", active.empty() ? common_json(nullptr) : common_json(active)},
+        common_json result={{"active", active.empty() ? common_json(nullptr) : common_json(active)},
                 {"loading", loading.empty() ? common_json(nullptr) : common_json(loading)},
                 {"error", error.empty() ? common_json(nullptr) : common_json(error)},
                 {"default", default_model},
@@ -250,6 +254,8 @@ class Router {
                     {"available_ram_floor_gib", ram_floor}, {"physical_vram_floor_mib", vram_floor},
                     {"admission_ram_floor_gib", ram_floor + 1},
                     {"admission_vram_floor_mib", vram_floor + 256}, {"scope_swap_mib", 0}}}};
+        if(queue_enabled){auto q=request_queue.state();result["request_queue"]={{"waiting",q.waiting},{"estimated_bytes",q.bytes},{"max_requests",native_requests::Queue::max_requests}};}
+        return result;
     }
     void stop() {
         std::lock_guard<std::mutex> l(lifecycle);
@@ -454,13 +460,109 @@ inline void install_security(httplib::Server &http) {
         return httplib::Server::HandlerResponse::Unhandled;
     });
 }
+inline void proxy_request(Router &router,const httplib::Request &req,httplib::Response &res) {
+        const auto admission = native_memory::refusal(native_memory::snapshot(),
+            static_cast<uint64_t>((router.ram_floor + 1) * native_memory::GiB),
+            static_cast<uint64_t>(router.vram_floor + 256) * native_memory::MiB,
+            static_cast<uint64_t>(req.body.size()) * 8);
+        if (!admission.empty()) {
+            json(res, 503, {{"error", {{"message", admission}, {"type", "resource_exhausted"}}}});
+            return;
+        }
+        std::shared_ptr<native_requests::Queue::Ticket> ticket;
+        std::shared_ptr<std::unique_lock<std::mutex>> turn_lock;
+        if(!router.queue_enabled) {
+            turn_lock=std::make_shared<std::unique_lock<std::mutex>>(router.turn,std::try_to_lock);
+            if(!turn_lock->owns_lock()){res.set_header("Retry-After","1");json(res,429,{{"error",{{"message","Model is busy; retry after the current request"},{"type","server_busy"}}}});return;}
+        }
+        auto body = common_json::parse_no_throw(req.body);
+        if (!body.is_object()) {
+            json(res, 400, {{"error", {{"message", "JSON object required"}}}});
+            return;
+        }
+        std::function<bool(const common_json &)> remote_image=[&](const common_json &value) {
+            if(value.is_object()) {
+                const auto type=value.contains("type")&&value["type"].is_string()?value["type"].template get<std::string>():std::string();
+                if(type=="image"&&value.contains("source")&&value["source"].is_object()&&value["source"].value("type",std::string())=="url")return true;
+                if((type=="image_url"||type=="input_image")&&value.contains("image_url")) {auto u=value["image_url"];auto url=u.is_string()?u.template get<std::string>():u.is_object()?u.value("url",std::string()):"";if(url.rfind("data:image/",0)!=0)return true;}
+                for(auto it=value.begin();it!=value.end();++it)if(remote_image(it.value()))return true;
+            }else if(value.is_array())for(const auto &item:value)if(remote_image(item))return true;
+            return false;
+        };
+        if(remote_image(body)){json(res,400,{{"error",{{"message","Use inline base64 screenshots; remote image fetching is disabled"}}}});return;}
+        auto name = pick(router, body);
+        try {
+            std::lock_guard<std::mutex> lock(router.config_mutex);
+            body = native_sampling::apply(router.profiles.at(name), body);
+        } catch (const std::exception &e) {
+            json(res,400,{{"error",{{"message",e.what()}}}});return;
+        }
+        const auto body_text = body.dump_safe();
+        if(router.queue_enabled) {
+            ticket=router.request_queue.admit(static_cast<uint64_t>(req.body.size())*8);
+            if(!ticket){res.set_header("Retry-After","3");json(res,429,{{"error",{{"message","Request queue is full; retry shortly"},{"type","server_busy"}}}});return;}
+            turn_lock=std::make_shared<std::unique_lock<std::mutex>>(router.turn,std::defer_lock);
+        }
+        bool stream = body.value("stream", false);
+        if (!stream) {
+            try {
+                if(ticket&&!router.request_queue.acquire(*ticket,*turn_lock,[&]{return !shutdown_requested&&!req.is_connection_closed();})) {
+                    res.set_header("Retry-After","3");json(res,429,{{"error",{{"message","Request queue wait expired"},{"type","server_busy"}}}});return;
+                }
+                const auto check=native_memory::refusal(native_memory::snapshot(),static_cast<uint64_t>((router.ram_floor+1)*native_memory::GiB),static_cast<uint64_t>(router.vram_floor+256)*native_memory::MiB);
+                if(ticket&&!check.empty())throw std::runtime_error(check);
+                router.load(name);
+                auto c = router.client();router.track(c);
+                auto answer = c->Post(req.path, body_text, "application/json");
+                if (!answer)
+                    throw std::runtime_error(router.request_cancelled.load()?"Request cancelled":"Worker connection failed");
+                router.observe(common_json::parse_no_throw(answer->body));
+                res.status = answer->status;
+                res.set_content(answer->body, answer->get_header_value("Content-Type"));
+            } catch (const std::exception &e) {
+                json(res, 503, {{"error", {{"message", e.what()}}}});
+            }
+            return;
+        }
+        res.set_header("Cache-Control", "no-cache");
+        res.set_chunked_content_provider("text/event-stream", [&, turn_lock, ticket, name, path = req.path, body = body_text](
+                                                                  size_t, httplib::DataSink &sink) {
+            try {
+                auto heartbeat=std::chrono::steady_clock::time_point{};
+                if(ticket&&!router.request_queue.acquire(*ticket,*turn_lock,[&]{
+                    if(shutdown_requested||!sink.is_writable())return false;
+                    auto now=std::chrono::steady_clock::now();
+                    if(now-heartbeat>=std::chrono::seconds(2)){heartbeat=now;return sink.write(": waiting for model\n\n",21);}
+                    return true;
+                }))throw std::runtime_error("Request queue wait expired or client disconnected");
+                const auto check=native_memory::refusal(native_memory::snapshot(),static_cast<uint64_t>((router.ram_floor+1)*native_memory::GiB),static_cast<uint64_t>(router.vram_floor+256)*native_memory::MiB);
+                if(ticket&&!check.empty())throw std::runtime_error(check);
+                router.load(name);
+                auto c = router.client();router.track(c);std::string event_buffer;
+                auto answer = c->Post(path, httplib::Headers{}, body, "application/json",
+                                      [&](const char *data, size_t n) {
+                    event_buffer.append(data,n);size_t end;
+                    while((end=event_buffer.find('\n'))!=std::string::npos){auto line=event_buffer.substr(0,end);event_buffer.erase(0,end+1);if(line.rfind("data: ",0)==0)router.observe(common_json::parse_no_throw(line.substr(6)));}
+                    if(event_buffer.size()>1024*1024)event_buffer.clear();
+                    return sink.is_writable()&&sink.write(data,n);
+                });
+                if (!answer)
+                    throw std::runtime_error("Worker stream disconnected");
+            } catch (const std::exception &e) {
+                auto s = "data: " + common_json({{"error", {{"message", e.what()}}}}).dump_safe() + "\n\n";
+                sink.write(s.data(), s.size());
+            }
+            sink.done();
+            return true;
+        });
+}
 inline int run(const std::string &registry, int port, const std::string &host) {
     if (host != "127.0.0.1" && host != "::1" && host != "localhost")
         throw std::runtime_error("Native router only binds loopback");
     Router router(registry);
     httplib::Server http;
     shutdown_requested = 0;
-    http.new_task_queue = [] { return new httplib::ThreadPool(4, 4, 8); };
+    http.new_task_queue = [&] { return new httplib::ThreadPool(4, router.queue_enabled?8:4, 8); };
     http.set_payload_max_length(32 * 1024 * 1024);
     http.set_read_timeout(600);
     http.set_write_timeout(3600);
@@ -541,84 +643,7 @@ inline int run(const std::string &registry, int port, const std::string &host) {
         router.stop();
         json(res, 200, router.status());
     });
-    auto proxy = [&](const httplib::Request &req, httplib::Response &res) {
-        const auto admission = native_memory::refusal(native_memory::snapshot(),
-            static_cast<uint64_t>((router.ram_floor + 1) * native_memory::GiB),
-            static_cast<uint64_t>(router.vram_floor + 256) * native_memory::MiB,
-            static_cast<uint64_t>(req.body.size()) * 8);
-        if (!admission.empty()) {
-            json(res, 503, {{"error", {{"message", admission}, {"type", "resource_exhausted"}}}});
-            return;
-        }
-        auto turn_lock = std::make_shared<std::unique_lock<std::mutex>>(router.turn, std::try_to_lock);
-        if (!turn_lock->owns_lock()) {
-            res.set_header("Retry-After", "1");
-            json(res, 429, {{"error", {{"message", "Model is busy; retry after the current request"},
-                                     {"type", "server_busy"}}}});
-            return;
-        }
-        auto body = common_json::parse_no_throw(req.body);
-        if (!body.is_object()) {
-            json(res, 400, {{"error", {{"message", "JSON object required"}}}});
-            return;
-        }
-        std::function<bool(const common_json &)> remote_image=[&](const common_json &value) {
-            if(value.is_object()) {
-                const auto type=value.contains("type")&&value["type"].is_string()?value["type"].template get<std::string>():std::string();
-                if(type=="image"&&value.contains("source")&&value["source"].is_object()&&value["source"].value("type",std::string())=="url")return true;
-                if((type=="image_url"||type=="input_image")&&value.contains("image_url")) {auto u=value["image_url"];auto url=u.is_string()?u.template get<std::string>():u.is_object()?u.value("url",std::string()):"";if(url.rfind("data:image/",0)!=0)return true;}
-                for(auto it=value.begin();it!=value.end();++it)if(remote_image(it.value()))return true;
-            }else if(value.is_array())for(const auto &item:value)if(remote_image(item))return true;
-            return false;
-        };
-        if(remote_image(body)){json(res,400,{{"error",{{"message","Use inline base64 screenshots; remote image fetching is disabled"}}}});return;}
-        auto name = pick(router, body);
-        try {
-            std::lock_guard<std::mutex> lock(router.config_mutex);
-            body = native_sampling::apply(router.profiles.at(name), body);
-        } catch (const std::exception &e) {
-            json(res,400,{{"error",{{"message",e.what()}}}});return;
-        }
-        const auto body_text = body.dump_safe();
-        bool stream = body.value("stream", false);
-        if (!stream) {
-            try {
-                router.load(name);
-                auto c = router.client();router.track(c);
-                auto answer = c->Post(req.path, body_text, "application/json");
-                if (!answer)
-                    throw std::runtime_error(router.request_cancelled.load()?"Request cancelled":"Worker connection failed");
-                router.observe(common_json::parse_no_throw(answer->body));
-                res.status = answer->status;
-                res.set_content(answer->body, answer->get_header_value("Content-Type"));
-            } catch (const std::exception &e) {
-                json(res, 503, {{"error", {{"message", e.what()}}}});
-            }
-            return;
-        }
-        res.set_header("Cache-Control", "no-cache");
-        res.set_chunked_content_provider("text/event-stream", [&, turn_lock, name, path = req.path, body = body_text](
-                                                                  size_t, httplib::DataSink &sink) {
-            try {
-                router.load(name);
-                auto c = router.client();router.track(c);std::string event_buffer;
-                auto answer = c->Post(path, httplib::Headers{}, body, "application/json",
-                                      [&](const char *data, size_t n) {
-                    event_buffer.append(data,n);size_t end;
-                    while((end=event_buffer.find('\n'))!=std::string::npos){auto line=event_buffer.substr(0,end);event_buffer.erase(0,end+1);if(line.rfind("data: ",0)==0)router.observe(common_json::parse_no_throw(line.substr(6)));}
-                    if(event_buffer.size()>1024*1024)event_buffer.clear();
-                    return sink.is_writable()&&sink.write(data,n);
-                });
-                if (!answer)
-                    throw std::runtime_error("Worker stream disconnected");
-            } catch (const std::exception &e) {
-                auto s = "data: " + common_json({{"error", {{"message", e.what()}}}}).dump_safe() + "\n\n";
-                sink.write(s.data(), s.size());
-            }
-            sink.done();
-            return true;
-        });
-    };
+    auto proxy = [&](const auto &req,auto &res){proxy_request(router,req,res);};
     for (const char *path :
          {"/v1/chat/completions", "/v1/messages", "/v1/messages/count_tokens", "/v1/responses"})
         http.Post(path, proxy);
