@@ -77,7 +77,7 @@ inline common_json text_parts(const common_json &content, bool anthropic = false
 inline common_json chat_request(const common_json &in, bool anthropic) {
     common_json out = common_json::object();
     for (const char *k : {"model", "stream", "temperature", "top_p", "top_k", "max_tokens",
-                          "max_output_tokens", "reasoning_effort", "seed"})
+                          "max_output_tokens", "reasoning_effort", "seed", "min_p", "presence_penalty", "frequency_penalty", "repeat_penalty"})
         if (in.contains(k))
             out[k == std::string("max_output_tokens") ? "max_tokens" : k] = in.at(k);
     common_json messages = common_json::array();

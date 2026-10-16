@@ -1,0 +1,6 @@
+{
+  "file": "Strata-Unified-RX9070XT-x86_64.AppImage",
+  "bytes": 48400888,
+  "sha256": "cddf8fdd201c8cd7963e17f43d20bbdc110b0d1172d1a9458875b0a939e021cb",
+  "note": "Sampling-default update. Same dedicated Vulkan/ROCm inference executables; older throughput/quality reports were not rerun. Desktop-installed AppImage has the same hash."
+}

@@ -55,6 +55,10 @@ The selected 256K presets use Q8 KV, 27 CPU expert layers and microbatch 1024.
 Both Swift quantizations completed 128K fills, but their long-context Vulkan
 decode was much slower. [Settings, code checks, memory margins and rejected runs](bench/results/2026-10-16-llama-presets/README.md).
 
+[Thinking-mode sampling defaults](docs/SAMPLING.md) follow the model authors’
+coding recommendations. Chat uses the selected profile’s defaults unless you
+enter an override; API clients retain control over explicit sampling values.
+
 The UI includes a live **Monitor**, per-profile **Tune** controls, and **Settings**
 for local model/projector/pack paths and screenshot support. Browse selects local
 files or folders while keeping each path editable. Saves preserve the

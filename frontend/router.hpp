@@ -1,4 +1,5 @@
 #pragma once
+#include "sampling.hpp"
 #include "profiles.hpp"
 #include "tuning.hpp"
 #include "config_store.hpp"
@@ -572,12 +573,19 @@ inline int run(const std::string &registry, int port, const std::string &host) {
         };
         if(remote_image(body)){json(res,400,{{"error",{{"message","Use inline base64 screenshots; remote image fetching is disabled"}}}});return;}
         auto name = pick(router, body);
+        try {
+            std::lock_guard<std::mutex> lock(router.config_mutex);
+            body = native_sampling::apply(router.profiles.at(name), body);
+        } catch (const std::exception &e) {
+            json(res,400,{{"error",{{"message",e.what()}}}});return;
+        }
+        const auto body_text = body.dump_safe();
         bool stream = body.value("stream", false);
         if (!stream) {
             try {
                 router.load(name);
                 auto c = router.client();router.track(c);
-                auto answer = c->Post(req.path, req.body, "application/json");
+                auto answer = c->Post(req.path, body_text, "application/json");
                 if (!answer)
                     throw std::runtime_error(router.request_cancelled.load()?"Request cancelled":"Worker connection failed");
                 router.observe(common_json::parse_no_throw(answer->body));
@@ -589,7 +597,7 @@ inline int run(const std::string &registry, int port, const std::string &host) {
             return;
         }
         res.set_header("Cache-Control", "no-cache");
-        res.set_chunked_content_provider("text/event-stream", [&, turn_lock, name, path = req.path, body = req.body](
+        res.set_chunked_content_provider("text/event-stream", [&, turn_lock, name, path = req.path, body = body_text](
                                                                   size_t, httplib::DataSink &sink) {
             try {
                 router.load(name);

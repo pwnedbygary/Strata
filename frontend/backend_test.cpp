@@ -25,6 +25,8 @@ int main() {
     assert(std::find(command.begin(),command.end(),"--no-mmproj")!=command.end());
     cfg["vision"]={{"mmproj","/local/mmproj.gguf"}};command=native_backend::command(cfg,"test",1234,dir);
     assert(std::find(command.begin(),command.end(),"--no-mmproj-offload")!=command.end());
+    cfg["sampling"]={{"temperature",1.0},{"presence_penalty",1.1},{"top_k",20}};
+    command=native_backend::command(cfg,"test",1234,dir);assert(find("--temp")=="1.0"&&find("--presence-penalty")=="1.1"&&find("--top-k")=="20");cfg.erase("sampling");
     cfg["args"][1]=other.string();auto manual=native_tuning::apply(cfg,common_json{{"llama_fit",false},{"llama_cpu_moe",28}});
     assert(!manual["inference"]["fit"].get<bool>()&&manual["inference"]["cpu_moe"]==28);
     for(const auto &bad:{common_json{{"llama_fit",true},{"llama_cpu_moe",28}},common_json{{"llama_fit",false},{"llama_cpu_moe",41}},common_json{{"llama_fit","false"}}}){bool refused=false;try{native_tuning::apply(cfg,bad);}catch(...){refused=true;}assert(refused);}

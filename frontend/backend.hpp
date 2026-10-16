@@ -86,6 +86,9 @@ inline std::vector<std::string> command(const common_json &cfg,const std::string
         "--cache-type-k",settings.value("kv","q8_0"),"--cache-type-v",settings.value("kv","q8_0"),"--batch-size","2048",
         "--ubatch-size",std::to_string(settings.value("ubatch",512)),"--fit",fit?"on":"off","--fit-target",std::to_string(settings.value("fit_target_mib",r["device"]=="ROCm0"?4096:2048)),
         "--cache-ram","0","--spec-type",settings.value("mtp",0)>0?"draft-mtp":"none","--spec-draft-n-max",std::to_string(std::max(1,settings.value("mtp",0)))};
+    auto sampling=cfg.value("sampling",common_json::object());
+    for(const auto &pair:{std::pair<const char*,const char*>{"temperature","--temp"},{"top_p","--top-p"},{"top_k","--top-k"},{"min_p","--min-p"},{"presence_penalty","--presence-penalty"},{"frequency_penalty","--frequency-penalty"},{"repeat_penalty","--repeat-penalty"}})
+        if(sampling.contains(pair.first)&&sampling[pair.first].is_number())cmd.insert(cmd.end(),{pair.second,sampling[pair.first].dump_safe()});
     if(!fit)cmd.insert(cmd.end(),{"--n-gpu-layers","all"});
     if(cpu>0)cmd.insert(cmd.end(),{"--n-cpu-moe",std::to_string(cpu),"--load-mode","none"});
     if(cfg.contains("vision")){cmd.insert(cmd.end(),{"--mmproj",cfg["vision"].at("mmproj").get<std::string>(),"--no-mmproj-offload"});}

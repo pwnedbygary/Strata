@@ -213,3 +213,8 @@ compatibility were checked. Synthetic refusal tests do not exhaust system memory
 Native dense 8K/128K measurements and their failed headroom attempts are archived
 in [the comparison record](../bench/results/2026-10-16-native-dense-comparison/README.md).
 CUDA/SYCL and other machines were not tested here.
+
+Per-profile thinking-mode sampling defaults are exposed by model discovery and
+fill omitted API values. Explicit client values win. Chat starts with reasoning
+enabled and a blank temperature override. See [sampling recommendations and
+precedence](SAMPLING.md).

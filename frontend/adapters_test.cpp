@@ -1,7 +1,14 @@
 #include "adapters.hpp"
+#include "sampling.hpp"
 #include <cassert>
 #include <cstdio>
 int main() {
+    common_json cfg={{"sampling",{{"temperature",1.0},{"top_p",0.95},{"presence_penalty",1.1}}}};
+    auto defaults=native_sampling::apply(cfg,common_json::object());assert(defaults["temperature"]==1.0);
+    auto explicit_zero=native_sampling::apply(cfg,{{"temperature",0},{"top_p",0.8}});assert(explicit_zero["temperature"]==0&&explicit_zero["top_p"]==0.8);
+    auto adapted=native_api::chat_request({{"messages",common_json::array()},{"min_p",0.0},{"presence_penalty",1.1},{"repeat_penalty",1.0}},true);
+    assert(adapted["presence_penalty"]==1.1&&adapted.contains("min_p")&&adapted["repeat_penalty"]==1.0);
+
     auto a = native_api::chat_request(
         common_json::parse(
             R"({"messages":[{"role":"user","content":[{"type":"text","text":"hello"}]}],"thinking":{"type":"disabled"},"max_tokens":32})"),
