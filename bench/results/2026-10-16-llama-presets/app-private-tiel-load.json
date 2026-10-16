@@ -1,0 +1,135 @@
+{
+  "active": "tiel-coder",
+  "loading": null,
+  "error": null,
+  "default": "saluki27-abliterated-mtp-vision",
+  "profiles": [
+    "cyber-tiel-coder",
+    "flash-iq3",
+    "saluki27-abliterated-mtp-vision",
+    "swift27-iq3-s-mtp",
+    "swift27-iq3-s-mtp-vision",
+    "swift27-iq3-xxs",
+    "swift27-iq3-xxs-vision",
+    "tiel-coder"
+  ],
+  "loaded": true,
+  "reload_required": false,
+  "external_model_busy": false,
+  "profile": {
+    "id": "tiel-coder",
+    "object": "model",
+    "owned_by": "local",
+    "name": "Tiel private 128K loader check",
+    "description": "Dedicated Vulkan \u00b7 Q8 KV \u00b7 27 CPU expert layers, microbatch 1024. Completed 260K input + cached follow-up; code and retrieval results are in the benchmark record.",
+    "context_length": 131072,
+    "inference": {
+      "policy": "auto",
+      "engine": "llama",
+      "automatic_engine": "llama",
+      "preferred_compute": "vulkan",
+      "device": "Vulkan0",
+      "build": "tuned-vulkan",
+      "reason": "Dense or unverified MoE architecture: llama.cpp",
+      "model": {
+        "architecture": "qwen35moe",
+        "experts": 256,
+        "detected": true,
+        "layers": 40,
+        "weights_bytes": 22749880160,
+        "split_count": 1,
+        "expert_layer_bytes": [
+          486539264,
+          589299712,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          486539264,
+          522190848,
+          486539264,
+          486539264,
+          486539264,
+          522190848,
+          522190848
+        ],
+        "kv_fp16_bytes_per_token": 20480
+      }
+    },
+    "meta": {
+      "n_ctx": 131072,
+      "max_output_tokens": 131064
+    },
+    "sampling_defaults": {},
+    "model_architecture": "qwen35moe",
+    "local_files": {
+      "model": "/home/garyb/Mounts/NVME/Strata/models/Tiel-Coder-35B-A3B/Q4_K_XL/Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+      "expert_pack": "",
+      "mtp_head": "",
+      "projector": "/home/garyb/Mounts/NVME/Strata/models/shared-vision/BF16/mmproj-BF16.gguf"
+    },
+    "max_output_tokens": 131064,
+    "available": true,
+    "strata": {
+      "backend": "Vulkan0",
+      "kv_precision": "q8_0",
+      "mtp": "off",
+      "prefill_chunk": "1024",
+      "adaptive_weights": false,
+      "vision_encoder": "CPU",
+      "resident_ram_gib": "auto",
+      "physical_reserve_mib": "not configured"
+    },
+    "architecture": {
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ]
+    },
+    "capabilities": {
+      "streaming": true,
+      "tools": true,
+      "vision": true,
+      "image_generation": false
+    }
+  },
+  "runtime": "native-c++",
+  "memory_policy": {
+    "worker_limit_mib": 19057,
+    "available_ram_floor_gib": 3.0,
+    "physical_vram_floor_mib": 512,
+    "admission_ram_floor_gib": 4.0,
+    "admission_vram_floor_mib": 768,
+    "scope_swap_mib": 0
+  }
+}

@@ -41,9 +41,11 @@ inline common_json apply(common_json cfg, const common_json &settings) {
     if(!settings.is_object()) throw std::runtime_error("Tuning settings must be an object");
     const bool d=dense(cfg);
     auto clean=settings;
-    for(const char *key:{"llama_ubatch","llama_fit_target_mib","llama_mtp","llama_kv"})if(clean.contains(key)) {
+    for(const char *key:{"llama_ubatch","llama_fit_target_mib","llama_mtp","llama_kv","llama_fit","llama_cpu_moe"})if(clean.contains(key)) {
         auto value=clean[key];
-        if(std::string(key)=="llama_kv") {
+        if(std::string(key)=="llama_fit") {if(!value.is_boolean())throw std::runtime_error("Fit must be a boolean");cfg["inference"]["fit"]=value;}
+        else if(std::string(key)=="llama_cpu_moe") {auto info=native_backend::inspect(native_backend::arg(cfg,"--native"));if(info.value("experts",0)==0)throw std::runtime_error("CPU expert placement is only available for MoE models");cfg["inference"]["cpu_moe"]=integer(value,0,info.value("layers",0),key);}
+        else if(std::string(key)=="llama_kv") {
             if(!value.is_string()||(value!="q8_0"&&value!="q4_0"&&value!="f16"))throw std::runtime_error("Unsupported llama KV type");cfg["inference"]["kv"]=value;
         }else if(std::string(key)=="llama_ubatch") {
             auto n=integer(value,128,4096,key);if(n%128)throw std::runtime_error("Microbatch must be a multiple of 128");cfg["inference"]["ubatch"]=n;
@@ -64,6 +66,7 @@ inline common_json apply(common_json cfg, const common_json &settings) {
         }
         clean.erase(key);
     }
+    if(cfg.value("inference",common_json::object()).value("fit",true)&&cfg.value("inference",common_json::object()).value("cpu_moe",0)>0)throw std::runtime_error("Turn Fit off before setting explicit CPU expert layers");
     if(clean.size()!=settings.size())return apply(cfg,clean);
     const std::set<std::string> shared={"context","prefill_chunk","memory_limit_gib","vision_threads","model_path","projector_path","vision_enabled"};
     const std::set<std::string> dense_keys={"mtp_depth","physical_reserve_mib","runtime_reserve_mib","attention_scratch_mib","vision_threads"};
@@ -187,6 +190,7 @@ inline common_json values(const common_json &cfg) {
     }
     auto route=native_backend::resolve(cfg);
     auto inference=cfg.value("inference",common_json::object());
+    result["llama_fit"]=inference.value("fit",true);result["llama_cpu_moe"]=inference.value("cpu_moe",0);
     result["llama_ubatch"]=inference.value("ubatch",512);
     result["llama_fit_target_mib"]=inference.value("fit_target_mib",route["device"]=="ROCm0"?4096:2048);
     result["llama_mtp"]=inference.value("mtp",0);result["llama_kv"]=inference.value("kv","q8_0");

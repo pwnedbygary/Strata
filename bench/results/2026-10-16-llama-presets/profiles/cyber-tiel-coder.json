@@ -1,0 +1,32 @@
+{
+  "args": [
+    "--native",
+    "/home/garyb/Mounts/NVME/Strata/models/Cyber-Tiel-Coder-35B-A3B/Q4_K_XL/Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+    "--max-context",
+    "262144",
+    "--prefill",
+    "2048"
+  ],
+  "backend": "hip",
+  "env": {},
+  "router": {
+    "display_name": "Cyber Tiel Q4_K_XL \u00b7 256K",
+    "description": "Dedicated Vulkan \u00b7 Q8 KV \u00b7 27 CPU expert layers, microbatch 1024. Completed 260K input + cached follow-up; code and retrieval results are in the benchmark record."
+  },
+  "inference": {
+    "engine": "auto",
+    "device": "Vulkan0",
+    "ubatch": 1024,
+    "fit_target_mib": 2048,
+    "fit": false,
+    "cpu_moe": 27,
+    "kv": "q8_0",
+    "mtp": 0
+  },
+  "vision": {
+    "mmproj": "/home/garyb/Mounts/NVME/Strata/models/shared-vision/BF16/mmproj-BF16.gguf",
+    "model": "/home/garyb/Mounts/NVME/Strata/models/Cyber-Tiel-Coder-35B-A3B/Q4_K_XL/Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+    "gpu": false
+  },
+  "arch": "qwen35moe"
+}

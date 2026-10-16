@@ -1,0 +1,1302 @@
+[
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub512-none",
+      "ub": 512,
+      "spec": "none"
+    },
+    "error": "Startup failed: /home/garyb/Mounts/NVME/Strata/local-tuning/preset-optimization/tiel-coder-35b-a3b-q4_k_xl-ub512-none",
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-ub512-none",
+    "memory_minimum": {
+      "available_gib": 12.273,
+      "vram_free_mib": 2107
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub512-none",
+      "ub": 512,
+      "spec": "none"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 6288.352,
+      "prompt_per_token_ms": 0.7563569882126533,
+      "prompt_per_second": 1322.1270056129172,
+      "predicted_n": 293,
+      "predicted_ms": 6952.31,
+      "predicted_per_token_ms": 23.80928082191781,
+      "predicted_per_second": 42.0004286345114
+    },
+    "usage": {
+      "completion_tokens": 293,
+      "prompt_tokens": 8314,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 13.329991787002655,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-ub512-none",
+    "memory_minimum": {
+      "available_gib": 12.273,
+      "vram_free_mib": 2107
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub2048-none",
+      "ub": 2048,
+      "spec": "none"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 3455.558,
+      "prompt_per_token_ms": 0.41563122444070244,
+      "prompt_per_second": 2405.9790054167806,
+      "predicted_n": 346,
+      "predicted_ms": 8979.886,
+      "predicted_per_token_ms": 26.02865507246377,
+      "predicted_per_second": 38.41919596752119
+    },
+    "usage": {
+      "completion_tokens": 346,
+      "prompt_tokens": 8314,
+      "total_tokens": 8660,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 12.587129551000544,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-ub2048-none",
+    "memory_minimum": {
+      "available_gib": 10.663,
+      "vram_free_mib": 2129
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub2048-ngram",
+      "ub": 2048,
+      "spec": "ngram-mod"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 3787.346,
+      "prompt_per_token_ms": 0.4555383690161174,
+      "prompt_per_second": 2195.2047687219497,
+      "predicted_n": 332,
+      "predicted_ms": 10614.659,
+      "predicted_per_token_ms": 32.06845619335348,
+      "predicted_per_second": 31.18329095640284,
+      "draft_n": 128,
+      "draft_n_accepted": 3
+    },
+    "usage": {
+      "completion_tokens": 332,
+      "prompt_tokens": 8314,
+      "total_tokens": 8646,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 14.497801795005216,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-ub2048-ngram",
+    "memory_minimum": {
+      "available_gib": 10.809,
+      "vram_free_mib": 2133
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub512-ngram",
+      "ub": 512,
+      "spec": "ngram-mod"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 6444.252,
+      "prompt_per_token_ms": 0.7751084917007458,
+      "prompt_per_second": 1290.1419745844823,
+      "predicted_n": 293,
+      "predicted_ms": 9133.785,
+      "predicted_per_token_ms": 31.280085616438356,
+      "predicted_per_second": 31.969221960008912,
+      "draft_n": 128,
+      "draft_n_accepted": 3
+    },
+    "usage": {
+      "completion_tokens": 293,
+      "prompt_tokens": 8314,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 15.723138066998217,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-ub512-ngram",
+    "memory_minimum": {
+      "available_gib": 12.442,
+      "vram_free_mib": 2036
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub512-none-cpumoe16",
+      "ub": 512,
+      "spec": "none",
+      "cpu_moe": 16
+    },
+    "error": "HTTP Error 500: Internal Server Error",
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-ub512-none-cpumoe16",
+    "memory_minimum": {
+      "available_gib": 17.691,
+      "vram_free_mib": 718
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub512-none",
+      "ub": 512,
+      "spec": "none"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 6214.676,
+      "prompt_per_token_ms": 0.7474054119061937,
+      "prompt_per_second": 1337.9619468496828,
+      "predicted_n": 292,
+      "predicted_ms": 6640.281,
+      "predicted_per_token_ms": 22.81883505154639,
+      "predicted_per_second": 43.823446628237576
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 12.960645416998887,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-ub512-none",
+    "memory_minimum": {
+      "available_gib": 12.297,
+      "vram_free_mib": 2271
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub2048-none",
+      "ub": 2048,
+      "spec": "none"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 3528.026,
+      "prompt_per_token_ms": 0.42429657245941066,
+      "prompt_per_second": 2356.842041413527,
+      "predicted_n": 292,
+      "predicted_ms": 7492.916,
+      "predicted_per_token_ms": 25.748852233676978,
+      "predicted_per_second": 38.83668254121626
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 11.157337915996322,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-ub2048-none",
+    "memory_minimum": {
+      "available_gib": 11.11,
+      "vram_free_mib": 2023
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub2048-ngram",
+      "ub": 2048,
+      "spec": "ngram-mod"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 3485.775,
+      "prompt_per_token_ms": 0.41921527360192423,
+      "prompt_per_second": 2385.4092705352464,
+      "predicted_n": 292,
+      "predicted_ms": 7556.1,
+      "predicted_per_token_ms": 25.9659793814433,
+      "predicted_per_second": 38.51193075793068,
+      "draft_n": 128,
+      "draft_n_accepted": 3
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 11.113752068005851,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-ub2048-ngram",
+    "memory_minimum": {
+      "available_gib": 11.054,
+      "vram_free_mib": 2049
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub512-ngram",
+      "ub": 512,
+      "spec": "ngram-mod"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 6354.964,
+      "prompt_per_token_ms": 0.7642770895971136,
+      "prompt_per_second": 1308.4259800684945,
+      "predicted_n": 292,
+      "predicted_ms": 7671.544,
+      "predicted_per_token_ms": 26.362694158075602,
+      "predicted_per_second": 37.932390142062665,
+      "draft_n": 128,
+      "draft_n_accepted": 3
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 14.112659795995569,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-ub512-ngram",
+    "memory_minimum": {
+      "available_gib": 12.427,
+      "vram_free_mib": 2121
+    }
+  },
+  {
+    "model": "SWIFT-1.5-IQ3_XXS",
+    "case": {
+      "id": "ub512-none",
+      "ub": 512,
+      "spec": "none"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 8272.103,
+      "prompt_per_token_ms": 1.0167284906588003,
+      "prompt_per_second": 983.546747423237,
+      "predicted_n": 319,
+      "predicted_ms": 21771.064,
+      "predicted_per_token_ms": 68.46246540880503,
+      "predicted_per_second": 14.606543805116736
+    },
+    "usage": {
+      "completion_tokens": 319,
+      "prompt_tokens": 8136,
+      "total_tokens": 8455,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 30.11603540700162,
+    "checks_passed": 13,
+    "directory": "swift-1.5-iq3_xxs-ub512-none",
+    "memory_minimum": {
+      "available_gib": 21.601,
+      "vram_free_mib": 1611
+    }
+  },
+  {
+    "model": "SWIFT-1.5-IQ3_XXS",
+    "case": {
+      "id": "ub2048-none",
+      "ub": 2048,
+      "spec": "none"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 8011.869,
+      "prompt_per_token_ms": 0.984742994100295,
+      "prompt_per_second": 1015.4933886213067,
+      "predicted_n": 319,
+      "predicted_ms": 25908.787,
+      "predicted_per_token_ms": 81.47417295597485,
+      "predicted_per_second": 12.273828180377569
+    },
+    "usage": {
+      "completion_tokens": 319,
+      "prompt_tokens": 8136,
+      "total_tokens": 8455,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 33.99377865299175,
+    "checks_passed": 13,
+    "directory": "swift-1.5-iq3_xxs-ub2048-none",
+    "memory_minimum": {
+      "available_gib": 20.48,
+      "vram_free_mib": 2258
+    }
+  },
+  {
+    "model": "SWIFT-1.5-IQ3_XXS",
+    "case": {
+      "id": "ub2048-ngram",
+      "ub": 2048,
+      "spec": "ngram-mod"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 8011.398,
+      "prompt_per_token_ms": 0.9846851032448378,
+      "prompt_per_second": 1015.5530907339768,
+      "predicted_n": 319,
+      "predicted_ms": 26305.046,
+      "predicted_per_token_ms": 82.72027044025157,
+      "predicted_per_second": 12.088935332027171,
+      "draft_n": 128,
+      "draft_n_accepted": 3
+    },
+    "usage": {
+      "completion_tokens": 319,
+      "prompt_tokens": 8136,
+      "total_tokens": 8455,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 34.38506224800949,
+    "checks_passed": 13,
+    "directory": "swift-1.5-iq3_xxs-ub2048-ngram",
+    "memory_minimum": {
+      "available_gib": 20.571,
+      "vram_free_mib": 2256
+    }
+  },
+  {
+    "model": "SWIFT-1.5-IQ3_XXS",
+    "case": {
+      "id": "ub512-ngram",
+      "ub": 512,
+      "spec": "ngram-mod"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 8677.236,
+      "prompt_per_token_ms": 1.0665235988200592,
+      "prompt_per_second": 937.6257600922689,
+      "predicted_n": 319,
+      "predicted_ms": 24676.463,
+      "predicted_per_token_ms": 77.59894025157233,
+      "predicted_per_second": 12.886773927041325,
+      "draft_n": 128,
+      "draft_n_accepted": 3
+    },
+    "usage": {
+      "completion_tokens": 319,
+      "prompt_tokens": 8136,
+      "total_tokens": 8455,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 33.4222119479964,
+    "checks_passed": 13,
+    "directory": "swift-1.5-iq3_xxs-ub512-ngram",
+    "memory_minimum": {
+      "available_gib": 21.31,
+      "vram_free_mib": 2326
+    }
+  },
+  {
+    "model": "SWIFT-1.5-IQ3_S",
+    "case": {
+      "id": "ub512-none",
+      "ub": 512,
+      "spec": "none"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 9338.058,
+      "prompt_per_token_ms": 1.147745575221239,
+      "prompt_per_second": 871.2732347560916,
+      "predicted_n": 323,
+      "predicted_ms": 33042.327,
+      "predicted_per_token_ms": 102.61592236024843,
+      "predicted_per_second": 9.745076368259415
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 42.46043310899404,
+    "checks_passed": 13,
+    "directory": "swift-1.5-iq3_s-ub512-none",
+    "memory_minimum": {
+      "available_gib": 20.287,
+      "vram_free_mib": 1924
+    }
+  },
+  {
+    "model": "SWIFT-1.5-IQ3_S",
+    "case": {
+      "id": "ub2048-none",
+      "ub": 2048,
+      "spec": "none"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 8569.182,
+      "prompt_per_token_ms": 1.0532426253687317,
+      "prompt_per_second": 949.4488505437274,
+      "predicted_n": 323,
+      "predicted_ms": 36992.239,
+      "predicted_per_token_ms": 114.8827298136646,
+      "predicted_per_second": 8.70452853637759
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 45.63110462199256,
+    "checks_passed": 13,
+    "directory": "swift-1.5-iq3_s-ub2048-none",
+    "memory_minimum": {
+      "available_gib": 19.234,
+      "vram_free_mib": 2305
+    }
+  },
+  {
+    "model": "SWIFT-1.5-IQ3_S",
+    "case": {
+      "id": "ub2048-ngram",
+      "ub": 2048,
+      "spec": "ngram-mod"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 8602.432,
+      "prompt_per_token_ms": 1.0573294001966569,
+      "prompt_per_second": 945.7790541093494,
+      "predicted_n": 323,
+      "predicted_ms": 37862.283,
+      "predicted_per_token_ms": 117.58472981366461,
+      "predicted_per_second": 8.504505658044973,
+      "draft_n": 128,
+      "draft_n_accepted": 3
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 46.53673809900647,
+    "checks_passed": 13,
+    "directory": "swift-1.5-iq3_s-ub2048-ngram",
+    "memory_minimum": {
+      "available_gib": 19.177,
+      "vram_free_mib": 2320
+    }
+  },
+  {
+    "model": "SWIFT-1.5-IQ3_S",
+    "case": {
+      "id": "ub512-ngram",
+      "ub": 512,
+      "spec": "ngram-mod"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 9358.852,
+      "prompt_per_token_ms": 1.150301376597837,
+      "prompt_per_second": 869.3373930905201,
+      "predicted_n": 323,
+      "predicted_ms": 33114.717,
+      "predicted_per_token_ms": 102.84073602484472,
+      "predicted_per_second": 9.723773269751936,
+      "draft_n": 128,
+      "draft_n_accepted": 3
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 42.54088836700248,
+    "checks_passed": 13,
+    "directory": "swift-1.5-iq3_s-ub512-ngram",
+    "memory_minimum": {
+      "available_gib": 20.198,
+      "vram_free_mib": 2108
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub2048-none-fit1536",
+      "ub": 2048,
+      "spec": "none",
+      "fit": 1536
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 3453.003,
+      "prompt_per_token_ms": 0.41532391147462117,
+      "prompt_per_second": 2407.7592750426224,
+      "predicted_n": 294,
+      "predicted_ms": 7404.478,
+      "predicted_per_token_ms": 25.271255972696245,
+      "predicted_per_second": 39.57064900456183
+    },
+    "usage": {
+      "completion_tokens": 294,
+      "prompt_tokens": 8314,
+      "total_tokens": 8608,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 10.942156513992813,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-ub2048-none-fit1536",
+    "memory_minimum": {
+      "available_gib": 11.216,
+      "vram_free_mib": 1689
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub2048-none-fit1536",
+      "ub": 2048,
+      "spec": "none",
+      "fit": 1536
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 3509.134,
+      "prompt_per_token_ms": 0.42202453397474443,
+      "prompt_per_second": 2369.5304881489283,
+      "predicted_n": 292,
+      "predicted_ms": 9108.765,
+      "predicted_per_token_ms": 31.30159793814433,
+      "predicted_per_second": 31.947250807326792
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 12.689104637000128,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-ub2048-none-fit1536",
+    "memory_minimum": {
+      "available_gib": 11.125,
+      "vram_free_mib": 1692
+    }
+  },
+  {
+    "model": "SWIFT-1.5-IQ3_XXS",
+    "case": {
+      "id": "ub2048-none-fit1536",
+      "ub": 2048,
+      "spec": "none",
+      "fit": 1536
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 8145.267,
+      "prompt_per_token_ms": 1.0011390117994101,
+      "prompt_per_second": 998.8622840724559,
+      "predicted_n": 319,
+      "predicted_ms": 22361.135,
+      "predicted_per_token_ms": 70.31803459119496,
+      "predicted_per_second": 14.2211028196914
+    },
+    "usage": {
+      "completion_tokens": 319,
+      "prompt_tokens": 8136,
+      "total_tokens": 8455,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 30.57543671700114,
+    "checks_passed": 13,
+    "directory": "swift-1.5-iq3_xxs-ub2048-none-fit1536",
+    "memory_minimum": {
+      "available_gib": 21.31,
+      "vram_free_mib": 1608
+    }
+  },
+  {
+    "model": "SWIFT-1.5-IQ3_S",
+    "case": {
+      "id": "ub2048-none-fit1536",
+      "ub": 2048,
+      "spec": "none",
+      "fit": 1536
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 8732.885,
+      "prompt_per_token_ms": 1.073363446411013,
+      "prompt_per_second": 931.650880550929,
+      "predicted_n": 323,
+      "predicted_ms": 32442.849,
+      "predicted_per_token_ms": 100.75418944099378,
+      "predicted_per_second": 9.925145599882427
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 41.24221312000009,
+    "checks_passed": 13,
+    "directory": "swift-1.5-iq3_s-ub2048-none-fit1536",
+    "memory_minimum": {
+      "available_gib": 20.014,
+      "vram_free_mib": 993
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "ub2048-mtp1",
+      "ub": 2048,
+      "spec": "draft-mtp",
+      "draft": 1
+    },
+    "error": "HTTP Error 500: Internal Server Error",
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-ub2048-mtp1",
+    "memory_minimum": {
+      "available_gib": 8.361,
+      "vram_free_mib": 3914
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu28-ub128",
+      "ub": 128,
+      "spec": "none",
+      "cpu_moe": 28
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 18027.597,
+      "prompt_per_token_ms": 2.1683421938898246,
+      "prompt_per_second": 461.1818202947403,
+      "predicted_n": 362,
+      "predicted_ms": 10424.215,
+      "predicted_per_token_ms": 28.87594182825485,
+      "predicted_per_second": 34.63090506095663
+    },
+    "usage": {
+      "completion_tokens": 362,
+      "prompt_tokens": 8314,
+      "total_tokens": 8676,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 28.53775256901281,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-manual-cpu28-ub128",
+    "memory_minimum": {
+      "available_gib": 11.199,
+      "vram_free_mib": 3586,
+      "gtt_free_mib": 2083
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu28-ub512",
+      "ub": 512,
+      "spec": "none",
+      "cpu_moe": 28
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 6358.924,
+      "prompt_per_token_ms": 0.7648453211450565,
+      "prompt_per_second": 1307.4539025784866,
+      "predicted_n": 364,
+      "predicted_ms": 10250.996,
+      "predicted_per_token_ms": 28.239658402203855,
+      "predicted_per_second": 35.41119321478616
+    },
+    "usage": {
+      "completion_tokens": 364,
+      "prompt_tokens": 8314,
+      "total_tokens": 8678,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 16.701026666996768,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-manual-cpu28-ub512",
+    "memory_minimum": {
+      "available_gib": 10.963,
+      "vram_free_mib": 3282,
+      "gtt_free_mib": 1881
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu28-ub2048",
+      "ub": 2048,
+      "spec": "none",
+      "cpu_moe": 28
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 3694.235,
+      "prompt_per_token_ms": 0.4443390666345923,
+      "prompt_per_second": 2250.533601679373,
+      "predicted_n": 294,
+      "predicted_ms": 8213.02,
+      "predicted_per_token_ms": 28.030784982935156,
+      "predicted_per_second": 35.67506227916162
+    },
+    "usage": {
+      "completion_tokens": 294,
+      "prompt_tokens": 8314,
+      "total_tokens": 8608,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 12.02770911900734,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-manual-cpu28-ub2048",
+    "memory_minimum": {
+      "available_gib": 9.97,
+      "vram_free_mib": 2643,
+      "gtt_free_mib": 1097
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu26-ub128",
+      "ub": 128,
+      "spec": "none",
+      "cpu_moe": 26
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 17241.056,
+      "prompt_per_token_ms": 2.07373779167669,
+      "prompt_per_second": 482.22104260899096,
+      "predicted_n": 362,
+      "predicted_ms": 10124.047,
+      "predicted_per_token_ms": 28.044451523545707,
+      "predicted_per_second": 35.65767721149457
+    },
+    "usage": {
+      "completion_tokens": 362,
+      "prompt_tokens": 8314,
+      "total_tokens": 8676,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 27.434491248000995,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-manual-cpu26-ub128",
+    "memory_minimum": {
+      "available_gib": 11.632,
+      "vram_free_mib": 2585,
+      "gtt_free_mib": 3017
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu26-ub512",
+      "ub": 512,
+      "spec": "none",
+      "cpu_moe": 26
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 6238.671,
+      "prompt_per_token_ms": 0.7503814048592735,
+      "prompt_per_second": 1332.6556248919042,
+      "predicted_n": 364,
+      "predicted_ms": 10302.515,
+      "predicted_per_token_ms": 28.381584022038567,
+      "predicted_per_second": 35.23411516508348
+    },
+    "usage": {
+      "completion_tokens": 364,
+      "prompt_tokens": 8314,
+      "total_tokens": 8678,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 16.612627805996453,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-manual-cpu26-ub512",
+    "memory_minimum": {
+      "available_gib": 11.78,
+      "vram_free_mib": 2486,
+      "gtt_free_mib": 2815
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu26-ub2048",
+      "ub": 2048,
+      "spec": "none",
+      "cpu_moe": 26
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 3581.206,
+      "prompt_per_token_ms": 0.43074404618715423,
+      "prompt_per_second": 2321.5642998475932,
+      "predicted_n": 294,
+      "predicted_ms": 8068.137,
+      "predicted_per_token_ms": 27.53630375426621,
+      "predicted_per_second": 36.31569468887304
+    },
+    "usage": {
+      "completion_tokens": 294,
+      "prompt_tokens": 8314,
+      "total_tokens": 8608,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 11.717404288006946,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-manual-cpu26-ub2048",
+    "memory_minimum": {
+      "available_gib": 11.138,
+      "vram_free_mib": 1777,
+      "gtt_free_mib": 2037
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu28-ub128",
+      "ub": 128,
+      "spec": "none",
+      "cpu_moe": 28
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 18200.012,
+      "prompt_per_token_ms": 2.1888168370414913,
+      "prompt_per_second": 456.8678306365952,
+      "predicted_n": 292,
+      "predicted_ms": 8284.254,
+      "predicted_per_token_ms": 28.468226804123713,
+      "predicted_per_second": 35.12688046503644
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 26.566226922994247,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-manual-cpu28-ub128",
+    "memory_minimum": {
+      "available_gib": 10.957,
+      "vram_free_mib": 3553,
+      "gtt_free_mib": 1912
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu28-ub512",
+      "ub": 512,
+      "spec": "none",
+      "cpu_moe": 28
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 6258.902,
+      "prompt_per_token_ms": 0.7527242333132892,
+      "prompt_per_second": 1328.5077797990766,
+      "predicted_n": 292,
+      "predicted_ms": 8108.361,
+      "predicted_per_token_ms": 27.86378350515464,
+      "predicted_per_second": 35.88888062581328
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 14.439805514004547,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-manual-cpu28-ub512",
+    "memory_minimum": {
+      "available_gib": 10.864,
+      "vram_free_mib": 3458,
+      "gtt_free_mib": 1741
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu28-ub2048",
+      "ub": 2048,
+      "spec": "none",
+      "cpu_moe": 28
+    },
+    "error": "HTTP Error 500: Internal Server Error",
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-manual-cpu28-ub2048",
+    "memory_minimum": {
+      "available_gib": 11.098,
+      "vram_free_mib": 2682,
+      "gtt_free_mib": 977
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu26-ub128",
+      "ub": 128,
+      "spec": "none",
+      "cpu_moe": 26
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 16892.901,
+      "prompt_per_token_ms": 2.031617678893566,
+      "prompt_per_second": 492.2185952548943,
+      "predicted_n": 292,
+      "predicted_ms": 7924.946,
+      "predicted_per_token_ms": 27.233491408934707,
+      "predicted_per_second": 36.71949310443251
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 24.92040886299219,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-manual-cpu26-ub128",
+    "memory_minimum": {
+      "available_gib": 11.798,
+      "vram_free_mib": 2732,
+      "gtt_free_mib": 2777
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu26-ub512",
+      "ub": 512,
+      "spec": "none",
+      "cpu_moe": 26
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 5959.031,
+      "prompt_per_token_ms": 0.7166603728202044,
+      "prompt_per_second": 1395.3610914257704,
+      "predicted_n": 292,
+      "predicted_ms": 7935.473,
+      "predicted_per_token_ms": 27.269666666666666,
+      "predicted_per_second": 36.67078194330697
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 13.964484146999894,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-manual-cpu26-ub512",
+    "memory_minimum": {
+      "available_gib": 11.652,
+      "vram_free_mib": 2560,
+      "gtt_free_mib": 2669
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu26-ub2048",
+      "ub": 2048,
+      "spec": "none",
+      "cpu_moe": 26
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 3523.516,
+      "prompt_per_token_ms": 0.4237541791942273,
+      "prompt_per_second": 2359.8587320165425,
+      "predicted_n": 292,
+      "predicted_ms": 7868.497,
+      "predicted_per_token_ms": 27.039508591065292,
+      "predicted_per_second": 36.98292062639155
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 11.462081350997323,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-manual-cpu26-ub2048",
+    "memory_minimum": {
+      "available_gib": 10.788,
+      "vram_free_mib": 1752,
+      "gtt_free_mib": 1757
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu27-ub1024",
+      "ub": 1024,
+      "spec": "none",
+      "cpu_moe": 27
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 4270.406,
+      "prompt_per_token_ms": 0.5136403656483041,
+      "prompt_per_second": 1946.887485639539,
+      "predicted_n": 365,
+      "predicted_ms": 10085.883,
+      "predicted_per_token_ms": 27.70846978021978,
+      "predicted_per_second": 36.09004784211754
+    },
+    "usage": {
+      "completion_tokens": 365,
+      "prompt_tokens": 8314,
+      "total_tokens": 8679,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 14.430095976000302,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-manual-cpu27-ub1024",
+    "memory_minimum": {
+      "available_gib": 10.613,
+      "vram_free_mib": 2470,
+      "gtt_free_mib": 1970
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu27-ub1024",
+      "ub": 1024,
+      "spec": "none",
+      "cpu_moe": 27
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 4363.906,
+      "prompt_per_token_ms": 0.5248233313289237,
+      "prompt_per_second": 1905.4030953004028,
+      "predicted_n": 292,
+      "predicted_ms": 8033.1,
+      "predicted_per_token_ms": 27.605154639175257,
+      "predicted_per_second": 36.22511857190873
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 12.466083392006112,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-manual-cpu27-ub1024",
+    "memory_minimum": {
+      "available_gib": 10.059,
+      "vram_free_mib": 1951,
+      "gtt_free_mib": 1921
+    }
+  },
+  {
+    "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu27-ub2048",
+      "ub": 2048,
+      "spec": "none",
+      "cpu_moe": 27
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8314,
+      "prompt_ms": 3284.237,
+      "prompt_per_token_ms": 0.39502489776280975,
+      "prompt_per_second": 2531.48600420737,
+      "predicted_n": 294,
+      "predicted_ms": 7249.437,
+      "predicted_per_token_ms": 24.74210580204778,
+      "predicted_per_second": 40.41693168724689
+    },
+    "usage": {
+      "completion_tokens": 294,
+      "prompt_tokens": 8314,
+      "total_tokens": 8608,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 10.679592013009824,
+    "checks_passed": 12,
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-manual-cpu27-ub2048",
+    "memory_minimum": {
+      "available_gib": 5.482,
+      "vram_free_mib": 1614,
+      "gtt_free_mib": 1430
+    }
+  },
+  {
+    "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+    "case": {
+      "id": "manual-cpu27-ub2048",
+      "ub": 2048,
+      "spec": "none",
+      "cpu_moe": 27
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8315,
+      "prompt_ms": 3451.712,
+      "prompt_per_token_ms": 0.41511870114251354,
+      "prompt_per_second": 2408.949529972373,
+      "predicted_n": 292,
+      "predicted_ms": 8060.893,
+      "predicted_per_token_ms": 27.70066323024055,
+      "predicted_per_second": 36.1002186730428
+    },
+    "usage": {
+      "completion_tokens": 292,
+      "prompt_tokens": 8315,
+      "total_tokens": 8607,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "wall_seconds": 11.653908813997987,
+    "checks_passed": 12,
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-manual-cpu27-ub2048",
+    "memory_minimum": {
+      "available_gib": 5.5,
+      "vram_free_mib": 1591,
+      "gtt_free_mib": 1451
+    }
+  }
+]

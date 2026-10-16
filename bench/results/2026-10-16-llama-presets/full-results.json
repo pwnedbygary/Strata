@@ -1,0 +1,774 @@
+[
+  {
+    "directory": "cyber-tiel-coder-35b-a3b-q4_k_xl-full-context",
+    "report": {
+      "model": "CYBER-TIEL-CODER-35B-A3B-Q4_K_XL",
+      "target_prompt_tokens": 260096,
+      "counted_prompt_tokens": 260096,
+      "runs": [
+        {
+          "phase": "fresh",
+          "completed": true,
+          "elapsed_seconds": 269.04,
+          "first_content_seconds": 253.12399237700447,
+          "usage": {
+            "completion_tokens": 436,
+            "prompt_tokens": 260097,
+            "total_tokens": 260533,
+            "prompt_tokens_details": {
+              "cached_tokens": 179
+            }
+          },
+          "timings": {
+            "cache_n": 179,
+            "prompt_n": 259918,
+            "prompt_ms": 252965.922,
+            "prompt_per_token_ms": 0.9732528028070391,
+            "prompt_per_second": 1027.4822709123641,
+            "predicted_n": 436,
+            "predicted_ms": 15917.756,
+            "predicted_per_token_ms": 36.59254252873563,
+            "predicted_per_second": 27.327972611214793
+          }
+        },
+        {
+          "phase": "follow-up",
+          "completed": true,
+          "elapsed_seconds": 10.93,
+          "first_content_seconds": 0.6350071070046397,
+          "usage": {
+            "completion_tokens": 294,
+            "prompt_tokens": 260574,
+            "total_tokens": 260868,
+            "prompt_tokens_details": {
+              "cached_tokens": 260532
+            }
+          },
+          "timings": {
+            "cache_n": 260532,
+            "prompt_n": 42,
+            "prompt_ms": 478.217,
+            "prompt_per_token_ms": 11.386119047619047,
+            "prompt_per_second": 87.8262378794564,
+            "predicted_n": 294,
+            "predicted_ms": 10293.946,
+            "predicted_per_token_ms": 35.132921501706484,
+            "predicted_per_second": 28.4633317485831
+          }
+        }
+      ]
+    },
+    "guard_aborted": false,
+    "minimum_headroom": {
+      "available_gib": 7.256,
+      "vram_free_mib": 1460,
+      "gtt_free_mib": 2046
+    },
+    "retrieval-check": {
+      "expected": {
+        "EARLY": "09ed174738e36a7f4c139f32",
+        "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+        "LATE": "5d7f2ce515903fb0619b149f"
+      },
+      "observed": {
+        "EARLY": "09ed174738e36a7f4c139f32",
+        "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+        "LATE": "5d7f2ce515903fb0619b149f"
+      },
+      "checks": {
+        "EARLY": true,
+        "MIDDLE": true,
+        "LATE": true
+      },
+      "passed": 3,
+      "total": 3,
+      "prompt_sha256": "88a0cda3b9eb688e5c4e62b634e53f5607e5db8496d25463dcacfedb0079820c"
+    },
+    "code-check": {
+      "passed": 13,
+      "total": 13,
+      "cases": [
+        {
+          "function": "normalize_path",
+          "args": "('a\\\\b',)",
+          "expected": "'a/b'",
+          "actual": "'a/b'",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('a\\\\\\\\b',)",
+          "expected": "'a/b'",
+          "actual": "'a/b'",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('/a//./b',)",
+          "expected": "'a/b'",
+          "actual": "'a/b'",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('a/../b',)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('',)",
+          "expected": "''",
+          "actual": "''",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(3, 2, 10)",
+          "expected": "10",
+          "actual": "10",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(-1, 2, 10)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(0, -1, 10)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(0, 1, -1)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (-1, 0), 10, 4)",
+          "expected": "(9, 0)",
+          "actual": "(9, 0)",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 1), 1, 1)",
+          "expected": "(0, 0)",
+          "actual": "(0, 0)",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 0), 0, 4)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 0), 2.5, 4)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        }
+      ]
+    }
+  },
+  {
+    "directory": "swift-1.5-iq3_s-full-context",
+    "report": {
+      "model": "SWIFT-1.5-IQ3_S",
+      "target_prompt_tokens": 130048,
+      "counted_prompt_tokens": 130006,
+      "runs": [
+        {
+          "phase": "fresh",
+          "completed": true,
+          "elapsed_seconds": 370.05,
+          "first_content_seconds": 216.5794389960065,
+          "usage": {
+            "completion_tokens": 319,
+            "prompt_tokens": 129966,
+            "total_tokens": 130285,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 129966,
+            "prompt_ms": 216501.138,
+            "prompt_per_token_ms": 1.6658290475970639,
+            "prompt_per_second": 600.3016944880909,
+            "predicted_n": 319,
+            "predicted_ms": 153464.346,
+            "predicted_per_token_ms": 482.5922830188679,
+            "predicted_per_second": 2.072142541825318
+          }
+        },
+        {
+          "phase": "follow-up",
+          "completed": true,
+          "elapsed_seconds": 122.69,
+          "first_content_seconds": 3.411261735993321,
+          "usage": {
+            "completion_tokens": 251,
+            "prompt_tokens": 130326,
+            "total_tokens": 130577,
+            "prompt_tokens_details": {
+              "cached_tokens": 130284
+            }
+          },
+          "timings": {
+            "cache_n": 130284,
+            "prompt_n": 42,
+            "prompt_ms": 3328.14,
+            "prompt_per_token_ms": 79.24142857142857,
+            "prompt_per_second": 12.619661432511853,
+            "predicted_n": 251,
+            "predicted_ms": 119278.155,
+            "predicted_per_token_ms": 477.11262,
+            "predicted_per_second": 2.0959412056633506
+          }
+        }
+      ]
+    },
+    "guard_aborted": false,
+    "minimum_headroom": {
+      "available_gib": 14.239,
+      "vram_free_mib": 1000,
+      "gtt_free_mib": 11678
+    },
+    "retrieval-check": {
+      "expected": {
+        "EARLY": "09ed174738e36a7f4c139f32",
+        "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+        "LATE": "5d7f2ce515903fb0619b149f"
+      },
+      "observed": {
+        "EARLY": "09ed174738e36a7f4c139f32",
+        "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+        "LATE": "5d7f2ce515903fb0619b149f"
+      },
+      "checks": {
+        "EARLY": true,
+        "MIDDLE": true,
+        "LATE": true
+      },
+      "passed": 3,
+      "total": 3,
+      "prompt_sha256": "83f9980f843816c5e3f0b22140eb8a97ef5526411f69732ae00b0cb1065d40b2"
+    },
+    "code-check": {
+      "passed": 13,
+      "total": 13,
+      "cases": [
+        {
+          "function": "normalize_path",
+          "args": "('a\\\\b',)",
+          "expected": "'a/b'",
+          "actual": "'a/b'",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('a\\\\\\\\b',)",
+          "expected": "'a/b'",
+          "actual": "'a/b'",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('/a//./b',)",
+          "expected": "'a/b'",
+          "actual": "'a/b'",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('a/../b',)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('',)",
+          "expected": "''",
+          "actual": "''",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(3, 2, 10)",
+          "expected": "10",
+          "actual": "10",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(-1, 2, 10)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(0, -1, 10)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(0, 1, -1)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (-1, 0), 10, 4)",
+          "expected": "(9, 0)",
+          "actual": "(9, 0)",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 1), 1, 1)",
+          "expected": "(0, 0)",
+          "actual": "(0, 0)",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 0), 0, 4)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 0), 2.5, 4)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        }
+      ]
+    }
+  },
+  {
+    "directory": "swift-1.5-iq3_xxs-full-context",
+    "report": {
+      "model": "SWIFT-1.5-IQ3_XXS",
+      "target_prompt_tokens": 130048,
+      "counted_prompt_tokens": 130006,
+      "runs": [
+        {
+          "phase": "fresh",
+          "completed": true,
+          "elapsed_seconds": 320.99,
+          "first_content_seconds": 225.14422843800276,
+          "usage": {
+            "completion_tokens": 319,
+            "prompt_tokens": 129966,
+            "total_tokens": 130285,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 129966,
+            "prompt_ms": 225064.266,
+            "prompt_per_token_ms": 1.7317164950833295,
+            "prompt_per_second": 577.4617281981139,
+            "predicted_n": 319,
+            "predicted_ms": 95839.306,
+            "predicted_per_token_ms": 301.381465408805,
+            "predicted_per_second": 3.3180540768940876
+          }
+        },
+        {
+          "phase": "follow-up",
+          "completed": true,
+          "elapsed_seconds": 73.79,
+          "first_content_seconds": 2.2407075260125566,
+          "usage": {
+            "completion_tokens": 240,
+            "prompt_tokens": 130326,
+            "total_tokens": 130566,
+            "prompt_tokens_details": {
+              "cached_tokens": 130284
+            }
+          },
+          "timings": {
+            "cache_n": 130284,
+            "prompt_n": 42,
+            "prompt_ms": 2160.726,
+            "prompt_per_token_ms": 51.44585714285714,
+            "prompt_per_second": 19.437911146531306,
+            "predicted_n": 240,
+            "predicted_ms": 71543.43,
+            "predicted_per_token_ms": 299.3448953974895,
+            "predicted_per_second": 3.3406282030369527
+          }
+        }
+      ]
+    },
+    "guard_aborted": false,
+    "minimum_headroom": {
+      "available_gib": 17.697,
+      "vram_free_mib": 1287,
+      "gtt_free_mib": 13720
+    },
+    "retrieval-check": {
+      "expected": {
+        "EARLY": "09ed174738e36a7f4c139f32",
+        "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+        "LATE": "5d7f2ce515903fb0619b149f"
+      },
+      "observed": {
+        "EARLY": "09ed174738e36a7f4c139f32",
+        "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+        "LATE": "5d7f2ce515903fb0619b149f"
+      },
+      "checks": {
+        "EARLY": true,
+        "MIDDLE": true,
+        "LATE": true
+      },
+      "passed": 3,
+      "total": 3,
+      "prompt_sha256": "83f9980f843816c5e3f0b22140eb8a97ef5526411f69732ae00b0cb1065d40b2"
+    },
+    "code-check": {
+      "passed": 13,
+      "total": 13,
+      "cases": [
+        {
+          "function": "normalize_path",
+          "args": "('a\\\\b',)",
+          "expected": "'a/b'",
+          "actual": "'a/b'",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('a\\\\\\\\b',)",
+          "expected": "'a/b'",
+          "actual": "'a/b'",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('/a//./b',)",
+          "expected": "'a/b'",
+          "actual": "'a/b'",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('a/../b',)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('',)",
+          "expected": "''",
+          "actual": "''",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(3, 2, 10)",
+          "expected": "10",
+          "actual": "10",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(-1, 2, 10)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(0, -1, 10)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(0, 1, -1)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (-1, 0), 10, 4)",
+          "expected": "(9, 0)",
+          "actual": "(9, 0)",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 1), 1, 1)",
+          "expected": "(0, 0)",
+          "actual": "(0, 0)",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 0), 0, 4)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 0), 2.5, 4)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        }
+      ]
+    }
+  },
+  {
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-2048-full-context",
+    "report": {
+      "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+      "target_prompt_tokens": 260096,
+      "counted_prompt_tokens": 260095,
+      "runs": [
+        {
+          "phase": "fresh",
+          "completed": false,
+          "elapsed_seconds": 123.51,
+          "first_content_seconds": null,
+          "usage": null,
+          "timings": null
+        }
+      ]
+    },
+    "guard_aborted": true,
+    "minimum_headroom": {
+      "available_gib": 5.487,
+      "vram_free_mib": 536,
+      "gtt_free_mib": 1097
+    },
+    "retrieval-check": {
+      "expected": {
+        "EARLY": "09ed174738e36a7f4c139f32",
+        "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+        "LATE": "5d7f2ce515903fb0619b149f"
+      },
+      "observed": {},
+      "checks": {
+        "EARLY": false,
+        "MIDDLE": false,
+        "LATE": false
+      },
+      "passed": 0,
+      "total": 3,
+      "prompt_sha256": "88a0cda3b9eb688e5c4e62b634e53f5607e5db8496d25463dcacfedb0079820c"
+    }
+  },
+  {
+    "directory": "tiel-coder-35b-a3b-q4_k_xl-full-context",
+    "report": {
+      "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+      "target_prompt_tokens": 260096,
+      "counted_prompt_tokens": 260095,
+      "runs": [
+        {
+          "phase": "fresh",
+          "completed": true,
+          "elapsed_seconds": 266.57,
+          "first_content_seconds": 255.29658375699364,
+          "usage": {
+            "completion_tokens": 305,
+            "prompt_tokens": 260096,
+            "total_tokens": 260401,
+            "prompt_tokens_details": {
+              "cached_tokens": 178
+            }
+          },
+          "timings": {
+            "cache_n": 178,
+            "prompt_n": 259918,
+            "prompt_ms": 255133.672,
+            "prompt_per_token_ms": 0.9815929331558414,
+            "prompt_per_second": 1018.7522405901797,
+            "predicted_n": 305,
+            "predicted_ms": 11272.635,
+            "predicted_per_token_ms": 37.081036184210525,
+            "predicted_per_second": 26.96796268130743
+          }
+        },
+        {
+          "phase": "follow-up",
+          "completed": true,
+          "elapsed_seconds": 10.13,
+          "first_content_seconds": 0.6243253349966835,
+          "usage": {
+            "completion_tokens": 257,
+            "prompt_tokens": 260442,
+            "total_tokens": 260699,
+            "prompt_tokens_details": {
+              "cached_tokens": 260400
+            }
+          },
+          "timings": {
+            "cache_n": 260400,
+            "prompt_n": 42,
+            "prompt_ms": 461.051,
+            "prompt_per_token_ms": 10.977404761904761,
+            "prompt_per_second": 91.09621278340141,
+            "predicted_n": 257,
+            "predicted_ms": 9499.164,
+            "predicted_per_token_ms": 37.106109375,
+            "predicted_per_second": 26.94973999817247
+          }
+        }
+      ]
+    },
+    "guard_aborted": false,
+    "minimum_headroom": {
+      "available_gib": 7.494,
+      "vram_free_mib": 1558,
+      "gtt_free_mib": 1936
+    },
+    "retrieval-check": {
+      "expected": {
+        "EARLY": "09ed174738e36a7f4c139f32",
+        "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+        "LATE": "5d7f2ce515903fb0619b149f"
+      },
+      "observed": {
+        "EARLY": "09ed174738e36a7f4c139f32",
+        "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+        "LATE": "5d7f2ce515903fb0619b149f"
+      },
+      "checks": {
+        "EARLY": true,
+        "MIDDLE": true,
+        "LATE": true
+      },
+      "passed": 3,
+      "total": 3,
+      "prompt_sha256": "88a0cda3b9eb688e5c4e62b634e53f5607e5db8496d25463dcacfedb0079820c"
+    },
+    "code-check": {
+      "passed": 11,
+      "total": 13,
+      "cases": [
+        {
+          "function": "normalize_path",
+          "args": "('a\\\\b',)",
+          "expected": "'a/b'",
+          "actual": "'a\\\\b'",
+          "passed": false
+        },
+        {
+          "function": "normalize_path",
+          "args": "('a\\\\\\\\b',)",
+          "expected": "'a/b'",
+          "actual": "'a\\\\\\\\b'",
+          "passed": false
+        },
+        {
+          "function": "normalize_path",
+          "args": "('/a//./b',)",
+          "expected": "'a/b'",
+          "actual": "'a/b'",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('a/../b',)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "normalize_path",
+          "args": "('',)",
+          "expected": "''",
+          "actual": "''",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(3, 2, 10)",
+          "expected": "10",
+          "actual": "10",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(-1, 2, 10)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(0, -1, 10)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "retry_delay",
+          "args": "(0, 1, -1)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (-1, 0), 10, 4)",
+          "expected": "(9, 0)",
+          "actual": "(9, 0)",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 1), 1, 1)",
+          "expected": "(0, 0)",
+          "actual": "(0, 0)",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 0), 0, 4)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        },
+        {
+          "function": "next_head",
+          "args": "((0, 0), (1, 0), 2.5, 4)",
+          "expected": "<class 'ValueError'>",
+          "actual": "ValueError",
+          "passed": true
+        }
+      ]
+    }
+  }
+]

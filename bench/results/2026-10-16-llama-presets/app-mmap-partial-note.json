@@ -1,0 +1,6 @@
+{
+  "completed": false,
+  "reason": "Manually stopped to align manual CPU expert loading with the measured load-mode=none preset. mmap produced repeated MemoryHigh reclaim events. A live soft-threshold increase was exploratory; this is not a fixed-configuration benchmark.",
+  "memory_high_events_observed": 47477,
+  "oom_events_observed": 0
+}

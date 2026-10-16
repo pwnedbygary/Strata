@@ -1,6 +1,6 @@
 {
   "file": "Strata-Unified-RX9070XT-x86_64.AppImage",
-  "bytes": 48396792,
-  "sha256": "7155bcb5341de4701f6c52b119541ff83345bcf9fb2f456e03f2a1c01d77a5ad",
-  "note": "Dedicated Vulkan and ROCm only; combined backend removed after comparison. Inference executables/settings used for Vulkan and ROCm-only timings are unchanged."
+  "bytes": 48409080,
+  "sha256": "da8e991dfb42ccc1ee3c134485f72217820f07aedcfec56cbd18fbcf3b101e8c",
+  "note": "Dedicated Vulkan and ROCm only. Includes MoE CPU placement/Fit controls, AMD GTT monitoring and manual CPU-expert load-mode=none. AppImage Tiel 128K checked; standalone presets Tiel/Cyber 256K checked separately."
 }

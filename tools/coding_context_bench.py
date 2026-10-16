@@ -119,7 +119,7 @@ def main():
     (a.output/'prompt.txt').write_text(prompt)
     reports=[]
     def run(name,messages):
-        body={'model':a.model,'messages':messages,'temperature':0,'reasoning_effort':'none','max_tokens':768,'stream':True,'stream_options':{'include_usage':True},'return_progress':True}
+        body={'model':a.model,'messages':messages,'temperature':0,'reasoning_effort':'none','chat_template_kwargs':{'enable_thinking':False},'max_tokens':768,'stream':True,'stream_options':{'include_usage':True},'return_progress':True}
         started=time.monotonic();answer='';latest={};progress={};first_token=None;completed=False
         with urllib.request.urlopen(request('/v1/chat/completions',body),timeout=a.request_timeout) as r,(a.output/(name+'.sse')).open('w') as stream:
             for raw in r:

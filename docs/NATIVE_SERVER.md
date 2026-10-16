@@ -95,6 +95,20 @@ residency, speculation window and KV precision. Int8 remains the baseline. Q4 an
 hybrid KV require explicit selection; approximate tail skipping is labeled as
 changing answers. A larger setting is not a claim of higher throughput.
 
+llama.cpp Tune also offers an Automatic fitting switch and a MoE-only slider
+for explicit CPU expert layers. Fit must be off for manual expert placement;
+turning Fit on clears that override. The fit-target slider steps through 1024,
+2048, 4096 and 8192 MiB, with an editable custom value. Manual mode keeps dense
+layers on the GPU and performs conservative weight/KV/workspace and RAM/GTT
+admission checks. Manual CPU experts use the measured `load-mode=none` path;
+mmap can cause repeated reclaim with CPU tensor overrides. Manual estimates
+refuse split GGUFs rather than counting only the first shard. These estimates
+can refuse a configuration that another runner
+can load; they do not replace filled-window validation. The llama.cpp supervisor
+also stops on critically low GTT headroom. Native Strata's expert-tier controls
+are separate. llama.cpp MoE MTP is currently blocked after a Vulkan device-loss
+trial; native Strata MTP and dense llama.cpp settings remain separate.
+
 Settings holds local GGUF/projector/pack/shard/head paths and the screenshot toggle.
 Browse opens a local file/folder picker; paths remain editable. Selection only
 sets the path and does not upload or copy weights. About keeps linked credits;

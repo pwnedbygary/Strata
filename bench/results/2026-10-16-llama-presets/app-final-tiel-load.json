@@ -1,0 +1,1 @@
+{"error":{"message":"Manual placement exceeds conservative VRAM budget (weights + KV + 2 GiB workspace/headroom); increase CPU expert layers or enable Fit"}}

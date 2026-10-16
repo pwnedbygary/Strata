@@ -1,0 +1,36 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```python\ndef normalize_path(path):\n    parts = path.replace('\\\\', '/').split('/')\n    out = []\n    for part in parts:\n        if part == '' or part == '.':\n            continue\n        if part == '..':\n            raise ValueError(\"unsupported '..' component in path\")\n        out.append(part)\n    return '/'.join(out)\n\n\ndef retry_delay(attempt, base, cap):\n    if attempt < 0 or base < 0 or cap < 0:\n        raise ValueError(\"attempt, base, and cap must be nonnegative\")\n    return min(cap, base * (2 ** attempt))\n\n\ndef next_head(head, direction, width, height):\n    if width <= 0 or height <= 0:\n        raise ValueError(\"width and height must be positive integers\")\n    return (head[0] + direction[0]) % width, (head[1] + direction[1]) % height\n\n\n# CHECKPOINT_EARLY: 09ed174738e36a7f4c139f32\n# CHECKPOINT_MIDDLE: 727e0ed9bcd370343ecb8ac3\n# CHECKPOINT_LATE: 5d7f2ce515903fb0619b149f\n```"
+      }
+    }
+  ],
+  "created": 1792164278,
+  "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+  "system_fingerprint": "b10909-a2878d30d",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 294,
+    "prompt_tokens": 8314,
+    "total_tokens": 8608,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "id": "chatcmpl-T0niXJfjOB2H0szqkboZZNYFJKW9S9tZ",
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 8314,
+    "prompt_ms": 3581.206,
+    "prompt_per_token_ms": 0.43074404618715423,
+    "prompt_per_second": 2321.5642998475932,
+    "predicted_n": 294,
+    "predicted_ms": 8068.137,
+    "predicted_per_token_ms": 27.53630375426621,
+    "predicted_per_second": 36.31569468887304
+  }
+}

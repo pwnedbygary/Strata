@@ -40,7 +40,7 @@ inline int worker(int argc,char **argv) {
         if(done==child)return WIFEXITED(st)?WEXITSTATUS(st):128+WTERMSIG(st);
         if(done<0&&errno!=EINTR)return 2;
         auto m=native_memory::snapshot();
-        const bool low=m.available<ram_floor||(m.vram_free>=0&&m.vram_free<vram_floor)||
+        const bool low=(m.gtt_free>=0&&m.gtt_free<768*(int64_t)native_memory::MiB)||m.available<ram_floor||(m.vram_free>=0&&m.vram_free<vram_floor)||
             (m.cgroup_limit>256*native_memory::MiB&&m.cgroup_used>m.cgroup_limit-256*native_memory::MiB);
         if(birth(owner)!=owner_birth||low) {
             kill(child,SIGKILL);waitpid(child,&st,0);

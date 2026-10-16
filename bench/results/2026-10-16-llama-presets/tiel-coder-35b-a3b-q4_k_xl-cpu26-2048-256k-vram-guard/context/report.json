@@ -1,0 +1,15 @@
+{
+  "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+  "target_prompt_tokens": 260096,
+  "counted_prompt_tokens": 260095,
+  "runs": [
+    {
+      "phase": "fresh",
+      "completed": false,
+      "elapsed_seconds": 111.18,
+      "first_content_seconds": null,
+      "usage": null,
+      "timings": null
+    }
+  ]
+}

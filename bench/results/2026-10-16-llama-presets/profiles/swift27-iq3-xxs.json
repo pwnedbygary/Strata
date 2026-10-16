@@ -1,0 +1,47 @@
+{
+  "exe": "@bundle/dense-hip",
+  "args": [
+    "--native",
+    "/home/garyb/Mounts/NVME/Strata/models/Swift-1.5-Qwen3.8-27B/IQ3_XXS/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_XXS.gguf",
+    "--max-context",
+    "131072",
+    "--prefill",
+    "512",
+    "--mtp",
+    "0"
+  ],
+  "fit_max_tokens": true,
+  "cwd": "/home/garyb/.config/strata",
+  "tokenizer": "/home/garyb/Mounts/NVME/Strata/packs/swift27-iq3-xxs/tokenizer",
+  "model_name": "swift27-iq3-xxs",
+  "log": "/home/garyb/.config/strata/profiles/swift27-iq3-xxs.log",
+  "lib_dirs": [
+    "/opt/rocm/lib"
+  ],
+  "port": 8096,
+  "backend": "hip",
+  "env": {
+    "STRATA_HIPBLASLT_TUNING": "@bundle/tools/hip/gfx1201-hipblaslt-100202.txt",
+    "GPU_PINNED_MIN_XFER_SIZE": "1000000",
+    "STRATA_Q35_DENSE": "1",
+    "STRATA_Q35_NATIVE_LOWBIT": "1",
+    "STRATA_Q35_KV_I8": "1",
+    "STRATA_Q35_ATTN_SCORE_MIB": "128",
+    "STRATA_Q35_ADAPTIVE_WEIGHTS": "1"
+  },
+  "open_browser": false,
+  "arch": "qwen35",
+  "router": {
+    "display_name": "Swift IQ3_XXS \u00b7 128K"
+  },
+  "inference": {
+    "engine": "auto",
+    "device": "Vulkan0",
+    "build": "auto",
+    "fit": true,
+    "cpu_moe": 0,
+    "ubatch": 512,
+    "kv": "q8_0",
+    "fit_target_mib": 2048
+  }
+}

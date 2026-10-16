@@ -2,8 +2,8 @@
 
 A personal fork of [Niko1221/Strata](https://github.com/Niko1221/Strata), tuned and tested
 with **Qwen3.8-Flash-Next IQ3_XXS** and **Underdog-Saluki 27B IQ2-mix**, one 16 GB AMD GPU,
-32 GB system RAM and an NVMe SSD. Saluki uses an experimental native dense engine path;
-Flash-Next retains its separately tested 128K profile.
+32 GB system RAM and an NVMe SSD. Saluki’s measured default uses llama.cpp Vulkan;
+the native dense engine remains optional. Flash-Next retains its separately tested 128K profile.
 
 This fork adds an **opt-in hardware profile**, a memory-limited launcher, practical
 benchmarks, a generate → independent review → revise workflow, and native dense Qwen35
@@ -49,6 +49,12 @@ The unified Saluki Vulkan check completed **130,028 input tokens at 709 tok/s
 prefill and 34.5 tok/s decode**, with 13/13 coding and 3/3 retrieval checks passing.
 [Integrated backend comparison and validation](bench/results/2026-10-16-unified-runner/README.md).
 
+The local preset sweep also completed **260K-token inputs** on Tiel Coder and
+Cyber Tiel Q4_K_XL at about **1,019–1,027 tok/s prefill and 27 tok/s decode**.
+The selected 256K presets use Q8 KV, 27 CPU expert layers and microbatch 1024.
+Both Swift quantizations completed 128K fills, but their long-context Vulkan
+decode was much slower. [Settings, code checks, memory margins and rejected runs](bench/results/2026-10-16-llama-presets/README.md).
+
 The UI includes a live **Monitor**, per-profile **Tune** controls, and **Settings**
 for local model/projector/pack paths and screenshot support. Browse selects local
 files or folders while keeping each path editable. Saves preserve the
@@ -56,8 +62,13 @@ active worker; an explicit reload applies them. Source profiles stay intact.
 
 <img src="docs/media/native/tune-desktop.png" width="850" alt="Native Strata tuning controls with context, MTP, prefill and memory reserve sliders">
 
-*Actual tuning UI during a temporary profile test. The shown values are controls,
+*Earlier native-engine tuning controls. The shown values are controls,
 not a recommended preset or a filled-context result.*
+
+<img src="docs/media/native/tune-placement.png" width="850" alt="Tiel CPU expert placement slider, Automatic fitting toggle, microbatch and fit margin controls">
+
+*llama.cpp MoE controls with the selected CPU27 / microbatch1024 profile.
+Fit and manual expert placement are mutually exclusive.*
 
 Memory handling combines adaptive dense weight offload, admission checks, bounded
 request queues, cancellation at progress boundaries and a capped worker scope.
@@ -85,9 +96,10 @@ Native Swift was much faster at short-context decode, but its growing KV eventua
 pushes weights out of the GPU cache. Saluki Vulkan was the strongest full-context
 result here. Screenshot speed and 256K fills are not established by this comparison.
 
-The combined backend build is installed as `llama-dual`; the faster original
-`llama` and its presets remain untouched after the combined build regressed one
-Vulkan test. This is separate from the Strata AppImage.
+The combined backend build is retained locally as `llama-dual`; the AppImage uses
+separate dedicated Vulkan and ROCm executables. The original Vulkan `llama` binary
+is preserved. Local presets now live in `models/presets.ini`; their measured tuning
+is documented in [local llama.cpp presets](docs/LLAMA_PRESETS.md).
 
 [Exact settings, outputs, memory margins and comparison limits](bench/results/2026-10-16-native-dense-comparison/README.md).
 

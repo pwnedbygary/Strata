@@ -635,6 +635,7 @@ inline int run(const std::string &registry, int port, const std::string &host) {
             {"vram_total_bytes", m.gpu_total}, {"vram_used_bytes", m.gpu_used},
             {"vram_free_bytes", m.vram_free}, {"gpu_busy_percent", m.gpu_busy},
             {"gpu_temperature_c", m.gpu_temperature_millic / 1000.0},
+            {"gtt_total_bytes",m.gtt_total},{"gtt_used_bytes",m.gtt_used},{"gtt_free_bytes",m.gtt_free},
             {"cpu_total_ticks", m.cpu_total}, {"cpu_idle_ticks", m.cpu_idle}};
         {
             std::lock_guard<std::mutex> lock(router.lifecycle);

@@ -1,0 +1,36 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```python\ndef normalize_path(path):\n    parts = path.replace('\\\\', '/').split('/')\n    result = []\n    for part in parts:\n        if part == '' or part == '.':\n            continue\n        if part == '..':\n            raise ValueError(\"path contains '..' component\")\n        result.append(part)\n    return '/'.join(result)\n\ndef retry_delay(attempt, base, cap):\n    if attempt < 0 or base < 0 or cap < 0:\n        raise ValueError(\"attempt, base, and cap must be nonnegative\")\n    return min(cap, base * (2 ** attempt))\n\ndef next_head(head, direction, width, height):\n    if not isinstance(width, int) or not isinstance(height, int) or width <= 0 or height <= 0:\n        raise ValueError(\"width and height must be positive integers\")\n    new_x = (head[0] + direction[0]) % width\n    new_y = (head[1] + direction[1]) % height\n    return (new_x, new_y)\n\n# CHECKPOINT_EARLY: 09ed174738e36a7f4c139f32\n# CHECKPOINT_MIDDLE: 727e0ed9bcd370343ecb8ac3\n# CHECKPOINT_LATE: 5d7f2ce515903fb0619b149f\n```"
+      }
+    }
+  ],
+  "created": 1792163282,
+  "model": "SWIFT-1.5-IQ3_S",
+  "system_fingerprint": "b10909-a2878d30d",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 323,
+    "prompt_tokens": 8136,
+    "total_tokens": 8459,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "id": "chatcmpl-PJrxAasNkIhI2sCyKGfC7ejYyiOsnOBQ",
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 8136,
+    "prompt_ms": 8732.885,
+    "prompt_per_token_ms": 1.073363446411013,
+    "prompt_per_second": 931.650880550929,
+    "predicted_n": 323,
+    "predicted_ms": 32442.849,
+    "predicted_per_token_ms": 100.75418944099378,
+    "predicted_per_second": 9.925145599882427
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "model": "tiel-coder",
+  "target_prompt_tokens": 130048,
+  "counted_prompt_tokens": 130019,
+  "runs": [
+    {
+      "phase": "fresh",
+      "completed": true,
+      "elapsed_seconds": 104.36,
+      "first_content_seconds": 94.60878208899521,
+      "usage": {
+        "completion_tokens": 292,
+        "prompt_tokens": 130020,
+        "total_tokens": 130312,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 130020,
+        "prompt_ms": 94527.485,
+        "prompt_per_token_ms": 0.7270226503614828,
+        "prompt_per_second": 1375.4729642918142,
+        "predicted_n": 292,
+        "predicted_ms": 9746.653,
+        "predicted_per_token_ms": 33.4936529209622,
+        "predicted_per_second": 29.856403013424195
+      }
+    },
+    {
+      "phase": "follow-up",
+      "completed": true,
+      "elapsed_seconds": 9.67,
+      "first_content_seconds": 0.491115461991285,
+      "usage": {
+        "completion_tokens": 273,
+        "prompt_tokens": 130353,
+        "total_tokens": 130626,
+        "prompt_tokens_details": {
+          "cached_tokens": 130311
+        }
+      },
+      "timings": {
+        "cache_n": 130311,
+        "prompt_n": 42,
+        "prompt_ms": 405.607,
+        "prompt_per_token_ms": 9.657309523809525,
+        "prompt_per_second": 103.54850877820157,
+        "predicted_n": 273,
+        "predicted_ms": 9176.48,
+        "predicted_per_token_ms": 33.73705882352941,
+        "predicted_per_second": 29.640995240004884
+      }
+    }
+  ]
+}

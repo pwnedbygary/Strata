@@ -9,7 +9,8 @@ namespace native_memory {
 inline constexpr uint64_t MiB = 1ULL << 20, GiB = 1ULL << 30;
 struct Snapshot {
     uint64_t available = 0, cgroup_used = 0, cgroup_limit = 0;
-    int64_t vram_free = -1;
+    int64_t vram_free = -1, gtt_free = -1;
+    uint64_t gtt_total = 0, gtt_used = 0;
     uint64_t total = 0, swap_total = 0, swap_free = 0, gpu_total = 0, gpu_used = 0;
     uint64_t cpu_total = 0, cpu_idle = 0;
     int gpu_busy = -1, gpu_temperature_millic = 0;
@@ -43,6 +44,9 @@ inline Snapshot snapshot(const std::string &process = "self") {
             const auto used = number(device / "mem_info_vram_used");
             s.vram_free = total > used ? static_cast<int64_t>(total - used) : 0;
             s.gpu_total = total; s.gpu_used = used;
+            s.gtt_total = number(device / "mem_info_gtt_total");
+            s.gtt_used = number(device / "mem_info_gtt_used");
+            s.gtt_free = s.gtt_total ? static_cast<int64_t>(s.gtt_total > s.gtt_used ? s.gtt_total - s.gtt_used : 0) : -1;
             if (std::filesystem::exists(device / "gpu_busy_percent"))
                 s.gpu_busy = static_cast<int>(number(device / "gpu_busy_percent"));
             std::error_code hw_ec;

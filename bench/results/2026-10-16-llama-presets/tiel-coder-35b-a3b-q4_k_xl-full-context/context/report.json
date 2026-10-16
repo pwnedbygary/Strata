@@ -1,0 +1,57 @@
+{
+  "model": "TIEL-CODER-35B-A3B-Q4_K_XL",
+  "target_prompt_tokens": 260096,
+  "counted_prompt_tokens": 260095,
+  "runs": [
+    {
+      "phase": "fresh",
+      "completed": true,
+      "elapsed_seconds": 266.57,
+      "first_content_seconds": 255.29658375699364,
+      "usage": {
+        "completion_tokens": 305,
+        "prompt_tokens": 260096,
+        "total_tokens": 260401,
+        "prompt_tokens_details": {
+          "cached_tokens": 178
+        }
+      },
+      "timings": {
+        "cache_n": 178,
+        "prompt_n": 259918,
+        "prompt_ms": 255133.672,
+        "prompt_per_token_ms": 0.9815929331558414,
+        "prompt_per_second": 1018.7522405901797,
+        "predicted_n": 305,
+        "predicted_ms": 11272.635,
+        "predicted_per_token_ms": 37.081036184210525,
+        "predicted_per_second": 26.96796268130743
+      }
+    },
+    {
+      "phase": "follow-up",
+      "completed": true,
+      "elapsed_seconds": 10.13,
+      "first_content_seconds": 0.6243253349966835,
+      "usage": {
+        "completion_tokens": 257,
+        "prompt_tokens": 260442,
+        "total_tokens": 260699,
+        "prompt_tokens_details": {
+          "cached_tokens": 260400
+        }
+      },
+      "timings": {
+        "cache_n": 260400,
+        "prompt_n": 42,
+        "prompt_ms": 461.051,
+        "prompt_per_token_ms": 10.977404761904761,
+        "prompt_per_second": 91.09621278340141,
+        "predicted_n": 257,
+        "predicted_ms": 9499.164,
+        "predicted_per_token_ms": 37.106109375,
+        "predicted_per_second": 26.94973999817247
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a benchmark command, stopping its Strata scope if host RAM gets low."""
+"""Run a benchmark command with RAM, VRAM and optional AMD GTT guards."""
 import argparse
 import json
 import subprocess
@@ -12,11 +12,13 @@ def main():
     parser.add_argument('--scope', default='strata-local.scope')
     parser.add_argument('--memory-floor-gib', type=float, default=1)
     parser.add_argument('--vram-floor-mib', type=int, default=0, help='physical dedicated-GPU floor; 0 disables it')
+    parser.add_argument('--gtt-floor-mib', type=int, default=0,
+                        help='AMD host-visible GPU memory margin; 0 disables it')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('command', nargs=argparse.REMAINDER)
     args = parser.parse_args()
     command = args.command[1:] if args.command[:1] == ['--'] else args.command
-    if not command or args.memory_floor_gib <= 0 or args.vram_floor_mib < 0:
+    if not command or args.memory_floor_gib <= 0 or args.vram_floor_mib < 0 or args.gtt_floor_mib < 0:
         parser.error('provide a command and a positive memory floor')
     rows = []
     aborted = False
@@ -34,13 +36,18 @@ def main():
                     used = int((device / 'mem_info_vram_used').read_text())
                     if total > 2**30:
                         row['vram_free_mib'] = round((total - used) / 2**20)
+                        gtt_total = int((device / 'mem_info_gtt_total').read_text())
+                        gtt_used = int((device / 'mem_info_gtt_used').read_text())
+                        row['gtt_free_mib'] = round((gtt_total - gtt_used) / 2**20)
+                        row['gtt_used_mib'] = round(gtt_used / 2**20)
                 except (OSError, ValueError):
                     pass
             rows.append(row)
             low_vram = args.vram_floor_mib and row.get('vram_free_mib', args.vram_floor_mib) < args.vram_floor_mib
-            if available < args.memory_floor_gib * 2**30 or low_vram:
+            low_gtt = args.gtt_floor_mib and row.get('gtt_free_mib', args.gtt_floor_mib) < args.gtt_floor_mib
+            if low_gtt or available < args.memory_floor_gib * 2**30 or low_vram:
                 aborted = True
-                print('Benchmark stopped: physical VRAM fell below the test floor.' if low_vram else
+                print('Benchmark stopped: GTT headroom fell below the test floor.' if low_gtt else 'Benchmark stopped: physical VRAM fell below the test floor.' if low_vram else
                       'Benchmark stopped: available RAM fell below the test floor.', flush=True)
                 subprocess.run(['systemctl', '--user', 'stop', args.scope], check=False)
                 process.terminate()
