@@ -47,3 +47,5 @@ non-streaming responses and a responsive status endpoint. It also verifies the
 original immediate-429 behavior when the option is absent. Unit tests cover the
 payload bound and released tickets. The fixture disables admission floors only
 inside its fake Router objects; no production bypass was added.
+
+Worker connection failures now briefly wait for the supervisor exit reason before reporting a generic disconnect. A memory guard stop is reported as such when the supervisor has published it. The worker log records free RAM, VRAM, GTT and cgroup usage alongside the guard limits. This does not change the limits or retry an interrupted generation.

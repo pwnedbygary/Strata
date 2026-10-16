@@ -130,6 +130,18 @@ class Router {
         std::lock_guard<std::mutex> lock(clients_mutex);clients.erase(std::remove_if(clients.begin(),clients.end(),[](auto &w){return w.expired();}),clients.end());clients.push_back(c);
         std::lock_guard<std::mutex> metrics(metrics_mutex);request_cancelled=false;last_timings=common_json::object();last_progress=common_json::object();request_started=std::chrono::steady_clock::now();first_output={};observed_generated=0;
     }
+    std::string connection_failure(const char *fallback) {
+        // The socket can close just before the supervisor exits. Give the guard
+        // one sampling interval to publish its exit reason; never retry inference.
+        for(int attempt=0;attempt<13;++attempt) {
+            if(request_cancelled.load())return "Request cancelled";
+            {std::lock_guard<std::mutex> lock(state);if(!error.empty())return error;}
+            {std::lock_guard<std::mutex> lock(lifecycle);if(pid<=0)break;}
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        {std::lock_guard<std::mutex> lock(state);if(!error.empty())return error;}
+        return fallback;
+    }
     void observe(const common_json &answer) {
         std::lock_guard<std::mutex> lock(metrics_mutex);
         if(answer.contains("prompt_progress")&&answer["prompt_progress"].is_object())last_progress=answer["prompt_progress"];
@@ -515,7 +527,7 @@ inline void proxy_request(Router &router,const httplib::Request &req,httplib::Re
                 auto c = router.client();router.track(c);
                 auto answer = c->Post(req.path, body_text, "application/json");
                 if (!answer)
-                    throw std::runtime_error(router.request_cancelled.load()?"Request cancelled":"Worker connection failed");
+                    throw std::runtime_error(router.connection_failure("Worker connection failed"));
                 router.observe(common_json::parse_no_throw(answer->body));
                 res.status = answer->status;
                 res.set_content(answer->body, answer->get_header_value("Content-Type"));
@@ -547,7 +559,7 @@ inline void proxy_request(Router &router,const httplib::Request &req,httplib::Re
                     return sink.is_writable()&&sink.write(data,n);
                 });
                 if (!answer)
-                    throw std::runtime_error("Worker stream disconnected");
+                    throw std::runtime_error(router.connection_failure("Worker stream disconnected"));
             } catch (const std::exception &e) {
                 auto s = "data: " + common_json({{"error", {{"message", e.what()}}}}).dump_safe() + "\n\n";
                 sink.write(s.data(), s.size());

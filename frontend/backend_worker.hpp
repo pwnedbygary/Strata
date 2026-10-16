@@ -44,7 +44,17 @@ inline int worker(int argc,char **argv) {
             (m.cgroup_limit>256*native_memory::MiB&&m.cgroup_used>m.cgroup_limit-256*native_memory::MiB);
         if(birth(owner)!=owner_birth||low) {
             kill(child,SIGKILL);waitpid(child,&st,0);
-            if(low)std::fprintf(stderr,"llama.cpp worker stopped before memory headroom was exhausted\n");
+            if(low)std::fprintf(stderr,
+                "llama.cpp memory guard: stopped worker; free RAM %llu MiB (floor %llu), "
+                "free VRAM %lld MiB (floor %lld), free GTT %lld MiB (floor 768), "
+                "cgroup used %llu MiB / %llu MiB (reserve 256)\n",
+                (unsigned long long)(m.available/native_memory::MiB),
+                (unsigned long long)(ram_floor/native_memory::MiB),
+                (long long)(m.vram_free<0?-1:m.vram_free/(int64_t)native_memory::MiB),
+                (long long)(vram_floor/(int64_t)native_memory::MiB),
+                (long long)(m.gtt_free<0?-1:m.gtt_free/(int64_t)native_memory::MiB),
+                (unsigned long long)(m.cgroup_used/native_memory::MiB),
+                (unsigned long long)(m.cgroup_limit/native_memory::MiB));
             return low?75:2;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(200));

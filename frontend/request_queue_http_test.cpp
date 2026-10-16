@@ -39,6 +39,12 @@ int main(){
  release=true;
  for(int i=0;i<5;++i){auto r=results[i].get();assert(r.first==200);if(i!=2)assert(r.second.find(": waiting for model\n\n")!=std::string::npos&&r.second.find("[DONE]")!=std::string::npos);}
  assert(peak==1&&order==std::vector<int>({0,1,2,3,4}));wait([&]{return router.request_queue.state().bytes==0;});
+ router.error="Backend stopped to preserve system memory headroom";
+ assert(router.connection_failure("Worker stream disconnected")==router.error);
+ router.request_cancelled=true;
+ assert(router.connection_failure("Worker stream disconnected")=="Request cancelled");
+ router.request_cancelled=false;router.error.clear();
+ assert(router.connection_failure("Worker stream disconnected")=="Worker stream disconnected");
  http.stop();ht.join();backend.stop();bt.join();router.active.clear();fs::remove_all(dir);
  std::puts("PASS: real router FIFO proxy, five admitted requests, sixth 429, SSE heartbeats, disconnected waiter removed, non-stream response, responsive monitor, one backend request at a time; no GPU model");
 }
