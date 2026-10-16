@@ -14,11 +14,26 @@
 #include <signal.h>
 #include <spawn.h>
 #include <sys/socket.h>
+#include <sys/file.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <thread>
 extern char **environ;
 namespace native_router {
 namespace fs = std::filesystem;
+inline bool model_lock_busy() {
+    const char *runtime = getenv("XDG_RUNTIME_DIR");
+    const auto path = (runtime ? std::string(runtime) : "/tmp") +
+        "/strata-native-model-" + std::to_string(getuid()) + ".lock";
+    const int fd = open(path.c_str(), O_RDWR | O_CLOEXEC | O_NOFOLLOW);
+    if (fd < 0) return false;
+    const bool locked = flock(fd, LOCK_EX | LOCK_NB) != 0 &&
+        (errno == EWOULDBLOCK || errno == EAGAIN);
+    close(fd);
+    return locked;
+}
+inline constexpr const char *external_busy_message =
+    "Another model runner holds the GPU model lock. Native inference is unavailable until it releases the model; system memory counters include that runner.";
 inline pid_t spawn(const std::vector<std::string> &args) {
     std::vector<char *> av;
     for (const auto &s : args)
@@ -196,6 +211,8 @@ class Router {
     }
     common_json status() {
         std::lock_guard<std::mutex> l(state);
+        const bool external_busy = active.empty() && loading.empty() && model_lock_busy();
+        if (!external_busy && error == external_busy_message) error.clear();
         common_json names = common_json::array();
         for (auto &p : profiles)
             names.push_back(p.first);
@@ -205,6 +222,7 @@ class Router {
                 {"default", default_model},
                 {"profiles", names},
                 {"loaded", !active.empty()}, {"reload_required", tuning_dirty},
+                {"external_model_busy", external_busy},
                 {"profile", active.empty() ? common_json(nullptr) : active_metadata},
                 {"runtime", "native-c++"},
                 {"memory_policy", {{"worker_limit_mib", worker_budget_mib.load()},
@@ -269,6 +287,10 @@ class Router {
             error.clear();
         }
         try {
+            if (model_lock_busy()) {
+                std::lock_guard<std::mutex> s(state);
+                if (active.empty()) throw std::runtime_error(external_busy_message);
+            }
             const auto admission = native_memory::refusal(native_memory::snapshot(),
                 static_cast<uint64_t>((ram_floor + 1) * native_memory::GiB),
                 static_cast<uint64_t>(vram_floor + 256) * native_memory::MiB);

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Exercise native admission/security without allocating a model or exhausting memory."""
 import argparse
+import fcntl
+import os
 import json
 from pathlib import Path
 import socket
@@ -29,7 +31,8 @@ def main():
         cmd = [str(a.binary.resolve()), '--registry', str(registry), '--port', str(port),
                '--memory-floor-gib', '1024', '--api-key', 'local-test-key']
         with (base / 'server.log').open('w') as log:
-            process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
+            process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
+                env={**os.environ, "XDG_RUNTIME_DIR": str(base)})
             def request(path, body=None, key=True, origin=None):
                 headers = {'Content-Type': 'application/json'}
                 if key: headers['Authorization'] = 'Bearer local-test-key'
@@ -50,6 +53,12 @@ def main():
                     except OSError: pass
                     time.sleep(.05)
                 else: raise RuntimeError('Native router did not start')
+                with (base / f'strata-native-model-{os.getuid()}.lock').open('w') as lock:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    assert request('/router/status')[1]['external_model_busy'] is True
+                    code, result = request('/router/load', {'model': 'test'})
+                    assert code == 503 and 'model lock' in result['error']['message'], result
+                assert request('/router/status')[1]['external_model_busy'] is False
                 assert request('/v1/models', key=False)[0] == 401
                 assert request('/v1/models', origin='https://foreign.example')[0] == 403
                 code, result = request('/router/tuning?model=test')
