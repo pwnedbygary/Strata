@@ -11,6 +11,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+import urllib.parse
 
 
 def main():
@@ -59,6 +60,18 @@ def main():
                     code, result = request('/router/load', {'model': 'test'})
                     assert code == 503 and 'model lock' in result['error']['message'], result
                 assert request('/router/status')[1]['external_model_busy'] is False
+                files = base / 'models with spaces'
+                files.mkdir(); (files / 'packs').mkdir()
+                (files / 'test.GGUF').write_bytes(b'GGUF')
+                (files / 'notes.txt').write_text('not a model')
+                url = '/router/files?kind=gguf&path=' + urllib.parse.quote(str(files))
+                assert request(url, key=False)[0] == 401
+                code, result = request(url)
+                assert code == 200 and [e['name'] for e in result['entries']] == ['packs', 'test.GGUF'], result
+                code, result = request(url.replace('kind=gguf', 'kind=directory'))
+                assert code == 200 and [e['name'] for e in result['entries']] == ['packs'], result
+                assert request('/router/files?kind=gguf&path=relative')[0] == 400
+                assert request('/router/files?kind=invalid')[0] == 400
                 assert request('/v1/models', key=False)[0] == 401
                 assert request('/v1/models', origin='https://foreign.example')[0] == 403
                 code, result = request('/router/tuning?model=test')

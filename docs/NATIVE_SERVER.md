@@ -57,7 +57,8 @@ show this browser session's recent observations; an idle chart is not a benchmar
 Flash-Next's idle expert census is explicitly marked stale during generation.
 GPU memory includes the whole desktop. Cgroup memory includes charged file cache;
 it is not process RSS and does not include dedicated VRAM. Missing counters are
-shown as unavailable. Cancelled prefill rates use processed tokens, not the full
+shown as unavailable. A shared model lock held by another runner is shown as
+GPU in use; native token counters do not describe that external runner. Cancelled prefill rates use processed tokens, not the full
 requested prompt.
 
 Tune has per-profile sliders and numeric inputs. Dense profiles expose context,
@@ -68,6 +69,9 @@ hybrid KV require explicit selection; approximate tail skipping is labeled as
 changing answers. A larger setting is not a claim of higher throughput.
 
 Settings holds local GGUF/projector/pack/shard/head paths and the screenshot toggle.
+Browse opens a local file/folder picker; paths remain editable. Selection only
+sets the path and does not upload or copy weights. About keeps linked credits;
+optional profile diagnostics live under Tune.
 Absolute paths must exist; GGUF headers and directory structure are checked before
 saving. Compatibility is checked by the loader. Browser monitoring and auto-scroll
 preferences stay in browser local storage. API keys are not stored there.
@@ -106,7 +110,7 @@ frontend enables this opt-in diagnostics/control path.
 - Stateless `/v1/responses`: client-supplied input history, function calls/results,
   streaming events, and reasoning replay with the existing `strata.r1:` encoding.
 - `/router/load`, `/router/unload`, `/router/cancel`, `/router/status`,
-  GET/POST `/router/tuning`, `/health`, `/v1/models`,
+  GET/POST `/router/tuning`, local file listing `/router/files`, `/health`, `/v1/models`,
   `/v1/status` and basic `/metrics` diagnostics.
 
 Responses storage/`previous_response_id`, hosted web-search/code tools, image

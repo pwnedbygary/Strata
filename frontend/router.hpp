@@ -4,6 +4,7 @@
 #include "config_store.hpp"
 #include "memory_policy.hpp"
 #include "ui.hpp"
+#include "file_browser.hpp"
 #include <algorithm>
 #include <atomic>
 #include <csignal>
@@ -466,6 +467,13 @@ inline int run(const std::string &registry, int port, const std::string &host) {
             data.push_back(m);
         }
         json(res, 200, {{"object", "list"}, {"data", data}});
+    });
+    http.Get("/router/files", [](const auto &req, auto &res) {
+        try {
+            const auto kind = req.get_param_value("kind");
+            if (kind != "gguf" && kind != "directory") throw std::runtime_error("Unknown file picker type");
+            json(res, 200, native_files::list(req.get_param_value("path"), kind == "directory"));
+        } catch (const std::exception &e) { json(res, 400, {{"error", {{"message", e.what()}}}}); }
     });
     http.Get("/router/tuning", [&](const auto &req, auto &res) {
         try { json(res, 200, router.tuning(req.get_param_value("model"))); }
