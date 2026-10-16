@@ -1,0 +1,12 @@
+{
+  "outcome": "startup_failed_cgroup_oom",
+  "scope_limit_gib": 20,
+  "scope_peak_bytes": 21474836480,
+  "scope_swap_peak_bytes": 0,
+  "system_available_ram_after_gib": 24,
+  "runtime_overrides": [],
+  "context_default": 32768,
+  "inference_request_sent": false,
+  "cause": "Default --ple-io ram tries to materialize the 26.8 GiB n-gram table in RAM, exceeding the test scope.",
+  "note": "guard.json aborted=false means the polling RAM/VRAM floor did not fire; cgroup OOM still terminated the test."
+}

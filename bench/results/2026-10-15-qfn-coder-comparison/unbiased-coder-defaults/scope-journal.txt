@@ -1,0 +1,4 @@
+Oct 15 22:44:22 cachyOS systemd[915]: Started [systemd-run] /home/garyb/Mounts/NVME/Strata/local-tuning/unbiased-strata-build/unbiased-strata --model /home/garyb/Mounts/NVME/Strata/models/qfn-coder-iq1-m/IQ1_M/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00001-of-00002.gguf --pack /home/garyb/Mounts/NVME/Strata/packs/qfn-coder-iq1-m --mtp /home/garyb/Mounts/NVME/Strata/mtp/rt --port 8098.
+Oct 15 22:44:46 cachyOS systemd[915]: strata-unbiased-defaults.scope: The kernel OOM killer killed some processes in this unit.
+Oct 15 22:44:47 cachyOS systemd[915]: strata-unbiased-defaults.scope: Failed with result 'oom-kill'.
+Oct 15 22:44:47 cachyOS systemd[915]: strata-unbiased-defaults.scope: Consumed 2min 26.512s CPU time over 24.619s wall clock time, 20G memory peak.

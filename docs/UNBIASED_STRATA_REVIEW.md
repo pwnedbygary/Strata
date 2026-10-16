@@ -60,3 +60,21 @@ but does not claim their GPU checks passed. CUDA and SYCL were not built here.
 The frontend/chat-parser test evidence and model comparison settings are in the
 [comparison archive](../bench/results/2026-10-15-qfn-coder-comparison/README.md).
 No downloaded models, compiled binaries or private crash journals are committed.
+
+## Coder with runtime defaults: startup failed
+
+A subsequent requested test used the verified Coder IQ1_M GGUF and its prepared pack,
+the existing required QFN MTP head, port 8098, and **no engine-setting overrides**.
+Default context was 32768. The same HIP build adaptation remained necessary.
+The frontend's default `--ple-io ram` began loading the 26.8 GiB n-gram table into
+system RAM. The kernel killed the test at its external 20 GiB/no-swap cgroup limit
+(`Result=oom-kill`, peak exactly 21474836480 bytes) before startup completed.
+No inference request was sent and there are no throughput or quality results.
+This establishes failure under the retained memory envelope, not a test with unlimited
+RAM or swap. The polling guard's `aborted=false` does not mean success: the cgroup
+limit fired before its physical-system floors. The test processes exited, the normal
+router stayed healthy and unloaded, and system-available RAM recovered to about 24 GiB.
+The existing draft head is not a Coder-specific trained head; generation compatibility
+was not reached. No higher-limit retry was performed.
+
+[Raw default-test evidence](../bench/results/2026-10-15-qfn-coder-comparison/unbiased-coder-defaults/result.json).

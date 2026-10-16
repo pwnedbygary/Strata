@@ -1,0 +1,51 @@
+{
+  "engine_command": [
+    "/home/garyb/Mounts/NVME/Strata/local-tuning/unbiased-strata-build/unbiased-strata",
+    "--model",
+    "/home/garyb/Mounts/NVME/Strata/models/qfn-coder-iq1-m/IQ1_M/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00001-of-00002.gguf",
+    "--pack",
+    "/home/garyb/Mounts/NVME/Strata/packs/qfn-coder-iq1-m",
+    "--mtp",
+    "/home/garyb/Mounts/NVME/Strata/mtp/rt",
+    "--port",
+    "8098"
+  ],
+  "external_guard_command": [
+    "/home/garyb/Mounts/NVME/Strata/.venv/bin/python",
+    "tools/benchmark_guarded.py",
+    "--scope",
+    "strata-unbiased-defaults.scope",
+    "--memory-floor-gib",
+    "3",
+    "--vram-floor-mib",
+    "512",
+    "--output",
+    "/home/garyb/Mounts/NVME/Strata/local-tuning/unbiased-coder-defaults/guard.json",
+    "--",
+    "systemd-run",
+    "--user",
+    "--scope",
+    "--unit",
+    "strata-unbiased-defaults",
+    "-p",
+    "MemoryMax=20G",
+    "-p",
+    "MemorySwapMax=0",
+    "/home/garyb/Mounts/NVME/Strata/local-tuning/unbiased-strata-build/unbiased-strata",
+    "--model",
+    "/home/garyb/Mounts/NVME/Strata/models/qfn-coder-iq1-m/IQ1_M/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00001-of-00002.gguf",
+    "--pack",
+    "/home/garyb/Mounts/NVME/Strata/packs/qfn-coder-iq1-m",
+    "--mtp",
+    "/home/garyb/Mounts/NVME/Strata/mtp/rt",
+    "--port",
+    "8098"
+  ],
+  "runtime_environment_override": {
+    "LD_LIBRARY_PATH": "/opt/rocm/lib"
+  },
+  "engine_settings_overrides": [],
+  "context_default": 32768,
+  "mtp_head": "existing QFN head; not a Coder-specific trained head",
+  "gpu_voltage_offset_mv": -50
+}
