@@ -78,3 +78,13 @@ The existing draft head is not a Coder-specific trained head; generation compati
 was not reached. No higher-limit retry was performed.
 
 [Raw default-test evidence](../bench/results/2026-10-15-qfn-coder-comparison/unbiased-coder-defaults/result.json).
+
+## Follow-up integration
+
+The opt-in native frontend is now implemented in this fork's `frontend/` directory,
+retaining the newer engine and dense paths. It adds local registry routing,
+Anthropic/Responses adapters, screenshot input, bounded workers and AppImage
+packaging. This is a selective integration rather than a wholesale engine rebase.
+See [native server details](NATIVE_SERVER.md) for the supported API subset and build.
+The preceding isolated-build measurements describe the inspected upstream fork,
+not performance claims for this integration.

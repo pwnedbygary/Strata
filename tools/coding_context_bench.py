@@ -29,6 +29,8 @@ def main():
     p.add_argument('--model',required=True)
     p.add_argument('--tokens',type=int,required=True)
     p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--prompt-file',type=Path,help='reuse an exact saved prompt for cross-engine comparisons')
+    p.add_argument('--request-timeout',type=float,default=1800,help='socket timeout for long prefills (seconds)')
     p.add_argument('--base-url',default='http://127.0.0.1:8096')
     p.add_argument('--long-context-probes', action='store_true', help='require unique build IDs from the beginning, middle and end')
     p.add_argument('--require-zero-gpu-offset', action='store_true',
@@ -101,21 +103,25 @@ def main():
         return first+module*(n//2)+middle+module*(n-n//2)+last+'\nReturn the corrected three functions now.\n'
     def request(path,body):
         return urllib.request.Request(a.base_url+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})
-    def count(n):
-        with urllib.request.urlopen(request('/v1/messages/count_tokens',{'model':a.model,'thinking':{'type':'disabled'},'messages':[{'role':'user','content':content(n)}]}),timeout=600) as r:return json.load(r)['input_tokens']
-    lo=0;hi=max(1,a.tokens//50)
-    while count(hi)<a.tokens:hi*=2
-    while lo+1<hi:
-        mid=(lo+hi)//2
-        if count(mid)<=a.tokens:lo=mid
-        else:hi=mid
-    prompt=content(lo);actual=count(lo)
+    def count_text(text):
+        with urllib.request.urlopen(request('/v1/messages/count_tokens',{'model':a.model,'thinking':{'type':'disabled'},'messages':[{'role':'user','content':text}]}),timeout=a.request_timeout) as r:return json.load(r)['input_tokens']
+    def count(n):return count_text(content(n))
+    if a.prompt_file:
+        prompt=a.prompt_file.read_text();actual=count_text(prompt)
+    else:
+        lo=0;hi=max(1,a.tokens//50)
+        while count(hi)<a.tokens:hi*=2
+        while lo+1<hi:
+            mid=(lo+hi)//2
+            if count(mid)<=a.tokens:lo=mid
+            else:hi=mid
+        prompt=content(lo);actual=count(lo)
     (a.output/'prompt.txt').write_text(prompt)
     reports=[]
     def run(name,messages):
         body={'model':a.model,'messages':messages,'temperature':0,'reasoning_effort':'none','max_tokens':768,'stream':True,'stream_options':{'include_usage':True},'return_progress':True}
         started=time.monotonic();answer='';latest={};progress={};first_token=None;completed=False
-        with urllib.request.urlopen(request('/v1/chat/completions',body),timeout=600) as r,(a.output/(name+'.sse')).open('w') as stream:
+        with urllib.request.urlopen(request('/v1/chat/completions',body),timeout=a.request_timeout) as r,(a.output/(name+'.sse')).open('w') as stream:
             for raw in r:
                 line=raw.decode();stream.write(line);stream.flush()
                 if not line.startswith('data: '):continue

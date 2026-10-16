@@ -1,0 +1,20 @@
+{
+  "expected": {
+    "EARLY": "09ed174738e36a7f4c139f32",
+    "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+    "LATE": "5d7f2ce515903fb0619b149f"
+  },
+  "observed": {
+    "EARLY": "09ed174738e36a7f4c139f32",
+    "MIDDLE": "727e0ed9bcd370343ecb8ac3",
+    "LATE": "5d7f2ce515903fb0619b149f"
+  },
+  "checks": {
+    "EARLY": true,
+    "MIDDLE": true,
+    "LATE": true
+  },
+  "passed": 3,
+  "total": 3,
+  "prompt_sha256": "9f2e0d5bd373bc2317757a75f9dc6e918156432457d51369a1d2cc778a0e39df"
+}

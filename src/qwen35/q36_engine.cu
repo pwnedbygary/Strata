@@ -1741,10 +1741,10 @@ struct Engine {
         if(!gemm->init(st,gemm_scratch_elems,err)){std::fprintf(stderr,"strata-q35: %s\n",err.c_str());std::exit(1);}
         CK(cudaDeviceSynchronize()); dense_prefill_live=true;
     }
-    void finish_dense_prefill() {
+    void finish_dense_prefill(bool cancelled = false) {
         if (!dense_prefill_loan || !dense_prefill_live) return;
         CK(cudaStreamSynchronize(st));
-        if(pos>=65536) ensure_dense_kv(std::min<int64_t>(ctx,pos+dense_kv_step));
+        if(!cancelled && pos>=65536) ensure_dense_kv(std::min<int64_t>(ctx,pos+dense_kv_step));
         gemm.reset();
         const size_t bytes=(size_t)cache_stride*m->g.head_dim*sizeof(__half);
         free_dense_allocation(k16,bytes); free_dense_allocation(v16,bytes);
@@ -1752,7 +1752,7 @@ struct Engine {
         k16=nullptr;v16=nullptr;att_s=nullptr;att_p16=nullptr;dense_prefill_live=false;
         resize_dense_token_buffers(false);
         if(dense_token_loan) std::fprintf(stderr,"strata-q35: decode token buffers returned %.1f MiB\n",dense_token_loan_bytes()/1048576.0);
-        restore_dense_weights();
+        if (!cancelled) restore_dense_weights();
         size_t off=0;for(const auto& w:cached_weights)if(!w.device)off+=w.bytes;
         std::fprintf(stderr,"strata-q35: prefill buffers returned for decode; %.2f GiB weights file-backed\n",off/1073741824.0);
     }
@@ -2576,7 +2576,7 @@ struct Engine {
     /// The tokens at the current position: a prompt in chunks (eager), one token from the decode graph.  The last
     /// token's logits stay in `logits` (its greedy pick in `pick`), hlast its normed hidden.  With the MTP block the
     /// prompt also runs through it (its K / V for every position: row q reads h_{q-1} and token q).
-    template <class F> void process(const int32_t* toks, int64_t n, F on_chunk) {
+    template <class F> void process(const int32_t* toks, int64_t n, F on_chunk, const std::atomic<bool>* cancel = nullptr) {
         const int N = (int) m->g.n_embd;
         if(n>kGemmT)prepare_dense_prefill();
         if (n == 1) {
@@ -2596,6 +2596,7 @@ struct Engine {
             return;
         }
         for (int64_t i = 0; i < n; i += tmax) {
+            if (cancel && cancel->load()) break;
             const int T = (int) std::min<int64_t>(tmax, n - i);
             CK(cudaStreamSynchronize(st));
             ensure_dense_kv(pos + T);
@@ -2619,7 +2620,7 @@ struct Engine {
             on_chunk(i + T);
         }
         if (m->hybrid) rebalance(hybrid_swaps_after_prompt);
-        finish_dense_prefill();
+        finish_dense_prefill(cancel && cancel->load());
     }
     int hybrid_swaps_after_prompt = 2048;
     /// the MTP seed rows of a prompt chunk: a buffer the block's own forward does not use (`moe_out`, [tmax][N])
@@ -3002,6 +3003,23 @@ bool is_eos(int t) { return t == 248044 || t == 248046; }
 
 // ------------------------------------------------------------------------------------------------ serve
 int serve(Engine& E) {
+    // Opt-in native control/diagnostics; ordinary engine protocol output stays unchanged.
+    const char* native_env = std::getenv("STRATA_NATIVE_MONITOR");
+    const bool native_control = native_env && std::strcmp(native_env, "1") == 0;
+    long long monitor_accepted = 0, monitor_offered = 0;
+    auto monitor_time = Clock::now();
+    auto monitor = [&](bool force = false) {
+        if (!native_control || (!force && ms_since(monitor_time) < 1000)) return;
+        monitor_time = Clock::now();
+        size_t resident = 0, backed = 0, layers = 0;
+        for (const auto& w : E.cached_weights) (w.device ? resident : backed) += w.bytes;
+        for (const auto* p : E.kc) if (p) ++layers;
+        const size_t kv_bytes = 2 * layers * (size_t)E.m->g.n_head_kv * E.m->g.head_dim *
+                               E.cache_stride * (E.kv_i8 ? 1 : E.kv_f16 ? 2 : 4);
+        std::printf("MEM %lld %d %zu %zu %zu %lld %lld\n", (long long)E.pos, E.cache_stride,
+                    kv_bytes, resident, backed, monitor_accepted, monitor_offered);
+        std::fflush(stdout);
+    };
     if (E.m->g.family == strata::ModelFamily::Qwen35Dense)
         std::printf("INFO context=%d kv=%s spec=%d mtp_max=%d draft_mode=greedy\n", E.ctx,
                     E.kv_i8 ? "int8" : E.kv_f16 ? "fp16" : "fp32", E.mtp_d > 0 ? 1 : 0, E.mtp_d + 1);
@@ -3038,6 +3056,13 @@ int serve(Engine& E) {
             lines.pop_front();
         }
         if (line.empty()) continue;
+        if (native_control && line == "STATS") {
+            monitor(true);
+            std::printf("STATS {\"kind\":\"dense\",\"position\":%lld,\"kv_capacity\":%d,\"context\":%d}\n",
+                        (long long)E.pos, E.cache_stride, E.ctx);
+            std::fflush(stdout);
+            continue;
+        }
         const bool geni = line.rfind("GENI ",0)==0;
         if (line.rfind("GEN ", 0) != 0 && !geni) {
             std::printf("ERR expected: GEN <max_new> [key=value ...] <id,id,...>\n");
@@ -3104,11 +3129,19 @@ int serve(Engine& E) {
         }
         const auto t0 = Clock::now();
         const int64_t fresh = (int64_t) (ids.size() - reuse);
+        monitor_accepted = monitor_offered = 0;
         E.process(ids.data() + reuse, fresh, [&](int64_t done) {
             std::printf("PP %lld %lld %.0f %.1f\n", (long long) done, (long long) fresh, ms_since(t0),
                         (double) done / std::max(1e-9, ms_since(t0) / 1000.0));
             std::fflush(stdout);
-        });
+            monitor();
+        }, native_control ? &stop : nullptr);
+        if (native_control && stop.load()) {
+            E.reset(); live.clear(); monitor(true);
+            std::printf("DONE 0 %zu %.1f 0 cancel 0 0 0 0 0 0 0 0.0 0 0\n", ids.size(), ms_since(t0));
+            std::fflush(stdout);
+            continue;
+        }
         live.insert(live.end(), ids.begin() + (long) reuse, ids.end());
         const double prompt_ms = ms_since(t0);
         std::mt19937_64 rng(smp.seed);
@@ -3143,6 +3176,7 @@ int serve(Engine& E) {
                 const int a = E.spec_step(nx, fix, E.mtp_d, drafts, picks);
                 offered += E.mtp_d;
                 accepted += a;
+                monitor_accepted = accepted; monitor_offered = offered; monitor();
                 live.push_back(nx);
                 fix.assign(drafts.begin(), drafts.begin() + a);
                 for (int i = 0; i < a; ++i) {
@@ -3155,11 +3189,13 @@ int serve(Engine& E) {
             if (E.pos + 1 > E.ctx) break;
             const int32_t one = nx;
             E.process(&one, 1, [](int64_t) {});
+            monitor();
             live.push_back(nx);
             fix.clear();
             if (!smp.needs_logits()) nx = E.greedy();
         }
         const double decode_ms = ms_since(d0);
+        monitor(true);
         std::printf("DONE %lld %zu %.1f %.1f %s %lld %lld %zu 0 0 0 0 0.0 %lld 0\n", produced, ids.size(), prompt_ms,
                     decode_ms, finish, accepted, offered, reuse, (long long) fresh);
         std::fflush(stdout);

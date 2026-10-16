@@ -17,6 +17,46 @@ are not included. The new native path was built and tested on HIP; CUDA and SYCL
 seeded food, growth and restart were checked. [Download the reviewed HTML](docs/examples/iq3_xxs/snake-reviewed.html)
 and open it in your browser. Remaining issues are documented below.*
 
+## Native AppImage: local models, one server
+
+The new opt-in executable keeps this fork's engine and hardware profiles and uses
+an adapted [UnbiasedStrata](https://github.com/robertkarl/UnbiasedStrata) C++ frontend.
+The AppImage runtime includes **no Python interpreter**, model downloader, external
+web assets or remote reporting. It reads the existing local model registry, loads
+one model on demand, and serves the web UI and compatible APIs from one address.
+
+```sh
+./dist/Strata-Native-RX9070XT-x86_64.AppImage
+# Harness base URL: http://127.0.0.1:8096/v1
+# Model discovery:  http://127.0.0.1:8096/v1/models
+```
+
+Stop the previous server before starting this executable on the same port. The
+existing Python AppImage remains a rollback option. Model files and local profiles
+are not included in either package. The native build currently requires Linux,
+systemd user scopes and compatible host ROCm libraries on the tested AMD machine.
+Windows EXE packaging is deferred.
+
+The model menu retains local text, screenshot and MTP profiles. OpenAI chat,
+Anthropic Messages and stateless Responses are supported; client-side harnesses
+execute their own tools. See [native build, API scope and limitations](docs/NATIVE_SERVER.md).
+Configured context ceilings are listed separately from filled-context validation.
+
+The UI includes a live **Monitor**, per-profile **Tune** controls, and **Settings**
+for local model/projector/pack paths and screenshot support. Saves preserve the
+active worker; an explicit reload applies them. Source profiles stay intact.
+
+<img src="docs/media/native/tune-desktop.png" width="850" alt="Native Strata tuning controls with context, MTP, prefill and memory reserve sliders">
+
+*Actual tuning UI during a temporary profile test. The shown values are controls,
+not a recommended preset or a filled-context result.*
+
+Memory handling combines adaptive dense weight offload, admission checks, bounded
+request queues, cancellation at progress boundaries and a capped worker scope.
+A request that cannot fit should return a resource error rather than take down
+the desktop. Other applications and hardware/driver failures remain outside
+Strata's control; a cgroup kill is a last fallback, not a successful benchmark.
+
 ## The tested PC
 
 Flash-Next measurements were recorded on **October 13, 2026**; native Saluki and
