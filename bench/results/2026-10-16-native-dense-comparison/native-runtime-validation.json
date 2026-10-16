@@ -1,0 +1,198 @@
+{
+  "native_engine_source_base": "e3caf4d9",
+  "native_integration_commit": "919f0238",
+  "unbiased_frontend_source": "b124b59ce48e4d53abd14d1fd08979350fc27358",
+  "native_llama_dependency": "3cf03257f219afbe7334045ff7c6a06ac68c627d",
+  "comparison_llama_source": "a2878d30df0130dde503a7d9ba30d3d21bd71b9f",
+  "checks": {
+    "native_cpu_tests": 6,
+    "real_gguf_tool_parser": "passed",
+    "http_auth_origin_memory_refusal_and_lock": "passed",
+    "file_browser_filtering_and_directory_selection_api": "passed",
+    "browser_model_and_projector_picker_save_edit_reset": "passed",
+    "browser_knobs_save_reset_and_preferences": "passed",
+    "monitor_viewports_no_overflow": [
+      1440,
+      1000,
+      390
+    ],
+    "settings_viewport_checked": 944,
+    "live_pending_reload_image_toggle": "passed",
+    "production_chat": "READY"
+  },
+  "cancellation_recovery": {
+    "cancel_seconds": 4.902863587994943,
+    "state_after_cancel": {
+      "active": "saluki27-abliterated-mtp-vision",
+      "loading": null,
+      "error": null,
+      "default": "saluki27-abliterated-mtp-vision",
+      "profiles": [
+        "flash-iq3",
+        "qfn-coder-iq1-m",
+        "saluki128-native-test",
+        "saluki27-abliterated-mtp-vision",
+        "saluki27-abliterated-vision",
+        "swift128-native-test",
+        "swift27-iq3-s",
+        "swift27-iq3-s-mtp",
+        "swift27-iq3-s-mtp-vision",
+        "swift27-iq3-s-mtp2-vision",
+        "swift27-iq3-s-vision",
+        "swift27-iq3-xxs",
+        "swift27-iq3-xxs-vision"
+      ],
+      "loaded": true,
+      "runtime": "native-c++",
+      "memory_policy": {
+        "worker_limit_mib": 17574,
+        "available_ram_floor_gib": 3.0,
+        "physical_vram_floor_mib": 512,
+        "admission_ram_floor_gib": 4.0,
+        "admission_vram_floor_mib": 768,
+        "scope_swap_mib": 0
+      },
+      "status": "ok",
+      "tiers": {
+        "kind": "dense",
+        "position": 0,
+        "kv_capacity": 4096,
+        "context": 262144
+      },
+      "model": "saluki27-abliterated-mtp-vision",
+      "max_context": 262144,
+      "images": true,
+      "engine": "0.1.44",
+      "live": {
+        "state": "idle",
+        "prompt_total": 130028,
+        "prompt_read": 5120,
+        "generated": 0,
+        "prefill_total": 130028,
+        "prefill_tok_s_mean": 962.0624213156956,
+        "decode_tok_s_mean": 0.0,
+        "cached_tokens": 0,
+        "cancelled": true,
+        "draft_accepted": 0,
+        "draft_offered": 0,
+        "position": 0,
+        "kv_capacity": 4096,
+        "kv_bytes": 142606336,
+        "weights_resident_bytes": 7478517760,
+        "weights_file_backed_bytes": 0
+      },
+      "resources": {
+        "ram_total_bytes": 33201369088,
+        "ram_available_bytes": 21526343680,
+        "swap_total_bytes": 100761853952,
+        "swap_used_bytes": 2157133824,
+        "vram_total_bytes": 17095983104,
+        "vram_used_bytes": 12229754880,
+        "vram_free_bytes": 4866228224,
+        "gpu_busy_percent": 14,
+        "gpu_temperature_c": 43.0,
+        "cpu_total_ticks": 99272689,
+        "cpu_idle_ticks": 95318514,
+        "worker_cgroup_bytes": 2377334784
+      },
+      "profile": {
+        "id": "saluki27-abliterated-mtp-vision",
+        "object": "model",
+        "owned_by": "local",
+        "name": "Saluki 27B abliterated IQ2-mix \u2014 MTP 2; 128K text tested, 256K ceiling",
+        "description": "",
+        "context_length": 262144,
+        "meta": {
+          "n_ctx": 262144,
+          "max_output_tokens": 262136
+        },
+        "sampling_defaults": {
+          "temperature": 0
+        },
+        "model_architecture": "qwen35",
+        "max_output_tokens": 262136,
+        "available": true,
+        "strata": {
+          "backend": "hip",
+          "kv_precision": "int8",
+          "mtp": "2",
+          "prefill_chunk": "512",
+          "adaptive_weights": true,
+          "vision_encoder": "CPU",
+          "resident_ram_gib": "auto",
+          "physical_reserve_mib": "1024"
+        },
+        "architecture": {
+          "input_modalities": [
+            "text",
+            "image"
+          ],
+          "output_modalities": [
+            "text"
+          ]
+        },
+        "capabilities": {
+          "streaming": true,
+          "tools": true,
+          "vision": true,
+          "image_generation": false
+        }
+      }
+    },
+    "next_answer": {
+      "id": "chatcmpl-67465e8ba08edbc9",
+      "object": "chat.completion",
+      "created": 1792127588,
+      "model": "saluki27-abliterated-mtp-vision",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "READY"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 16,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens": 2,
+        "total_tokens": 18
+      },
+      "timings": {
+        "prompt_n": 16,
+        "cache_n": 0,
+        "prompt_ms": 378.6,
+        "prompt_per_second": 42.260961436872684,
+        "predicted_n": 2,
+        "predicted_ms": 78.6,
+        "predicted_per_second": 25.445292620865143,
+        "draft_n": 2,
+        "draft_n_accepted": 2
+      }
+    }
+  },
+  "production": {
+    "port": 8096,
+    "profile_count": 13,
+    "active": "saluki27-abliterated-mtp-vision",
+    "images": true,
+    "configured_context": 262144,
+    "filled_text_window_validated": 130028
+  },
+  "artifact": {
+    "file": "Strata-Native-RX9070XT-x86_64.AppImage",
+    "sha256": "51d52b2eeaf4431788a4b325c2a15f1c5d357259d5d4d0ab86db7905c7c71dba"
+  },
+  "limitations": [
+    "HIP gfx1201 validated; CUDA/SYCL and Windows not tested",
+    "Single-trial performance comparisons",
+    "Text-only throughput; screenshot support checked separately",
+    "No 256K filled-window validation",
+    "No claim that guards prevent other apps or hardware/driver failures",
+    "Combined build installed as llama-dual; original llama and presets unchanged"
+  ]
+}

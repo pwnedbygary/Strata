@@ -1,0 +1,36 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```python\ndef normalize_path(path):\n    parts = path.replace('\\\\', '/').split('/')\n    result = []\n    for part in parts:\n        if part == '' or part == '.':\n            continue\n        if part == '..':\n            raise ValueError(\"path contains '..' component\")\n        result.append(part)\n    return '/'.join(result)\n\ndef retry_delay(attempt, base, cap):\n    if attempt < 0 or base < 0 or cap < 0:\n        raise ValueError(\"attempt, base, and cap must be nonnegative\")\n    return min(cap, base * (2 ** attempt))\n\ndef next_head(head, direction, width, height):\n    if not isinstance(width, int) or width <= 0:\n        raise ValueError(\"width must be a positive integer\")\n    if not isinstance(height, int) or height <= 0:\n        raise ValueError(\"height must be a positive integer\")\n    x = (head[0] + direction[0]) % width\n    y = (head[1] + direction[1]) % height\n    return (x, y)\n\n# CHECKPOINT_EARLY: 09ed174738e36a7f4c139f32\n# CHECKPOINT_MIDDLE: 727e0ed9bcd370343ecb8ac3\n# CHECKPOINT_LATE: 5d7f2ce515903fb0619b149f\n```"
+      }
+    }
+  ],
+  "created": 1792132933,
+  "model": "saluki",
+  "system_fingerprint": "b1-a2878d3",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 333,
+    "prompt_tokens": 8136,
+    "total_tokens": 8469,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "id": "chatcmpl-gIH7PO0Sa76VKh0J9h2YfDthZTUao6m4",
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 8136,
+    "prompt_ms": 8355.153,
+    "prompt_per_token_ms": 1.026936209439528,
+    "prompt_per_second": 973.7703187482024,
+    "predicted_n": 333,
+    "predicted_ms": 13930.232,
+    "predicted_per_token_ms": 41.958530120481925,
+    "predicted_per_second": 23.83305604673346
+  }
+}

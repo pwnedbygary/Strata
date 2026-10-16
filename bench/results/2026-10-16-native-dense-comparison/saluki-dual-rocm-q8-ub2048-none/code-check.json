@@ -1,0 +1,97 @@
+{
+  "passed": 13,
+  "total": 13,
+  "cases": [
+    {
+      "function": "normalize_path",
+      "args": "('a\\\\b',)",
+      "expected": "'a/b'",
+      "actual": "'a/b'",
+      "passed": true
+    },
+    {
+      "function": "normalize_path",
+      "args": "('a\\\\\\\\b',)",
+      "expected": "'a/b'",
+      "actual": "'a/b'",
+      "passed": true
+    },
+    {
+      "function": "normalize_path",
+      "args": "('/a//./b',)",
+      "expected": "'a/b'",
+      "actual": "'a/b'",
+      "passed": true
+    },
+    {
+      "function": "normalize_path",
+      "args": "('a/../b',)",
+      "expected": "<class 'ValueError'>",
+      "actual": "ValueError",
+      "passed": true
+    },
+    {
+      "function": "normalize_path",
+      "args": "('',)",
+      "expected": "''",
+      "actual": "''",
+      "passed": true
+    },
+    {
+      "function": "retry_delay",
+      "args": "(3, 2, 10)",
+      "expected": "10",
+      "actual": "10",
+      "passed": true
+    },
+    {
+      "function": "retry_delay",
+      "args": "(-1, 2, 10)",
+      "expected": "<class 'ValueError'>",
+      "actual": "ValueError",
+      "passed": true
+    },
+    {
+      "function": "retry_delay",
+      "args": "(0, -1, 10)",
+      "expected": "<class 'ValueError'>",
+      "actual": "ValueError",
+      "passed": true
+    },
+    {
+      "function": "retry_delay",
+      "args": "(0, 1, -1)",
+      "expected": "<class 'ValueError'>",
+      "actual": "ValueError",
+      "passed": true
+    },
+    {
+      "function": "next_head",
+      "args": "((0, 0), (-1, 0), 10, 4)",
+      "expected": "(9, 0)",
+      "actual": "(9, 0)",
+      "passed": true
+    },
+    {
+      "function": "next_head",
+      "args": "((0, 0), (1, 1), 1, 1)",
+      "expected": "(0, 0)",
+      "actual": "(0, 0)",
+      "passed": true
+    },
+    {
+      "function": "next_head",
+      "args": "((0, 0), (1, 0), 0, 4)",
+      "expected": "<class 'ValueError'>",
+      "actual": "ValueError",
+      "passed": true
+    },
+    {
+      "function": "next_head",
+      "args": "((0, 0), (1, 0), 2.5, 4)",
+      "expected": "<class 'ValueError'>",
+      "actual": "ValueError",
+      "passed": true
+    }
+  ]
+}

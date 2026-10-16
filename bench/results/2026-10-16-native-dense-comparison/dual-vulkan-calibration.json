@@ -1,0 +1,64 @@
+[
+  {
+    "model": "saluki",
+    "backend": "dual-vulkan",
+    "case": {
+      "name": "q8-ub512-calibration",
+      "kv": "q8_0",
+      "ub": 512,
+      "spec": "none"
+    },
+    "wall_seconds": 22.293943434997345,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 8355.153,
+      "prompt_per_token_ms": 1.026936209439528,
+      "prompt_per_second": 973.7703187482024,
+      "predicted_n": 333,
+      "predicted_ms": 13930.232,
+      "predicted_per_token_ms": 41.958530120481925,
+      "predicted_per_second": 23.83305604673346
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13
+  },
+  {
+    "model": "swift",
+    "backend": "dual-vulkan",
+    "case": {
+      "name": "q8-ub512-calibration",
+      "kv": "q8_0",
+      "ub": 512,
+      "spec": "none"
+    },
+    "wall_seconds": 51.07150905599701,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 12867.901,
+      "prompt_per_token_ms": 1.5816004178957719,
+      "prompt_per_second": 632.2709507945391,
+      "predicted_n": 323,
+      "predicted_ms": 38195.233,
+      "predicted_per_token_ms": 118.61873602484472,
+      "predicted_per_second": 8.430371402630271
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13
+  }
+]

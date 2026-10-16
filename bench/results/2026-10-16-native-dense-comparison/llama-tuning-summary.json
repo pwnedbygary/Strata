@@ -1,0 +1,530 @@
+[
+  {
+    "model": "saluki",
+    "backend": "installed-vulkan",
+    "case": {
+      "name": "q8-ub512-none",
+      "kv": "q8_0",
+      "ub": 512,
+      "spec": "none"
+    },
+    "wall_seconds": 13.21897830299713,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 6528.65,
+      "prompt_per_token_ms": 0.802439773844641,
+      "prompt_per_second": 1246.1994439891862,
+      "predicted_n": 333,
+      "predicted_ms": 6683.404,
+      "predicted_per_token_ms": 20.130734939759037,
+      "predicted_per_second": 49.675285228904315
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/saluki-installed-vulkan-q8-ub512-none"
+  },
+  {
+    "model": "saluki",
+    "backend": "installed-vulkan",
+    "case": {
+      "name": "q8-ub2048-none",
+      "kv": "q8_0",
+      "ub": 2048,
+      "spec": "none"
+    },
+    "wall_seconds": 24.309696750999137,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 8158.846,
+      "prompt_per_token_ms": 1.0028080137659783,
+      "prompt_per_second": 997.199849096306,
+      "predicted_n": 333,
+      "predicted_ms": 16144.09,
+      "predicted_per_token_ms": 48.626777108433735,
+      "predicted_per_second": 20.564801112976948
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/saluki-installed-vulkan-q8-ub2048-none"
+  },
+  {
+    "model": "saluki",
+    "backend": "installed-vulkan",
+    "case": {
+      "name": "q8-ub2048-mtp2",
+      "kv": "q8_0",
+      "ub": 2048,
+      "spec": "draft-mtp,ngram-mod"
+    },
+    "wall_seconds": 41.37631600700115,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 9864.583,
+      "prompt_per_token_ms": 1.2124610373647986,
+      "prompt_per_second": 824.7687712699056,
+      "predicted_n": 333,
+      "predicted_ms": 31501.453,
+      "predicted_per_token_ms": 94.88389457831326,
+      "predicted_per_second": 10.539196398337562,
+      "draft_n": 352,
+      "draft_n_accepted": 218
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/saluki-installed-vulkan-q8-ub2048-mtp2"
+  },
+  {
+    "model": "saluki",
+    "backend": "installed-vulkan",
+    "case": {
+      "name": "q4-ub2048-mtp2",
+      "kv": "q4_0",
+      "ub": 2048,
+      "spec": "draft-mtp,ngram-mod"
+    },
+    "wall_seconds": 26.96121044100437,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 9122.633,
+      "prompt_per_token_ms": 1.121267576204523,
+      "prompt_per_second": 891.8477812271962,
+      "predicted_n": 333,
+      "predicted_ms": 17828.424,
+      "predicted_per_token_ms": 53.70007228915662,
+      "predicted_per_second": 18.621948860987377,
+      "draft_n": 352,
+      "draft_n_accepted": 218
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/saluki-installed-vulkan-q4-ub2048-mtp2"
+  },
+  {
+    "model": "saluki",
+    "backend": "dual-rocm",
+    "case": {
+      "name": "q8-ub512-none",
+      "kv": "q8_0",
+      "ub": 512,
+      "spec": "none"
+    },
+    "wall_seconds": 39.64583156299341,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 12306.332,
+      "prompt_per_token_ms": 1.5125776794493608,
+      "prompt_per_second": 661.123070627381,
+      "predicted_n": 333,
+      "predicted_ms": 27330.953,
+      "predicted_per_token_ms": 82.32214759036145,
+      "predicted_per_second": 12.147399324128946
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/saluki-dual-rocm-q8-ub512-none"
+  },
+  {
+    "model": "saluki",
+    "backend": "dual-rocm",
+    "case": {
+      "name": "q8-ub2048-none",
+      "kv": "q8_0",
+      "ub": 2048,
+      "spec": "none"
+    },
+    "wall_seconds": 44.60895526799868,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 11861.284,
+      "prompt_per_token_ms": 1.4578765978367747,
+      "prompt_per_second": 685.9291118904159,
+      "predicted_n": 333,
+      "predicted_ms": 32738.272,
+      "predicted_per_token_ms": 98.6092530120482,
+      "predicted_per_second": 10.14103615487097
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/saluki-dual-rocm-q8-ub2048-none"
+  },
+  {
+    "model": "saluki",
+    "backend": "dual-rocm",
+    "case": {
+      "name": "q8-ub2048-mtp2",
+      "kv": "q8_0",
+      "ub": 2048,
+      "spec": "draft-mtp,ngram-mod"
+    },
+    "wall_seconds": 48.69752654799959,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 11985.438,
+      "prompt_per_token_ms": 1.473136430678466,
+      "prompt_per_second": 678.823752623809,
+      "predicted_n": 333,
+      "predicted_ms": 36702.65,
+      "predicted_per_token_ms": 110.55015060240964,
+      "predicted_per_second": 9.045668364545884,
+      "draft_n": 352,
+      "draft_n_accepted": 218
+    },
+    "usage": {
+      "completion_tokens": 333,
+      "prompt_tokens": 8136,
+      "total_tokens": 8469,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/saluki-dual-rocm-q8-ub2048-mtp2"
+  },
+  {
+    "model": "saluki",
+    "backend": "dual-rocm",
+    "case": {
+      "name": "q4-ub2048-mtp2",
+      "kv": "q4_0",
+      "ub": 2048,
+      "spec": "draft-mtp,ngram-mod"
+    },
+    "wall_seconds": 35.221643817996664,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 11849.104,
+      "prompt_per_token_ms": 1.456379547689282,
+      "prompt_per_second": 686.6341961383748,
+      "predicted_n": 316,
+      "predicted_ms": 23363.705,
+      "predicted_per_token_ms": 74.17049206349206,
+      "predicted_per_second": 13.482450664395907,
+      "draft_n": 346,
+      "draft_n_accepted": 204
+    },
+    "usage": {
+      "completion_tokens": 316,
+      "prompt_tokens": 8136,
+      "total_tokens": 8452,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/saluki-dual-rocm-q4-ub2048-mtp2"
+  },
+  {
+    "model": "swift",
+    "backend": "installed-vulkan",
+    "case": {
+      "name": "q8-ub512-none",
+      "kv": "q8_0",
+      "ub": 512,
+      "spec": "none"
+    },
+    "wall_seconds": 51.18206057899806,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 12547.153,
+      "prompt_per_token_ms": 1.5421771140609637,
+      "prompt_per_second": 648.4339515107531,
+      "predicted_n": 323,
+      "predicted_ms": 38624.599,
+      "predicted_per_token_ms": 119.95217080745343,
+      "predicted_per_second": 8.336656129426743
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/swift-installed-vulkan-q8-ub512-none"
+  },
+  {
+    "model": "swift",
+    "backend": "installed-vulkan",
+    "case": {
+      "name": "q8-ub2048-none",
+      "kv": "q8_0",
+      "ub": 2048,
+      "spec": "none"
+    },
+    "wall_seconds": 54.02950836800301,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 11432.435,
+      "prompt_per_token_ms": 1.4051665437561454,
+      "prompt_per_second": 711.6594146391386,
+      "predicted_n": 323,
+      "predicted_ms": 42588.177,
+      "predicted_per_token_ms": 132.2614192546584,
+      "predicted_per_second": 7.560783829746926
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/swift-installed-vulkan-q8-ub2048-none"
+  },
+  {
+    "model": "swift",
+    "backend": "installed-vulkan",
+    "case": {
+      "name": "q8-ub2048-mtp2",
+      "kv": "q8_0",
+      "ub": 2048,
+      "spec": "draft-mtp,ngram-mod"
+    },
+    "wall_seconds": 60.479866754001705,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 12937.055,
+      "prompt_per_token_ms": 1.5901001720747296,
+      "prompt_per_second": 628.8911966440585,
+      "predicted_n": 323,
+      "predicted_ms": 47535.693,
+      "predicted_per_token_ms": 147.6263757763975,
+      "predicted_per_second": 6.773857278150968,
+      "draft_n": 344,
+      "draft_n_accepted": 212
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/swift-installed-vulkan-q8-ub2048-mtp2"
+  },
+  {
+    "model": "swift",
+    "backend": "installed-vulkan",
+    "case": {
+      "name": "q4-ub2048-mtp2",
+      "kv": "q4_0",
+      "ub": 2048,
+      "spec": "draft-mtp,ngram-mod"
+    },
+    "wall_seconds": 59.41337160499825,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 12456.925,
+      "prompt_per_token_ms": 1.5310871435594886,
+      "prompt_per_second": 653.1306883520612,
+      "predicted_n": 323,
+      "predicted_ms": 46948.443,
+      "predicted_per_token_ms": 145.80261801242236,
+      "predicted_per_second": 6.858587408319377,
+      "draft_n": 344,
+      "draft_n_accepted": 212
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/swift-installed-vulkan-q4-ub2048-mtp2"
+  },
+  {
+    "model": "swift",
+    "backend": "dual-rocm",
+    "case": {
+      "name": "q8-ub512-none",
+      "kv": "q8_0",
+      "ub": 512,
+      "spec": "none"
+    },
+    "wall_seconds": 59.387251938998816,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 10447.832,
+      "prompt_per_token_ms": 1.2841484759095378,
+      "prompt_per_second": 778.7261510330563,
+      "predicted_n": 323,
+      "predicted_ms": 48930.749,
+      "predicted_per_token_ms": 151.95884782608698,
+      "predicted_per_second": 6.580729021744587
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/swift-dual-rocm-q8-ub512-none"
+  },
+  {
+    "model": "swift",
+    "backend": "dual-rocm",
+    "case": {
+      "name": "q8-ub2048-none",
+      "kv": "q8_0",
+      "ub": 2048,
+      "spec": "none"
+    },
+    "wall_seconds": 58.88802864300669,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 9571.091,
+      "prompt_per_token_ms": 1.1763877826941986,
+      "prompt_per_second": 850.0598312146441,
+      "predicted_n": 319,
+      "predicted_ms": 49308.791,
+      "predicted_per_token_ms": 155.05909119496854,
+      "predicted_per_second": 6.449154269468908
+    },
+    "usage": {
+      "completion_tokens": 319,
+      "prompt_tokens": 8136,
+      "total_tokens": 8455,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/swift-dual-rocm-q8-ub2048-none"
+  },
+  {
+    "model": "swift",
+    "backend": "dual-rocm",
+    "case": {
+      "name": "q8-ub2048-mtp2",
+      "kv": "q8_0",
+      "ub": 2048,
+      "spec": "draft-mtp,ngram-mod"
+    },
+    "wall_seconds": 63.29677974298829,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 10524.598,
+      "prompt_per_token_ms": 1.293583824975418,
+      "prompt_per_second": 773.0461534017736,
+      "predicted_n": 323,
+      "predicted_ms": 52763.098,
+      "predicted_per_token_ms": 163.86055279503105,
+      "predicted_per_second": 6.102750069755191,
+      "draft_n": 342,
+      "draft_n_accepted": 213
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/swift-dual-rocm-q8-ub2048-mtp2"
+  },
+  {
+    "model": "swift",
+    "backend": "dual-rocm",
+    "case": {
+      "name": "q4-ub2048-mtp2",
+      "kv": "q4_0",
+      "ub": 2048,
+      "spec": "draft-mtp,ngram-mod"
+    },
+    "wall_seconds": 52.92532255400147,
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 8136,
+      "prompt_ms": 10250.39,
+      "prompt_per_token_ms": 1.2598807767944935,
+      "prompt_per_second": 793.7258972585433,
+      "predicted_n": 323,
+      "predicted_ms": 42666.32,
+      "predicted_per_token_ms": 132.504099378882,
+      "predicted_per_second": 7.546936318857591,
+      "draft_n": 342,
+      "draft_n_accepted": 213
+    },
+    "usage": {
+      "completion_tokens": 323,
+      "prompt_tokens": 8136,
+      "total_tokens": 8459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "checks_passed": 13,
+    "directory": "/home/garyb/Mounts/NVME/Strata/local-tuning/dense-engine-comparison/swift-dual-rocm-q4-ub2048-mtp2"
+  }
+]

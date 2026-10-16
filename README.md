@@ -43,7 +43,8 @@ execute their own tools. See [native build, API scope and limitations](docs/NATI
 Configured context ceilings are listed separately from filled-context validation.
 
 The UI includes a live **Monitor**, per-profile **Tune** controls, and **Settings**
-for local model/projector/pack paths and screenshot support. Saves preserve the
+for local model/projector/pack paths and screenshot support. Browse selects local
+files or folders while keeping each path editable. Saves preserve the
 active worker; an explicit reload applies them. Source profiles stay intact.
 
 <img src="docs/media/native/tune-desktop.png" width="850" alt="Native Strata tuning controls with context, MTP, prefill and memory reserve sliders">
@@ -57,10 +58,36 @@ A request that cannot fit should return a resource error rather than take down
 the desktop. Other applications and hardware/driver failures remain outside
 Strata's control; a cgroup kill is a last fallback, not a successful benchmark.
 
+## Dense models at 128K: engine comparison
+
+October 16 tests used the same 130,028-token prompt, Q8/int8 KV, text input and
+one model at a time. These are single runs on this PC, not universal rates.
+
+| Model | Native Strata prefill / decode | Regular llama.cpp Vulkan | llama.cpp ROCm |
+| --- | ---: | ---: | ---: |
+| Saluki abliterated IQ2-mix | 302 / 17.4 tok/s | **710 / 33.9 tok/s** | 470 / 5.4 tok/s |
+| Swift IQ3_S | 259 / **4.65 tok/s** | 449 / 2.05 tok/s | 440 / 1.55 tok/s |
+
+All six full-context runs passed 13 bounded code checks and three retrieval probes.
+Native used MTP; the selected llama.cpp configurations disabled it. llama.cpp is a
+separate comparison server, **not the engine behind this native Strata AppImage**.
+The exact native test settings are available locally as `saluki27-128k-text` and
+`swift27-iq3-s-128k-text`; existing vision profiles are retained.
+Native Swift was much faster at short-context decode, but its growing KV eventually
+pushes weights out of the GPU cache. Saluki Vulkan was the strongest full-context
+result here. Screenshot speed and 256K fills are not established by this comparison.
+
+The combined backend build is installed as `llama-dual`; the faster original
+`llama` and its presets remain untouched after the combined build regressed one
+Vulkan test. This is separate from the Strata AppImage.
+
+[Exact settings, outputs, memory margins and comparison limits](bench/results/2026-10-16-native-dense-comparison/README.md).
+
 ## The tested PC
 
 Flash-Next measurements were recorded on **October 13, 2026**; native Saluki and
-Qwen35 MoE measurements on **October 14, 2026**.
+Qwen35 MoE measurements on **October 14, 2026**. The native/llama.cpp dense
+comparison above was recorded on **October 16**, with RAM at 4800 MT/s.
 
 | Component | Tested configuration |
 | --- | --- |
@@ -70,7 +97,7 @@ Qwen35 MoE measurements on **October 14, 2026**.
 | Storage | NVMe SSD, Btrfs |
 | OS / runtime | CachyOS Linux, system ROCm 7.2 |
 | Strata engine | Installed Flash engine 0.1.44; native dense development build based on 0.1.44 |
-| Models | Flash-Next IQ3_XXS; Underdog-Saluki 27B IQ2-mix; experimental GSQ Qwen35 MoE |
+| Models | Flash-Next IQ3_XXS; Underdog-Saluki 27B IQ2-mix; Swift IQ3_S; experimental GSQ Qwen35 MoE |
 | Serving | One model, one request at a time; screenshot input in separate dense profiles |
 
 This is an NVMe-backed full-model configuration. The complete expert pack does not
