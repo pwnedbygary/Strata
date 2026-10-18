@@ -850,8 +850,11 @@ int main(int argc, char **argv) {
         return 2;
     }
     if (o.host != "127.0.0.1" && o.host != "::1" && o.host != "localhost") {
-        std::fprintf(stderr, "strata-native: this local-only frontend requires a loopback bind\n");
-        return 2;
+        const char *key=getenv("STRATA_API_KEY");
+        if(!key || !*key) {
+            std::fprintf(stderr, "strata-native: non-loopback listening requires --api-key or STRATA_API_KEY\n");
+            return 2;
+        }
     }
     // Direct worker invocation must have the same hard host-memory boundary as router workers.
     const auto worker_memory = native_memory::snapshot();
@@ -977,7 +980,7 @@ int main(int argc, char **argv) {
     }
 
     httplib::Server http;
-    native_router::install_security(http);
+    native_router::install_security(http, o.host != "127.0.0.1" && o.host != "::1" && o.host != "localhost");
     // /health: ok or error, plus the engine's expert tiers and counters when it is between requests (STATS:
     // VRAM slots and how many hold an expert, RAM copies, mapped experts, tokens served, VRAM hits of
     // lookups, RAM-copy and file reads, warm hints, major page faults).  During a request the last reading is

@@ -30,14 +30,18 @@ def main():
             port = sock.getsockname()[1]
         # A deliberately impossible admission floor tests refusal, not actual pressure.
         cmd = [str(a.binary.resolve()), '--registry', str(registry), '--port', str(port),
-               '--memory-floor-gib', '1024', '--api-key', 'local-test-key']
+               '--memory-floor-gib', '1024', '--host', '0.0.0.0', '--api-key', 'local-test-key']
+        no_key_env={k:v for k,v in os.environ.items() if k!='STRATA_API_KEY'}
+        refused=subprocess.run(cmd[:-2],env=no_key_env,capture_output=True,text=True,timeout=5)
+        assert refused.returncode!=0 and 'requires --api-key' in refused.stderr, refused.stderr
         with (base / 'server.log').open('w') as log:
             process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
                 env={**os.environ, "XDG_RUNTIME_DIR": str(base)})
-            def request(path, body=None, key=True, origin=None):
+            def request(path, body=None, key=True, origin=None, host=None):
                 headers = {'Content-Type': 'application/json'}
                 if key: headers['Authorization'] = 'Bearer local-test-key'
                 if origin: headers['Origin'] = origin
+                if host: headers['Host'] = host
                 req = urllib.request.Request(f'http://127.0.0.1:{port}{path}',
                     data=None if body is None else json.dumps(body).encode(), headers=headers)
                 try:
@@ -73,6 +77,9 @@ def main():
                 assert request('/router/files?kind=gguf&path=relative')[0] == 400
                 assert request('/router/files?kind=invalid')[0] == 400
                 assert request('/v1/models', key=False)[0] == 401
+                assert request('/v1/models', host='100.100.100.100:8096')[0] == 200
+                assert request('/v1/models', host='100.100.100.100:8096', key=False)[0] == 401
+                assert request('/v1/models', host='100.100.100.100:8096', origin='http://100.100.100.100:8096')[0] == 200
                 assert request('/v1/models', origin='https://foreign.example')[0] == 403
                 code, result = request('/router/tuning?model=test')
                 assert code == 200 and result['values']['context'] == 131072, result

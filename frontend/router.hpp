@@ -444,8 +444,8 @@ inline std::string pick(Router &r, const common_json &body) {
     return r.active.empty() ? r.default_model : r.active;
 }
 inline volatile std::sig_atomic_t shutdown_requested = 0;
-inline void install_security(httplib::Server &http) {
-    http.set_pre_routing_handler([](const httplib::Request &req, httplib::Response &res) {
+inline void install_security(httplib::Server &http, bool remote = false) {
+    http.set_pre_routing_handler([remote](const httplib::Request &req, httplib::Response &res) {
         const auto host = req.get_header_value("Host");
         bool local = false;
         for (const std::string allowed : {"127.0.0.1", "localhost", "[::1]"}) {
@@ -455,7 +455,7 @@ inline void install_security(httplib::Server &http) {
                 local = !port.empty() && std::all_of(port.begin(), port.end(), [](unsigned char c) { return c >= '0' && c <= '9'; });
             }
         }
-        if (!local) {
+        if (!local && !remote) {
             json(res, 403, {{"error", {{"message", "Loopback Host header required"}}}});
             return httplib::Server::HandlerResponse::Handled;
         }
@@ -570,7 +570,8 @@ inline void proxy_request(Router &router,const httplib::Request &req,httplib::Re
 }
 inline int run(const std::string &registry, int port, const std::string &host) {
     if (host != "127.0.0.1" && host != "::1" && host != "localhost")
-        throw std::runtime_error("Native router only binds loopback");
+        { const char *key=getenv("STRATA_API_KEY");
+          if(!key || !*key)throw std::runtime_error("Non-loopback listening requires --api-key or STRATA_API_KEY"); }
     Router router(registry);
     httplib::Server http;
     shutdown_requested = 0;
@@ -578,7 +579,7 @@ inline int run(const std::string &registry, int port, const std::string &host) {
     http.set_payload_max_length(32 * 1024 * 1024);
     http.set_read_timeout(600);
     http.set_write_timeout(3600);
-    install_security(http);
+    install_security(http, host != "127.0.0.1" && host != "::1" && host != "localhost");
     http.Get("/", [](auto &, auto &res) { res.set_content(native_ui, "text/html; charset=utf-8"); });
     http.Get("/router/status", [&](auto &, auto &res) { json(res, 200, router.status()); });
     http.Get("/health", [&](auto &, auto &res) {
