@@ -5066,7 +5066,18 @@ int strata::qwen35::run(int argc, char** argv) {
         }
         return 0;
     }
-    const std::vector<int32_t> prompt = parse_ids(tokens.c_str()), forced = parse_ids(force.c_str());
+    // --tokens / --force @FILE: the ids from a file (a long prompt's ids pass one argument's 128 KiB limit)
+    auto id_text = [](const std::string& s) -> std::string {
+        if (s.empty() || s[0] != '@') return s;
+        std::FILE* f = std::fopen(s.c_str() + 1, "rb");
+        if (!f) { std::fprintf(stderr, "strata-q36: cannot read %s\n", s.c_str() + 1); std::exit(2); }
+        std::string text;
+        char buf[1 << 16];
+        for (size_t n; (n = std::fread(buf, 1, sizeof buf, f)) > 0;) text.append(buf, n);
+        std::fclose(f);
+        return text;
+    };
+    const std::vector<int32_t> prompt = parse_ids(id_text(tokens).c_str()), forced = parse_ids(id_text(force).c_str());
     if (prompt.empty()) { std::fprintf(stderr, "strata-q36: --tokens, --serve or --bench-pp is required\n"); return 2; }
     if (!forced.empty()) n_gen = (int) forced.size() + 1;
     FILE* ff = dump_full.empty() ? nullptr : std::fopen(dump_full.c_str(), "wb");
