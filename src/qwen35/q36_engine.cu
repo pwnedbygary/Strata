@@ -19,6 +19,7 @@
 #include "strata/artifact/gguf_reader.hpp"
 #include "strata/core/family_layout.hpp"
 #include "strata/kernels/fused_gdn.hpp"
+#include "strata/kernels/gfx_arch.hpp"
 #include "strata/kernels/iq_kernels.hpp"
 #include "strata/kernels/native_mmvq.hpp"
 #include "strata/kernels/native_moe.hpp"
@@ -643,6 +644,168 @@ __global__ void k_store_attention_group(const float* packed, const float* gate, 
     for (int split = 0; split < splits; ++split) value += packed[(size_t) split * G * nt * HD + i];
     out[dst] = value * sigm(gate[dst]);
 }
+
+#if defined(__HIP_PLATFORM_AMD__)
+// ---- dense prompt attention in one kernel on gfx12 matrix cores (STRATA_Q35_ATTN_FUSED=1, int8 KV, head dim 256): one
+// block per 16 query tokens and KV head, one wave per query head of its group.  The block walks the cells up to its last
+// token in 32-cell tiles staged in shared memory (K as its exact int8 codes in FP16, V times its cell scale in FP16 and
+// transposed), each taken as two 16-cell halves; each wave keeps its 16 rows' softmax state and output in registers
+// (online softmax, FP32 accumulation), so no scores reach memory.  Computed transposed, S^T = K Q^T and O^T = V^T P^T: a
+// lane then holds one query row, and the S^T accumulators are P^T's B fragments as they stand.
+// Fragment layout (v_wmma_f32_16x16x16_f16, wave32, gfx12; as qsa_prompt_attn.cu): A lane l holds A[l % 16][(l / 16) * 8 +
+// i], B lane l holds B[(l / 16) * 8 + i][l % 16], C/D lane l holds D[(l / 16) * 8 + i][l % 16], i = 0..7.
+constexpr int kFaCells = 32;           // cells per staged tile
+constexpr int kFaKs = 256 + 8;         // K tile row stride in halves (528 bytes: the 16 rows' reads spread over the banks)
+constexpr int kFaVs = kFaCells + 8;    // transposed V tile row stride in halves (80 bytes)
+typedef _Float16 fa_h2 __attribute__((ext_vector_type(2)));
+typedef _Float16 fa_h8 __attribute__((ext_vector_type(8)));
+typedef float fa_f8 __attribute__((ext_vector_type(8)));
+
+__device__ __forceinline__ fa_f8 fa_wmma(fa_h8 a, fa_h8 b, fa_f8 c) {
+#if defined(__gfx1200__) || defined(__gfx1201__)
+    return __builtin_amdgcn_wmma_f32_16x16x16_f16_w32_gfx12(a, b, c);
+#else
+    (void) a;
+    (void) b;
+    __builtin_trap();
+    return c;
+#endif
+}
+
+/// out = softmax(q k^T / 16) v * sigmoid(gate) for a prompt chunk; q, gate, out [T][H][256] FP32, row t sees the cells
+/// [0, p0 + t].  kc / vc: the layer's int8 cache (KV head h from cell h * stride), ks / vs: its per cell scales (KV head h
+/// from h * scale_ctx).  grid (ceil(T / 16), HKV), block 32 * (H / HKV) <= 256.
+__global__ void __launch_bounds__(256) k_attn_prompt_wmma(const float* __restrict__ q, const float* __restrict__ gate,
+                                                          float* __restrict__ out, const int8_t* __restrict__ kc,
+                                                          const int8_t* __restrict__ vc, const float* __restrict__ ks,
+                                                          const float* __restrict__ vs, int T, int p0, int H, int stride,
+                                                          int scale_ctx, float scale_log2) {
+    constexpr int HD = 256, DT = HD / 16;
+    __shared__ __align__(16) _Float16 sk[kFaCells * kFaKs];
+    __shared__ __align__(16) _Float16 svt[HD * kFaVs];
+    __shared__ float sks[kFaCells];
+    const int G = blockDim.x >> 5;
+    const int tid = threadIdx.x, lane = tid & 31, wave = tid >> 5;
+    const int col = lane & 15, half = lane >> 4;
+    const int t0 = blockIdx.x * 16, kvh = blockIdx.y, h = kvh * G + wave;
+    const int t = t0 + col;                       // this lane's query row
+    const int n_cells = p0 + min(T, t0 + 16);     // the cells the block's last row sees
+    const int limit = p0 + t;                     // the last cell this row sees
+    kc += (size_t) kvh * stride * HD;
+    vc += (size_t) kvh * stride * HD;
+    ks += (size_t) kvh * scale_ctx;
+    vs += (size_t) kvh * scale_ctx;
+
+    // the wave's queries, B fragments of S^T = K Q^T: lane holds q[t][kk * 16 + half * 8 + i] (rows past T zero)
+    fa_h8 qf[DT];
+#pragma unroll
+    for (int kk = 0; kk < DT; ++kk) {
+        float4 a = make_float4(0.f, 0.f, 0.f, 0.f), b = a;
+        if (t < T) {
+            const float4* src = reinterpret_cast<const float4*>(q + ((size_t) t * H + h) * HD + kk * 16 + half * 8);
+            a = src[0];
+            b = src[1];
+        }
+        qf[kk] = fa_h8{(_Float16) a.x, (_Float16) a.y, (_Float16) a.z, (_Float16) a.w,
+                       (_Float16) b.x, (_Float16) b.y, (_Float16) b.z, (_Float16) b.w};
+    }
+    fa_f8 o[DT];
+#pragma unroll
+    for (int dt = 0; dt < DT; ++dt) o[dt] = fa_f8{0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+    float m = -INFINITY, l = 0.0f;
+
+    for (int c0 = 0; c0 < n_cells; c0 += kFaCells) {
+        // stage the tile: item = (cell pair, 8 dims); V goes in transposed as cell pairs (one 4-byte store per dim)
+        for (int it = tid; it < (kFaCells / 2) * (HD / 8); it += blockDim.x) {
+            const int cp = it % (kFaCells / 2), dg = it / (kFaCells / 2), d0 = dg * 8;
+            const int ca = c0 + 2 * cp, cb = ca + 1;
+            uint2 ka = make_uint2(0, 0), kb = ka, va = ka, vb = ka;
+            float sa = 0.0f, sb = 0.0f;
+            if (ca < n_cells) {
+                ka = *reinterpret_cast<const uint2*>(kc + (size_t) ca * HD + d0);
+                va = *reinterpret_cast<const uint2*>(vc + (size_t) ca * HD + d0);
+                sa = vs[ca];
+            }
+            if (cb < n_cells) {
+                kb = *reinterpret_cast<const uint2*>(kc + (size_t) cb * HD + d0);
+                vb = *reinterpret_cast<const uint2*>(vc + (size_t) cb * HD + d0);
+                sb = vs[cb];
+            }
+            fa_h8 ha, hb;
+#pragma unroll
+            for (int j = 0; j < 8; ++j) {
+                const uint32_t wa = j < 4 ? ka.x : ka.y, wb = j < 4 ? kb.x : kb.y;
+                ha[j] = (_Float16) (int) (int8_t) (wa >> (8 * (j & 3)));
+                hb[j] = (_Float16) (int) (int8_t) (wb >> (8 * (j & 3)));
+            }
+            *reinterpret_cast<fa_h8*>(sk + (2 * cp) * kFaKs + d0) = ha;
+            *reinterpret_cast<fa_h8*>(sk + (2 * cp + 1) * kFaKs + d0) = hb;
+#pragma unroll
+            for (int jj = 0; jj < 8; ++jj) {
+                const int j = (jj + dg) & 7;   // stagger the dims so a wave's stores spread over the banks
+                const uint32_t wa = j < 4 ? va.x : va.y, wb = j < 4 ? vb.x : vb.y;
+                const _Float16 xa = (_Float16) ((float) (int) (int8_t) (wa >> (8 * (j & 3))) * sa);
+                const _Float16 xb = (_Float16) ((float) (int) (int8_t) (wb >> (8 * (j & 3))) * sb);
+                *reinterpret_cast<fa_h2*>(svt + (d0 + j) * kFaVs + 2 * cp) = fa_h2{xa, xb};
+            }
+            if (dg == 0) {
+                sks[2 * cp] = ca < n_cells ? ks[ca] : 0.0f;
+                sks[2 * cp + 1] = cb < n_cells ? ks[cb] : 0.0f;
+            }
+        }
+        __syncthreads();
+#pragma unroll
+        for (int s0 = 0; s0 < kFaCells; s0 += 16) {
+            if (c0 + s0 >= n_cells) break;
+            // S^T for the half's 16 cells x the wave's 16 rows
+            fa_f8 s = fa_f8{0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+#pragma unroll
+            for (int kk = 0; kk < DT; ++kk)
+                s = fa_wmma(*reinterpret_cast<const fa_h8*>(sk + (s0 + col) * kFaKs + kk * 16 + half * 8), qf[kk], s);
+            // K scale and softmax scale (log2 domain), causal mask; the row's max over its 16 cells (8 here, 8 in
+            // lane ^ 16)
+            float x[8], mx = -INFINITY;
+#pragma unroll
+            for (int i = 0; i < 8; ++i) {
+                const int cell = s0 + half * 8 + i;
+                x[i] = c0 + cell <= limit ? s[i] * sks[cell] * scale_log2 : -INFINITY;
+                mx = fmaxf(mx, x[i]);
+            }
+            mx = fmaxf(mx, __shfl_xor(mx, 16));
+            // lazy rescale: the reference max moves only when a row's max passes it by 8 (P stays <= 2^8 in FP16)
+            if (__any(mx > m + 8.0f)) {
+                const float mn = fmaxf(m, mx), alpha = m == -INFINITY ? 0.0f : exp2f(m - mn);
+                m = mn;
+                l *= alpha;
+#pragma unroll
+                for (int dt = 0; dt < DT; ++dt) o[dt] *= alpha;
+            }
+            fa_h8 p;
+#pragma unroll
+            for (int i = 0; i < 8; ++i) {
+                const float e = exp2f(x[i] - m);
+                l += e;
+                p[i] = (_Float16) e;
+            }
+            // O^T += V^T P^T: the 16 dim tiles, the half's 16 cells as k
+#pragma unroll
+            for (int dt = 0; dt < DT; ++dt)
+                o[dt] = fa_wmma(*reinterpret_cast<const fa_h8*>(svt + (dt * 16 + col) * kFaVs + s0 + half * 8), p,
+                                o[dt]);
+        }
+        __syncthreads();
+    }
+    l += __shfl_xor(l, 16);
+    if (t >= T) return;
+    const float inv = 1.0f / l;
+#pragma unroll
+    for (int dt = 0; dt < DT; ++dt) {
+        const size_t base = ((size_t) t * H + h) * HD + dt * 16 + half * 8;
+#pragma unroll
+        for (int i = 0; i < 8; ++i) out[base + i] = o[dt][i] * inv * sigm(gate[base + i]);
+    }
+}
+#endif
 
 /// att *= sigmoid(gate) (the attention output gate), n values.
 __global__ void k_gate_mul(float* att, const float* gate, int64_t n) {
@@ -1522,6 +1685,7 @@ struct Engine {
     std::string dense_physical_device;
     bool dense_head_reuse = false;
     bool dense_attention_lt = false;
+    bool dense_attention_fused = false;   // STRATA_Q35_ATTN_FUSED=1: prompt attention in one kernel (gfx12)
     bool dense_token_loan = false;
     bool dense_prefill_loan = false, dense_prefill_live = true;
     uint8_t* weight_scratch = nullptr;
@@ -1823,6 +1987,20 @@ struct Engine {
         if (dense_attention_lt && (!dense_head_reuse || !model.adaptive_dense)) {
             std::fprintf(stderr, "strata-q35: attention LT requires adaptive dense head reuse\n"); std::exit(2);
         }
+        if (const char* fused = std::getenv("STRATA_Q35_ATTN_FUSED"); fused && std::strcmp(fused, "1") == 0) {
+#if defined(__HIP_PLATFORM_AMD__)
+            int dev = 0;
+            cudaDeviceProp prop{};
+            const bool gfx12 = cudaGetDevice(&dev) == cudaSuccess && cudaGetDeviceProperties(&prop, dev) == cudaSuccess &&
+                               strata::kernels::gfx_arch_is_gfx12_wmma(prop.gcnArchName);
+            dense_attention_fused = gfx12 && dense && kv_i8 && g.head_dim == 256 && g.n_head % g.n_head_kv == 0 &&
+                                    g.n_head / g.n_head_kv <= 8;
+#endif
+            std::fprintf(stderr, dense_attention_fused
+                                     ? "strata-q35: prompt attention in one kernel (gfx12 matrix cores)\n"
+                                     : "strata-q35: STRATA_Q35_ATTN_FUSED needs a dense model with int8 KV, head dim 256 "
+                                       "and a gfx12 GPU; prompt attention stays on the GEMM path\n");
+        }
         const char* loan = std::getenv("STRATA_Q35_PREFILL_LOAN");
         dense_prefill_loan = model.adaptive_dense && dense_head_reuse && loan && std::strcmp(loan,"1")==0;
         const char* token_loan = std::getenv("STRATA_Q35_TOKEN_BUFFER_LOAN");
@@ -1869,17 +2047,19 @@ struct Engine {
                 std::fprintf(stderr, "strata-q35: cannot bound the attention BLAS workspace\n"); std::exit(1);
             }
         }
-        att_s = dalloc(kAttScoreFloats);
         sk_part = dalloc((size_t) kSplitK * T * (dense ? std::max<int64_t>(1, g.ssm_v_heads) : g.n_expert + 1));
-        att_p16 = dalloc_t<__half>(kAttScoreFloats);
-        if (!kv_f16) {
-            const size_t heads = dense_head_reuse ? 1 : (size_t) g.n_head_kv;
-            const size_t cells = dense_head_reuse && model.adaptive_dense ? cache_stride : ctx;
-            k16 = dalloc_t<__half>(heads * cells * g.head_dim);
-            v16 = dalloc_t<__half>(heads * cells * g.head_dim);
-            if (dense_head_reuse) std::fprintf(stderr, "strata-q35: prefill attention reuses one KV-head scratch pair\n");
+        if (!dense_attention_fused) {   // the GEMM prompt attention's buffers (the fused kernel needs none of them)
+            att_s = dalloc(kAttScoreFloats);
+            att_p16 = dalloc_t<__half>(kAttScoreFloats);
+            if (!kv_f16) {
+                const size_t heads = dense_head_reuse ? 1 : (size_t) g.n_head_kv;
+                const size_t cells = dense_head_reuse && model.adaptive_dense ? cache_stride : ctx;
+                k16 = dalloc_t<__half>(heads * cells * g.head_dim);
+                v16 = dalloc_t<__half>(heads * cells * g.head_dim);
+                if (dense_head_reuse) std::fprintf(stderr, "strata-q35: prefill attention reuses one KV-head scratch pair\n");
+            }
+            q16 = dalloc_t<__half>(T * g.n_head * g.head_dim);
         }
-        q16 = dalloc_t<__half>(T * g.n_head * g.head_dim);
         use_mmq = !dense && MMQ::built() && std::getenv("STRATA_Q36_NO_MMQ") == nullptr;
         auto mmq_ok = [&](const Layer& L) {
             return MMQ::supported(L.L.gu_type) && MMQ::supported(L.L.d_type) && MMQ::fits(L.L.gu_type, 2 * g.n_ff) &&
@@ -2072,13 +2252,17 @@ struct Engine {
 
     void prepare_dense_prefill() {
         if (!dense_prefill_loan || dense_prefill_live) return;
-        const size_t kv_bytes = 2 * (size_t) cache_stride * m->g.head_dim * sizeof(__half);
-        trim_dense_weights(dense_reserve + kv_bytes + kAttScoreFloats * 6 +
+        // the fused prompt attention reads the int8 cache itself: no FP16 KV pair, scores or probabilities
+        const size_t kv_bytes = dense_attention_fused ? 0 : 2 * (size_t) cache_stride * m->g.head_dim * sizeof(__half);
+        const size_t score_bytes = dense_attention_fused ? 0 : kAttScoreFloats * 6;
+        trim_dense_weights(dense_reserve + kv_bytes + score_bytes +
                            (size_t) gemm_scratch_elems * 2 + dense_token_loan_bytes() + (128u << 20));
         resize_dense_token_buffers(true);
-        k16=dalloc_t<__half>((size_t)cache_stride*m->g.head_dim);
-        v16=dalloc_t<__half>((size_t)cache_stride*m->g.head_dim);
-        att_s=dalloc(kAttScoreFloats); att_p16=dalloc_t<__half>(kAttScoreFloats);
+        if (!dense_attention_fused) {
+            k16=dalloc_t<__half>((size_t)cache_stride*m->g.head_dim);
+            v16=dalloc_t<__half>((size_t)cache_stride*m->g.head_dim);
+            att_s=dalloc(kAttScoreFloats); att_p16=dalloc_t<__half>(kAttScoreFloats);
+        }
         gemm=std::make_unique<strata::prefill::Gemm>();
         std::string err;
         if(!gemm->init(st,gemm_scratch_elems,err)){std::fprintf(stderr,"strata-q35: %s\n",err.c_str());std::exit(1);}
@@ -2262,7 +2446,7 @@ struct Engine {
         }
         sess[(size_t) cur].kc = kc;
         sess[(size_t) cur].vc = vc;
-        if (dense_head_reuse && dense_prefill_live) {
+        if (dense_head_reuse && dense_prefill_live && !dense_attention_fused) {
             const size_t bytes = (size_t) cache_stride * width * sizeof(__half);
             free_dense_allocation(k16, bytes); free_dense_allocation(v16, bytes);
             k16 = dalloc_t<__half>((size_t) next * width);
@@ -2289,7 +2473,7 @@ struct Engine {
             const size_t per_row = (size_t) m->g.n_head_kv * m->g.head_dim;
             growth = 2 * layers * per_row * (next - cache_stride) + per_row * next;
             if (dense_head_reuse) {
-                if(dense_prefill_live)growth+=2*(size_t)m->g.head_dim*sizeof(__half)*(next-cache_stride);
+                if(dense_prefill_live && !dense_attention_fused)growth+=2*(size_t)m->g.head_dim*sizeof(__half)*(next-cache_stride);
                 growth+=(size_t)att_rows*(m->g.head_dim+2)*4*((next+kChunkCells-1)/kChunkCells-n_chunk);
             }
         }
@@ -2782,8 +2966,21 @@ struct Engine {
         }
     }
 
+    void attention_fused(size_t li, int T, int64_t p0, int H, int HKV, int HD) {
+#if defined(__HIP_PLATFORM_AMD__)
+        k_attn_prompt_wmma<<<dim3((T + 15) / 16, HKV), 32 * (H / HKV), 0, st>>>(
+            q, gate, att, reinterpret_cast<const int8_t*>(kc[li]), reinterpret_cast<const int8_t*>(vc[li]), kscale[li],
+            vscale[li], T, (int) p0, H, cache_stride, ctx, 1.4426950408889634f / sqrtf((float) HD));
+#else
+        (void) li; (void) T; (void) p0; (void) H; (void) HKV; (void) HD;
+        std::fprintf(stderr, "strata-q35: the fused prompt attention is a HIP (gfx12) kernel\n");
+        std::exit(1);
+#endif
+    }
+
     bool test_attention_heads() {
-        if (!kv_i8 || !dense_head_reuse || ctx < 4096 || tmax < 512 || !m->adaptive_dense) return false;
+        if (!kv_i8 || !dense_head_reuse || dense_attention_fused || ctx < 4096 || tmax < 512 || !m->adaptive_dense)
+            return false;
         const int H = (int) m->g.n_head, HKV = (int) m->g.n_head_kv, HD = (int) m->g.head_dim, T = 512;
         size_t li = 0; while (li < kc.size() && !kc[li]) ++li;
         if (li == kc.size()) return false;
@@ -2838,6 +3035,123 @@ struct Engine {
             if(max_error>2e-5 || relative>5e-4) return false;
         }
         return true;
+    }
+
+    /// --test-dense-fused-attention (STRATA_Q35_ATTN_FUSED=1): k_attn_prompt_wmma, attention_per_head and
+    /// attention_all_heads on random int8 caches, a 512-row chunk ending at cell P, queries at three scales (flat to sharp
+    /// softmax); each path's rows 0, 255 and 511 against an FP64 reference (relative L2 over every head and dim), and the
+    /// timings.  The fused path must be no further from the reference than attention_per_head, or within 5e-4.
+    bool test_attention_fused() {
+        if (!dense_attention_fused || ctx < 4096 || tmax < 512 || !m->adaptive_dense) return false;
+        const int H = (int) m->g.n_head, HKV = (int) m->g.n_head_kv, HD = (int) m->g.head_dim, T = 512, G = H / HKV;
+        size_t li = 0; while (li < kc.size() && !kc[li]) ++li;
+        if (li == kc.size()) return false;
+        // the GEMM paths' scores, probabilities and FP16 queries, which init leaves out when the fused path is on
+        const size_t q16_bytes = (size_t) tmax * H * HD * sizeof(__half);
+        trim_dense_weights(dense_reserve + kAttScoreFloats * 6 + q16_bytes);
+        att_s = dalloc(kAttScoreFloats);
+        att_p16 = dalloc_t<__half>(kAttScoreFloats);
+        q16 = dalloc_t<__half>((size_t) tmax * H * HD);
+        std::mt19937 rng(42);
+        const size_t count = (size_t) T * H * HD, row = (size_t) H * HD;
+        std::vector<float> base(count), queries(count), gates(count), result(count);
+        for (auto& x : base) x = (int(rng()%2001)-1000)/1000.f;
+        for (auto& x : gates) x = (int(rng()%2001)-1000)/1000.f;
+        CK(cudaMemcpy(gate,gates.data(),count*4,cudaMemcpyHostToDevice));
+        const int rows[3] = {0, T / 2 - 1, T - 1};
+        bool ok = true;
+        for (int P : {512, 1000, 4096, 16385, 65536, 131072}) {
+            if (P > ctx) continue;
+            ensure_dense_kv(P);
+            std::vector<int8_t> keys((size_t) HKV*P*HD), values(keys.size());
+            std::vector<float> kscales((size_t) HKV*P), vscales(kscales.size());
+            for (auto& x : keys) x = (int8_t)(int(rng()%255)-127);
+            for (auto& x : values) x = (int8_t)(int(rng()%255)-127);
+            for (auto& x : kscales) x = .008f + (rng()%101)/100000.f;
+            for (auto& x : vscales) x = .008f + (rng()%101)/100000.f;
+            for (int h = 0; h < HKV; ++h) {
+                CK(cudaMemcpy(reinterpret_cast<int8_t*>(kc[li])+(size_t)h*cache_stride*HD,keys.data()+(size_t)h*P*HD,(size_t)P*HD,cudaMemcpyHostToDevice));
+                CK(cudaMemcpy(reinterpret_cast<int8_t*>(vc[li])+(size_t)h*cache_stride*HD,values.data()+(size_t)h*P*HD,(size_t)P*HD,cudaMemcpyHostToDevice));
+                CK(cudaMemcpy(kscale[li]+(size_t)h*ctx,kscales.data()+(size_t)h*P,(size_t)P*4,cudaMemcpyHostToDevice));
+                CK(cudaMemcpy(vscale[li]+(size_t)h*ctx,vscales.data()+(size_t)h*P,(size_t)P*4,cudaMemcpyHostToDevice));
+            }
+            const size_t bytes=(size_t) HKV*P*HD*sizeof(__half), head_bytes=(size_t) cache_stride*HD*sizeof(__half);
+            trim_dense_weights(dense_reserve+2*bytes+2*head_bytes);
+            __half *all_k=nullptr,*all_v=nullptr;
+            CK(cudaMalloc(&all_k,bytes)); CK(cudaMalloc(&all_v,bytes));
+            __half* head_k = dalloc_t<__half>((size_t) cache_stride * HD);   // attention_per_head's one KV-head pair
+            __half* head_v = dalloc_t<__half>((size_t) cache_stride * HD);
+            cudaEvent_t start,end; CK(cudaEventCreate(&start)); CK(cudaEventCreate(&end));
+            for (float qs : {1.0f, 8.0f, 24.0f}) {
+                for (size_t i = 0; i < count; ++i) queries[i] = base[i] * qs;
+                CK(cudaMemcpy(q,queries.data(),count*4,cudaMemcpyHostToDevice));
+                std::vector<double> ref((size_t) 3 * row, 0.0);
+                for (int r = 0; r < 3; ++r) {
+                    for (int hq = 0; hq < H; ++hq) {
+                        const int t = rows[r], kvh = hq / G, n = P - T + t + 1;
+                        const float* qq = queries.data() + (size_t) t * row + (size_t) hq * HD;
+                        std::vector<double> sc((size_t) n);
+                        double mx = -1e300, sum = 0;
+                        for (int c = 0; c < n; ++c) {
+                            const int8_t* kk = keys.data() + ((size_t) kvh * P + c) * HD;
+                            double a = 0;
+                            for (int d = 0; d < HD; ++d) a += (double) qq[d] * kk[d];
+                            sc[(size_t) c] = a * kscales[(size_t) kvh * P + c] / std::sqrt((double) HD);
+                            mx = std::max(mx, sc[(size_t) c]);
+                        }
+                        for (auto& v : sc) { v = std::exp(v - mx); sum += v; }
+                        double* o = ref.data() + (size_t) r * row + (size_t) hq * HD;
+                        for (int c = 0; c < n; ++c) {
+                            const double w = sc[(size_t) c] / sum * vscales[(size_t) kvh * P + c];
+                            const int8_t* vv = values.data() + ((size_t) kvh * P + c) * HD;
+                            for (int d = 0; d < HD; ++d) o[d] += w * vv[d];
+                        }
+                        const float* gg = gates.data() + (size_t) t * row + (size_t) hq * HD;
+                        for (int d = 0; d < HD; ++d) o[d] /= 1.0 + std::exp(-(double) gg[d]);
+                    }
+                }
+                float ms[3]{};
+                double err[3]{};
+                for (int mode = 0; mode < 3; ++mode) {
+                    k16 = mode == 0 ? all_k : head_k; v16 = mode == 0 ? all_v : head_v;
+                    auto run = [&] {
+                        if (mode == 0) attention_all_heads(li,T,P-T,H,HKV,HD);
+                        else if (mode == 1) attention_per_head(li,T,P-T,H,HKV,HD);
+                        else attention_fused(li,T,P-T,H,HKV,HD);
+                    };
+                    CK(cudaMemsetAsync(att, 0xff, count*4, st));   // NaN: a value a path leaves unwritten fails
+                    run(); CK(cudaStreamSynchronize(st));
+                    CK(cudaMemcpy(result.data(),att,count*4,cudaMemcpyDeviceToHost));
+                    double e2 = 0, n2 = 0;
+                    for (float v : result) if (!std::isfinite(v)) e2 = INFINITY;
+                    for (int r = 0; r < 3; ++r) {
+                        for (size_t j = 0; j < row; ++j) {
+                            const double x = result[(size_t) rows[r] * row + j], y = ref[(size_t) r * row + j];
+                            e2 += (x - y) * (x - y);
+                            n2 += y * y;
+                        }
+                    }
+                    err[mode] = std::sqrt(e2 / std::max(n2, 1e-30));
+                    CK(cudaEventRecord(start,st));
+                    for(int repeat=0;repeat<3;++repeat) run();
+                    CK(cudaEventRecord(end,st)); CK(cudaEventSynchronize(end));
+                    CK(cudaEventElapsedTime(&ms[mode],start,end)); ms[mode]/=3;
+                }
+                k16 = nullptr; v16 = nullptr;
+                const bool pass = err[2] <= std::max(err[1], 5e-4);
+                std::fprintf(stderr, "FUSED_ATTENTION_TEST P=%d T=%d qscale=%.0f all_ms=%.4f head_ms=%.4f fused_ms=%.4f "
+                             "err_all=%.3g err_head=%.3g err_fused=%.3g %s\n", P, T, qs, ms[0], ms[1], ms[2], err[0], err[1],
+                             err[2], pass ? "ok" : "FAIL");
+                ok = ok && pass;
+            }
+            CK(cudaEventDestroy(start)); CK(cudaEventDestroy(end));
+            free_dense_allocation(all_k,bytes); free_dense_allocation(all_v,bytes);
+            free_dense_allocation(head_k,head_bytes); free_dense_allocation(head_v,head_bytes);
+        }
+        free_dense_allocation(att_s,kAttScoreFloats*4); free_dense_allocation(att_p16,kAttScoreFloats*2);
+        free_dense_allocation(q16,q16_bytes);
+        att_s=nullptr; att_p16=nullptr; q16=nullptr;
+        return ok;
     }
 
     /// --test-dense-decode-attention: k_attn_gqa_part against k_attn_part on random int8 caches, every window up to
@@ -2996,7 +3310,9 @@ struct Engine {
             if (kv_i8) prep_cache(reinterpret_cast<int8_t*>(kc[li]), reinterpret_cast<int8_t*>(vc[li]));
             else if (kv_f16) prep_cache(reinterpret_cast<__half*>(kc[li]), reinterpret_cast<__half*>(vc[li]));
             else prep_cache(kc[li], vc[li]);
-            if (T > kGemmT && dense_head_reuse) {
+            if (T > kGemmT && dense_attention_fused) {
+                attention_fused(li, T, p0, H, HKV, HD);
+            } else if (T > kGemmT && dense_head_reuse) {
                 attention_per_head(li, T, p0, H, HKV, HD);
             } else if (T > kGemmT) {
                 attention_all_heads(li, T, p0, H, HKV, HD);
@@ -4861,6 +5177,7 @@ int strata::qwen35::run(int argc, char** argv) {
     int ctx = 32768, chunk = 0, n_gen = 64, bench_pp = 0, bench_tg = 0, mtp_d = 0, cpu_threads = 0, hybrid_rows = 128;
     double expert_vram = -1.0;
     bool warm = true, test_cache_cycle = false, test_attention_heads = false, test_decode_attention = false;
+    bool test_attention_fused = false;
     int expert_slots = 0, batch = 0, draft_vocab = -1;
     bool serve_mode = false, graph = true, vision = false, batch_mtp = false;
     for (int i = 1; i < argc; ++i) {
@@ -4890,6 +5207,7 @@ int strata::qwen35::run(int argc, char** argv) {
         else if (a == "--no-warmup") warm = false;
         else if (a == "--test-dense-cache-cycle") test_cache_cycle = true;
         else if (a == "--test-dense-attention-heads") test_attention_heads = true;
+        else if (a == "--test-dense-fused-attention") test_attention_fused = true;
         else if (a == "--test-dense-decode-attention") test_decode_attention = true;
         else if (a == "--mtp") {
             // a number of drafts; Flash-Next's "--mtp <draft layer dir>" means nothing for this family
@@ -5022,6 +5340,7 @@ int strata::qwen35::run(int argc, char** argv) {
     E.bmtp = (batch_mtp || (std::getenv("STRATA_BATCH_MTP") != nullptr && std::string(std::getenv("STRATA_BATCH_MTP")) != "0")) && E.n_sess > 1 && E.mtp_d > 0;
     if (batch_mtp && !E.bmtp) std::fprintf(stderr, "strata-q36: --batch-mtp needs --batch N (2 or more) and --mtp N: ignored\n");
     if (test_attention_heads) return E.test_attention_heads() ? 0 : 1;
+    if (test_attention_fused) return E.test_attention_fused() ? 0 : 1;
     if (test_decode_attention) return E.test_decode_attention() ? 0 : 1;
     if (test_cache_cycle) {
         if (!m.adaptive_dense) { std::fprintf(stderr,"strata-q35: cache cycle test needs adaptive dense mode\n"); return 2; }
