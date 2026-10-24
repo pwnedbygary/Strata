@@ -417,7 +417,14 @@ bool dequant_bf16_supported(int ggml_type) noexcept {
 
 namespace {
 // plan v0.3 P6: the i-quant formats (llama.cpp's dequantizers, iq_kernels.cu)
-bool iq_only(int t) { return t == 16 || t == 17 || t == 18 || t == 21 || t == 22 || t == 29; }
+bool iq_only(int t) { return t == 10 || t == 19 || t == 16 || t == 17 || t == 18 || t == 21 || t == 22 || t == 29; }
+// the dense path's Q2_K (84-byte blocks) and IQ1_S (50-byte blocks) are not prompt-path types, so iq_row_bytes
+// leaves them out
+size_t iq_rows_bytes(int t, int64_t rows, int64_t cols) {
+    const size_t per_row = t == 10 ? (size_t) (cols / 256) * 84 : t == 19 ? (size_t) (cols / 256) * 50
+                                                                          : iq_row_bytes(t, cols);
+    return (size_t) rows * per_row;
+}
 }  // namespace
 
 void dequant_bf16(int ggml_type, const void* blocks, int64_t row0, int64_t rows, int64_t cols, uint16_t* out,
@@ -428,8 +435,7 @@ void dequant_bf16(int ggml_type, const void* blocks, int64_t row0, int64_t rows,
 void dequant_f16(int ggml_type, const void* blocks, int64_t row0, int64_t rows, int64_t cols, uint16_t* out,
                  void* stream) {
     if (iq_only(ggml_type)) {
-        iq_dequant_f16(ggml_type, (const uint8_t*) blocks + (size_t) row0 * iq_row_bytes(ggml_type, cols), rows * cols,
-                       out, stream);
+        iq_dequant_f16(ggml_type, (const uint8_t*) blocks + iq_rows_bytes(ggml_type, row0, cols), rows * cols, out, stream);
         return;
     }
     launch<H16>(ggml_type, blocks, row0, rows, cols, reinterpret_cast<H16*>(out), stream);
@@ -446,8 +452,7 @@ bool dequant_f16_ld(int ggml_type, const void* blocks, int64_t row0, int64_t row
 
 void dequant_f32(int ggml_type, const void* blocks, int64_t row0, int64_t rows, int64_t cols, float* out, void* stream) {
     if (iq_only(ggml_type)) {
-        iq_dequant_f32(ggml_type, (const uint8_t*) blocks + (size_t) row0 * iq_row_bytes(ggml_type, cols), rows * cols,
-                       out, stream);
+        iq_dequant_f32(ggml_type, (const uint8_t*) blocks + iq_rows_bytes(ggml_type, row0, cols), rows * cols, out, stream);
         return;
     }
     launch<float>(ggml_type, blocks, row0, rows, cols, out, stream);

@@ -198,6 +198,10 @@ inline bool block_geometry(uint32_t t, int& elems, int& bytes) {
         elems = 256;
         bytes = 98;
         return true;
+    case 19:   // IQ1_S (dense compatibility converter; not a native expert kernel)
+        elems = 256;
+        bytes = 50;
+        return true;
     case 20:
         elems = 32;
         bytes = 18;
@@ -832,6 +836,20 @@ inline std::string check_architecture(const GgufFile& f) {
     if (!arch) return "missing general.architecture";
     const ModelFamily family = model_family_from_arch(arch->s);
     if (family == ModelFamily::Qwen35Moe) return check_architecture_qwen35moe(f);
+    if (family == ModelFamily::Qwen35Dense) {
+        const char* keys[] = {"block_count", "embedding_length", "feed_forward_length", "attention.head_count",
+            "attention.head_count_kv", "attention.key_length", "attention.value_length", "ssm.conv_kernel",
+            "ssm.state_size", "ssm.group_count", "ssm.time_step_rank", "ssm.inner_size", "full_attention_interval"};
+        for (const char* key : keys) {
+            const std::string name = std::string("qwen35.") + key;
+            const MetaValue* v = f.get(name);
+            if (!v || !v->is_num() || !v->u) return "missing, nonnumeric or zero " + name;
+        }
+        const MetaValue* mtp = f.get("qwen35.nextn_predict_layers");
+        if (mtp && (!mtp->is_num() || mtp->u > 1 || mtp->u >= f.get("qwen35.block_count")->u))
+            return "invalid qwen35.nextn_predict_layers";
+        return {};
+    }
     core::ModelGeometry g;   // anything else is refused by name by read_geometry
     std::string err = read_geometry(f, g);
     if (err.empty()) err = geometry_unsupported(g);

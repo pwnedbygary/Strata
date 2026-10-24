@@ -2920,6 +2920,32 @@ __device__ void dq_iq1_m(const void* vx, int64_t ibs, dst_t* yy, int tid) {
     grid32[0] &= 0x0f0f0f0f;
     for (int j = 0; j < 8; ++j) y[j] = cvt<dst_t>(d * (q[j] + delta));
 }
+
+// Dense compatibility formats, transcribed from pinned ggml dequantizers (MIT).
+template<typename dst_t>
+__device__ void dq_iq1_s(const void* vx, int64_t ibs, dst_t* yy, int tid) {
+    const block_iq1_s* x = (const block_iq1_s*) vx;
+    const int il = tid / 8, ib = tid % 8;
+    const float delta = x[ibs].qh[ib] & 0x8000 ? -1.f - IQ1S_DELTA : -1.f + IQ1S_DELTA;
+    const float d = (float) x[ibs].d * (2 * ((x[ibs].qh[ib] >> 12) & 7) + 1);
+    uint32_t grid[2];
+    grid[0] = iq1s_grid_gpu[x[ibs].qs[4 * ib + il] | (((x[ibs].qh[ib] >> (3 * il)) & 7) << 8)];
+    grid[1] = (grid[0] >> 4) & 0x0f0f0f0f;
+    grid[0] &= 0x0f0f0f0f;
+    const int8_t* values = (const int8_t*) grid;
+    for (int j = 0; j < 8; ++j) yy[32 * ib + 8 * il + j] = cvt<dst_t>(d * (values[j] + delta));
+}
+template<typename dst_t>
+__device__ void dq_q2_k(const void* vx, int64_t ibs, dst_t* yy, int tid) {
+    const block_q2_K& x = ((const block_q2_K*) vx)[ibs];
+    const float d = __low2float(x.dm), dm = __high2float(x.dm);
+    for (int j = tid; j < 256; j += 32) {
+        const int local = j % 128;
+        const int code = (x.qs[(j / 128) * 32 + local % 32] >> (2 * (local / 32))) & 3;
+        const uint8_t scale = x.scales[j / 16];
+        yy[j] = cvt<dst_t>(d * (scale & 15) * code - dm * (scale >> 4));
+    }
+}
 template<typename dst_t>
 __device__ void dq_iq4_nl(const void* vx, int64_t ibs, dst_t* yy, int tid) {
     const block_iq4_nl* x = (const block_iq4_nl*) vx + ibs * (QK_K / QK4_NL);
@@ -3178,6 +3204,8 @@ __device__ __forceinline__ void dq_dispatch(int ty, const void* vx, int64_t ibs,
         case 16: dq_iq2_xxs(vx, ibs, y, tid); break;
         case 17: dq_iq2_xs(vx, ibs, y, tid); break;
         case 18: dq_iq3_xxs(vx, ibs, y, tid); break;
+        case 10: dq_q2_k(vx, ibs, y, tid); break;
+        case 19: dq_iq1_s(vx, ibs, y, tid); break;
         case 20: dq_iq4_nl(vx, ibs, y, tid); break;
         case 21: dq_iq3_s(vx, ibs, y, tid); break;
         case 22: dq_iq2_s(vx, ibs, y, tid); break;
@@ -3200,6 +3228,42 @@ __device__ __forceinline__ void dq_dispatch(int ty, const void* vx, int64_t ibs,
         case 146: dq_tq<146>(vx, ibs, y, tid); break;
         default: break;
     }
+}
+
+template<int Type>
+__global__ void dense_lowbit_kernel(const uint8_t* weights, const block_q8_1* xq,
+                                    float* out, int n_in, int n_out, size_t row_bytes) {
+    const int warp = threadIdx.x / 32, lane = threadIdx.x % 32;
+    const int row = blockIdx.x * 8 + warp, col = blockIdx.y;
+    if (row >= n_out) return;
+    const uint8_t* w = weights + (size_t) row * row_bytes;
+    const block_q8_1* x = xq + (size_t) col * (n_in / 32);
+    float sum = 0.f;
+    for (int b = 0; b < n_in / 256; ++b) {
+#pragma unroll
+        for (int k = 0; k < 8; ++k) {
+            const int i = lane + 32 * k;
+            const block_q8_1& act = x[8 * b + k];
+            float value;
+            if constexpr (Type == 10) {
+                const block_q2_K& q = ((const block_q2_K*) w)[b];
+                const int code = (q.qs[(i / 128) * 32 + i % 32] >> (2 * ((i % 128) / 32))) & 3;
+                const uint8_t scale = q.scales[i / 16];
+                value = __low2float(q.dm) * (scale & 15) * code - __high2float(q.dm) * (scale >> 4);
+            } else {
+                const block_iq1_s& q = ((const block_iq1_s*) w)[b];
+                const int il = lane / 8, j = lane % 8;
+                const uint16_t high = q.qh[k];
+                const uint32_t grid = iq1s_grid_gpu[q.qs[4 * k + il] | (((high >> (3 * il)) & 7) << 8)];
+                const int code = (grid >> ((j % 4) * 8 + (j / 4) * 4)) & 15;
+                const float delta = high & 0x8000 ? -1.f - IQ1S_DELTA : -1.f + IQ1S_DELTA;
+                value = (float) q.d * (2 * ((high >> 12) & 7) + 1) * (code + delta);
+            }
+            sum += value * (__low2float(act.ds) * act.qs[lane]);
+        }
+    }
+    for (int shift = 16; shift; shift >>= 1) sum += __shfl_down_sync(0xffffffffu, sum, shift);
+    if (!lane) out[(size_t) col * n_out + row] = sum;
 }
 
 // flat: superblock i -> y + 256 i
@@ -4174,6 +4238,18 @@ void iq_set_old_kernels(bool old) { g_old_kernels = old; }
 bool iq_old_kernels() { return g_old_kernels; }
 
 bool iq_supported(int t) noexcept { return is_iq(t); }
+void dense_lowbit_mmvq(int type, const void* w, const void* x, float* y,
+                       int n_in, int n_out, int ncols, void* stream) {
+    if ((type != 10 && type != 19) || n_in <= 0 || n_in % 256 || n_out <= 0 || ncols < 1 || ncols > 8 || !w || !x || !y) {
+        std::fprintf(stderr, "dense_lowbit_mmvq: unsupported type or shape\n"); std::exit(1);
+    }
+    const size_t row = (size_t) (n_in / 256) * (type == 10 ? sizeof(block_q2_K) : sizeof(block_iq1_s));
+    if (type == 10) dense_lowbit_kernel<10><<<dim3((n_out + 7) / 8, ncols), 256, 0, (cudaStream_t) stream>>>(
+        (const uint8_t*) w, (const block_q8_1*) x, y, n_in, n_out, row);
+    else dense_lowbit_kernel<19><<<dim3((n_out + 7) / 8, ncols), 256, 0, (cudaStream_t) stream>>>(
+        (const uint8_t*) w, (const block_q8_1*) x, y, n_in, n_out, row);
+    check("dense_lowbit_mmvq");
+}
 // BF16 and Q6_K: embedding only (dq_dispatch has them; no expert or prompt-path kernels take them)
 bool embed_type_supported(int t) noexcept { return is_iq(t) || t == 30 || t == 14; }
 
@@ -4228,7 +4304,7 @@ void iq_mmvq(int t, const void* w, const void* x_q8_1, float* y, int n_in, int n
 }
 
 void iq_dequant_f16(int t, const void* src, int64_t n, uint16_t* dst, void* stream, const float* scale) {
-    if (n % 256 != 0 || !is_iq(t)) { std::fprintf(stderr, "iq_dequant_f16: bad arguments\n"); std::exit(1); }
+    if (n % 256 != 0 || (!is_iq(t) && t != 10 && t != 19)) { std::fprintf(stderr, "iq_dequant_f16: bad arguments\n"); std::exit(1); }
     dequant_flat_kernel<__half><<<(unsigned) (n / 256), 32, 0, (cudaStream_t) stream>>>(t, src, (__half*) dst, scale);
     check("iq_dequant_f16");
 }
@@ -4253,7 +4329,7 @@ void iq_embed_rows(int t, const void* table, size_t row_bytes, const int32_t* to
 }
 
 void iq_dequant_f32(int t, const void* src, int64_t n, float* dst, void* stream) {
-    if (n % 256 != 0 || !embed_type_supported(t)) { std::fprintf(stderr, "iq_dequant_f32: bad arguments\n"); std::exit(1); }
+    if (n % 256 != 0 || (!embed_type_supported(t) && t != 10 && t != 19)) { std::fprintf(stderr, "iq_dequant_f32: bad arguments\n"); std::exit(1); }
     dequant_flat_kernel<float><<<(unsigned) (n / 256), 32, 0, (cudaStream_t) stream>>>(t, src, dst, nullptr);
     check("iq_dequant_f32");
 }
