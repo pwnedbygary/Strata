@@ -418,8 +418,8 @@ bool dequant_bf16_supported(int ggml_type) noexcept {
 namespace {
 // plan v0.3 P6: the i-quant formats (llama.cpp's dequantizers, iq_kernels.cu)
 bool iq_only(int t) { return t == 10 || t == 19 || t == 16 || t == 17 || t == 18 || t == 21 || t == 22 || t == 29; }
-// the dense path's Q2_K (84-byte blocks) and IQ1_S (50-byte blocks) are not prompt-path types, so iq_row_bytes
-// leaves them out
+// Q2_K (84-byte blocks) and IQ1_S (50-byte blocks), dense weights only, keep iq_row_bytes at 0: Flash-Next's prefill
+// gates take a row size there to mean a supported gate / up type
 size_t iq_rows_bytes(int t, int64_t rows, int64_t cols) {
     const size_t per_row = t == 10 ? (size_t) (cols / 256) * 84 : t == 19 ? (size_t) (cols / 256) * 50
                                                                           : iq_row_bytes(t, cols);
