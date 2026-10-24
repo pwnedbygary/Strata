@@ -1998,8 +1998,9 @@ struct Engine {
 #endif
             std::fprintf(stderr, dense_attention_fused
                                      ? "strata-q35: prompt attention in one kernel (gfx12 matrix cores)\n"
-                                     : "strata-q35: STRATA_Q35_ATTN_FUSED needs a dense model with int8 KV, head dim 256 "
-                                       "and a gfx12 GPU; prompt attention stays on the GEMM path\n");
+                                     : "strata-q35: STRATA_Q35_ATTN_FUSED needs a gfx12 GPU and a dense model with int8 KV, "
+                                       "head dim 256 and at most 8 query heads per KV head; prompt attention stays on the "
+                                       "GEMM path\n");
         }
         const char* loan = std::getenv("STRATA_Q35_PREFILL_LOAN");
         dense_prefill_loan = model.adaptive_dense && dense_head_reuse && loan && std::strcmp(loan,"1")==0;
@@ -3038,12 +3039,17 @@ struct Engine {
     }
 
     /// --test-dense-fused-attention (STRATA_Q35_ATTN_FUSED=1): k_attn_prompt_wmma, attention_per_head and
-    /// attention_all_heads on random int8 caches, a 512-row chunk ending at cell P, queries at three scales (flat to sharp
-    /// softmax); each path's rows 0, 255 and 511 against an FP64 reference (relative L2 over every head and dim), and the
-    /// timings.  The fused path must be no further from the reference than attention_per_head, or within 5e-4.
+    /// attention_all_heads on random int8 caches, chunks of 512 rows (whole 16-row blocks) and 509 (a partial last block)
+    /// ending at cell P, queries at three scales (flat to sharp softmax); each path's first, middle and last rows against
+    /// an FP64 reference (relative L2 over every head and dim), and the timings.  The fused path must be no further from
+    /// the reference than attention_per_head (itself finite), or within 5e-4.
     bool test_attention_fused() {
-        if (!dense_attention_fused || ctx < 4096 || tmax < 512 || !m->adaptive_dense) return false;
-        const int H = (int) m->g.n_head, HKV = (int) m->g.n_head_kv, HD = (int) m->g.head_dim, T = 512, G = H / HKV;
+        if (!dense_attention_fused || ctx < 4096 || tmax < 512 || !m->adaptive_dense) {
+            std::fprintf(stderr, "strata-q35: the fused attention test needs STRATA_Q35_ATTN_FUSED=1 (gfx12, dense int8 KV), "
+                         "STRATA_Q35_ADAPTIVE_WEIGHTS=1, --max-context of 4096 or more and --prefill of 512 or more\n");
+            return false;
+        }
+        const int H = (int) m->g.n_head, HKV = (int) m->g.n_head_kv, HD = (int) m->g.head_dim, G = H / HKV;
         size_t li = 0; while (li < kc.size() && !kc[li]) ++li;
         if (li == kc.size()) return false;
         // the GEMM paths' scores, probabilities and FP16 queries, which init leaves out when the fused path is on
@@ -3053,12 +3059,11 @@ struct Engine {
         att_p16 = dalloc_t<__half>(kAttScoreFloats);
         q16 = dalloc_t<__half>((size_t) tmax * H * HD);
         std::mt19937 rng(42);
-        const size_t count = (size_t) T * H * HD, row = (size_t) H * HD;
+        const size_t row = (size_t) H * HD, count = (size_t) 512 * row;
         std::vector<float> base(count), queries(count), gates(count), result(count);
         for (auto& x : base) x = (int(rng()%2001)-1000)/1000.f;
         for (auto& x : gates) x = (int(rng()%2001)-1000)/1000.f;
         CK(cudaMemcpy(gate,gates.data(),count*4,cudaMemcpyHostToDevice));
-        const int rows[3] = {0, T / 2 - 1, T - 1};
         bool ok = true;
         for (int P : {512, 1000, 4096, 16385, 65536, 131072}) {
             if (P > ctx) continue;
@@ -3085,64 +3090,68 @@ struct Engine {
             for (float qs : {1.0f, 8.0f, 24.0f}) {
                 for (size_t i = 0; i < count; ++i) queries[i] = base[i] * qs;
                 CK(cudaMemcpy(q,queries.data(),count*4,cudaMemcpyHostToDevice));
-                std::vector<double> ref((size_t) 3 * row, 0.0);
-                for (int r = 0; r < 3; ++r) {
-                    for (int hq = 0; hq < H; ++hq) {
-                        const int t = rows[r], kvh = hq / G, n = P - T + t + 1;
-                        const float* qq = queries.data() + (size_t) t * row + (size_t) hq * HD;
-                        std::vector<double> sc((size_t) n);
-                        double mx = -1e300, sum = 0;
-                        for (int c = 0; c < n; ++c) {
-                            const int8_t* kk = keys.data() + ((size_t) kvh * P + c) * HD;
-                            double a = 0;
-                            for (int d = 0; d < HD; ++d) a += (double) qq[d] * kk[d];
-                            sc[(size_t) c] = a * kscales[(size_t) kvh * P + c] / std::sqrt((double) HD);
-                            mx = std::max(mx, sc[(size_t) c]);
-                        }
-                        for (auto& v : sc) { v = std::exp(v - mx); sum += v; }
-                        double* o = ref.data() + (size_t) r * row + (size_t) hq * HD;
-                        for (int c = 0; c < n; ++c) {
-                            const double w = sc[(size_t) c] / sum * vscales[(size_t) kvh * P + c];
-                            const int8_t* vv = values.data() + ((size_t) kvh * P + c) * HD;
-                            for (int d = 0; d < HD; ++d) o[d] += w * vv[d];
-                        }
-                        const float* gg = gates.data() + (size_t) t * row + (size_t) hq * HD;
-                        for (int d = 0; d < HD; ++d) o[d] /= 1.0 + std::exp(-(double) gg[d]);
-                    }
-                }
-                float ms[3]{};
-                double err[3]{};
-                for (int mode = 0; mode < 3; ++mode) {
-                    k16 = mode == 0 ? all_k : head_k; v16 = mode == 0 ? all_v : head_v;
-                    auto run = [&] {
-                        if (mode == 0) attention_all_heads(li,T,P-T,H,HKV,HD);
-                        else if (mode == 1) attention_per_head(li,T,P-T,H,HKV,HD);
-                        else attention_fused(li,T,P-T,H,HKV,HD);
-                    };
-                    CK(cudaMemsetAsync(att, 0xff, count*4, st));   // NaN: a value a path leaves unwritten fails
-                    run(); CK(cudaStreamSynchronize(st));
-                    CK(cudaMemcpy(result.data(),att,count*4,cudaMemcpyDeviceToHost));
-                    double e2 = 0, n2 = 0;
-                    for (float v : result) if (!std::isfinite(v)) e2 = INFINITY;
+                for (int T : {512, 509}) {
+                    const int rows[3] = {0, T / 2 - 1, T - 1};
+                    const size_t used = (size_t) T * row;
+                    std::vector<double> ref((size_t) 3 * row, 0.0);
                     for (int r = 0; r < 3; ++r) {
-                        for (size_t j = 0; j < row; ++j) {
-                            const double x = result[(size_t) rows[r] * row + j], y = ref[(size_t) r * row + j];
-                            e2 += (x - y) * (x - y);
-                            n2 += y * y;
+                        for (int hq = 0; hq < H; ++hq) {
+                            const int t = rows[r], kvh = hq / G, n = P - T + t + 1;
+                            const float* qq = queries.data() + (size_t) t * row + (size_t) hq * HD;
+                            std::vector<double> sc((size_t) n);
+                            double mx = -1e300, sum = 0;
+                            for (int c = 0; c < n; ++c) {
+                                const int8_t* kk = keys.data() + ((size_t) kvh * P + c) * HD;
+                                double a = 0;
+                                for (int d = 0; d < HD; ++d) a += (double) qq[d] * kk[d];
+                                sc[(size_t) c] = a * kscales[(size_t) kvh * P + c] / std::sqrt((double) HD);
+                                mx = std::max(mx, sc[(size_t) c]);
+                            }
+                            for (auto& v : sc) { v = std::exp(v - mx); sum += v; }
+                            double* o = ref.data() + (size_t) r * row + (size_t) hq * HD;
+                            for (int c = 0; c < n; ++c) {
+                                const double w = sc[(size_t) c] / sum * vscales[(size_t) kvh * P + c];
+                                const int8_t* vv = values.data() + ((size_t) kvh * P + c) * HD;
+                                for (int d = 0; d < HD; ++d) o[d] += w * vv[d];
+                            }
+                            const float* gg = gates.data() + (size_t) t * row + (size_t) hq * HD;
+                            for (int d = 0; d < HD; ++d) o[d] /= 1.0 + std::exp(-(double) gg[d]);
                         }
                     }
-                    err[mode] = std::sqrt(e2 / std::max(n2, 1e-30));
-                    CK(cudaEventRecord(start,st));
-                    for(int repeat=0;repeat<3;++repeat) run();
-                    CK(cudaEventRecord(end,st)); CK(cudaEventSynchronize(end));
-                    CK(cudaEventElapsedTime(&ms[mode],start,end)); ms[mode]/=3;
+                    float ms[3]{};
+                    double err[3]{};
+                    for (int mode = 0; mode < 3; ++mode) {
+                        k16 = mode == 0 ? all_k : head_k; v16 = mode == 0 ? all_v : head_v;
+                        auto run = [&] {
+                            if (mode == 0) attention_all_heads(li,T,P-T,H,HKV,HD);
+                            else if (mode == 1) attention_per_head(li,T,P-T,H,HKV,HD);
+                            else attention_fused(li,T,P-T,H,HKV,HD);
+                        };
+                        CK(cudaMemsetAsync(att, 0xff, used*4, st));   // NaN: a value a path leaves unwritten fails
+                        run(); CK(cudaStreamSynchronize(st));
+                        CK(cudaMemcpy(result.data(),att,used*4,cudaMemcpyDeviceToHost));
+                        double e2 = 0, n2 = 0;
+                        for (size_t i = 0; i < used; ++i) if (!std::isfinite(result[i])) e2 = INFINITY;
+                        for (int r = 0; r < 3; ++r) {
+                            for (size_t j = 0; j < row; ++j) {
+                                const double x = result[(size_t) rows[r] * row + j], y = ref[(size_t) r * row + j];
+                                e2 += (x - y) * (x - y);
+                                n2 += y * y;
+                            }
+                        }
+                        err[mode] = std::sqrt(e2 / std::max(n2, 1e-30));
+                        CK(cudaEventRecord(start,st));
+                        for(int repeat=0;repeat<3;++repeat) run();
+                        CK(cudaEventRecord(end,st)); CK(cudaEventSynchronize(end));
+                        CK(cudaEventElapsedTime(&ms[mode],start,end)); ms[mode]/=3;
+                    }
+                    k16 = nullptr; v16 = nullptr;
+                    const bool pass = std::isfinite(err[1]) && err[2] <= std::max(err[1], 5e-4);
+                    std::fprintf(stderr, "FUSED_ATTENTION_TEST P=%d T=%d qscale=%.0f all_ms=%.4f head_ms=%.4f fused_ms=%.4f "
+                                 "err_all=%.3g err_head=%.3g err_fused=%.3g %s\n", P, T, qs, ms[0], ms[1], ms[2], err[0],
+                                 err[1], err[2], pass ? "ok" : "FAIL");
+                    ok = ok && pass;
                 }
-                k16 = nullptr; v16 = nullptr;
-                const bool pass = err[2] <= std::max(err[1], 5e-4);
-                std::fprintf(stderr, "FUSED_ATTENTION_TEST P=%d T=%d qscale=%.0f all_ms=%.4f head_ms=%.4f fused_ms=%.4f "
-                             "err_all=%.3g err_head=%.3g err_fused=%.3g %s\n", P, T, qs, ms[0], ms[1], ms[2], err[0], err[1],
-                             err[2], pass ? "ok" : "FAIL");
-                ok = ok && pass;
             }
             CK(cudaEventDestroy(start)); CK(cudaEventDestroy(end));
             free_dense_allocation(all_k,bytes); free_dense_allocation(all_v,bytes);
@@ -5234,8 +5243,8 @@ int strata::qwen35::run(int argc, char** argv) {
         } else {
             std::fprintf(stderr,
                          "usage: strata-q36 --model GGUF [--max-context 32768] [--chunk 512] [--no-graph]\n"
-                         "       (--serve | --tokens IDS [--n 64] [--force IDS] [--dump-full-logits F] | --bench-pp N "
-                         "--bench-tg N)\n");
+                         "       (--serve | --tokens IDS|@FILE [--n 64] [--force IDS|@FILE] [--dump-full-logits F] | "
+                         "--bench-pp N --bench-tg N)\n");
             return 2;
         }
     }
@@ -5393,7 +5402,9 @@ int strata::qwen35::run(int argc, char** argv) {
         std::string text;
         char buf[1 << 16];
         for (size_t n; (n = std::fread(buf, 1, sizeof buf, f)) > 0;) text.append(buf, n);
+        const bool failed = std::ferror(f) != 0;
         std::fclose(f);
+        if (failed) { std::fprintf(stderr, "strata-q36: cannot read %s\n", s.c_str() + 1); std::exit(2); }
         return text;
     };
     const std::vector<int32_t> prompt = parse_ids(id_text(tokens).c_str()), forced = parse_ids(id_text(force).c_str());
