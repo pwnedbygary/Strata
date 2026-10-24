@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Strata Model Router
+Comment=Local language models with saved hardware profiles
+Exec=strata-router --open
+Icon=strata-router
+Terminal=true
+Categories=Development;Utility;

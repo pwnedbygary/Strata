@@ -9,6 +9,10 @@
 # and is wrong about its own performance, which is the worst of both outcomes.
 cmake_minimum_required(VERSION 3.24)
 project(strata VERSION 0.1.49.1 LANGUAGES CXX)
+option(STRATA_NATIVE_SERVER "Opt-in local C++ HTTP server and model router" OFF)
+if(STRATA_NATIVE_SERVER AND NOT STRATA_GGML_DIR)
+  message(FATAL_ERROR "STRATA_NATIVE_SERVER requires an existing local STRATA_GGML_DIR; no dependency downloads")
+endif()
 # EXPERIMENTAL: the Intel Arc engine, the SYCL port in sycl/ (PR #423; icpx + oneMKL, docs/INTEL_ARC.md). It is its
 # own project that takes the unported sources from src/; with this on, nothing below is configured.
 option(STRATA_ENABLE_SYCL "EXPERIMENTAL: build the Intel Arc (SYCL) engine from sycl/ - docs/INTEL_ARC.md" OFF)
@@ -2393,4 +2397,9 @@ if(STRATA_BUILD_DSV41 AND NOT STRATA_ENABLE_CUDA AND NOT STRATA_ENABLE_HIP AND N
     target_link_libraries(ds4_gg_bench PRIVATE strata_kernels_cpu Threads::Threads)
     target_compile_definitions(ds4_gg_bench PRIVATE STRATA_DSV41_TQ_CPU=1)
   endif()
+endif()
+
+if(STRATA_NATIVE_SERVER)
+  enable_testing()
+  add_subdirectory(frontend)
 endif()
