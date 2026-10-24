@@ -2355,7 +2355,8 @@ struct Engine {
         return true;
     }
     // ---- the q8_1 images produced by the norm kernels themselves (fast_k, T <= kGemmT): xq_ready = the layer's input h is
-    // already quantized in xq (k_moe_out_small of the layer before), xq_post = the MoE input h is (k_add_rms_q)
+    // already quantized in xq (k_moe_out_small, or for a dense model dense_norm's k_add_rms_q_wide, of the layer before),
+    // xq_post = the MoE input h is (k_add_rms_q)
     bool xq_ready = false, xq_post = false;
     void* vq = nullptr;
     void verify_q8(const char* what, const float* hsrc, int T, const std::string& tag) {
@@ -2424,6 +2425,28 @@ struct Engine {
             return;
         }
         k_add_rms<<<T, kThreads, 0, st>>>(x, y, L.post_norm, h, N, m->eps);
+    }
+    /// A dense model's FFN-branch norm for T <= kGemmT rows (x += yin; hn = rms(x) * w) through k_add_rms_q_wide, which
+    /// also writes xq when `q`.  STRATA_Q36_VERIFY=1 (--no-graph): k_add_rms runs first on copies, then x, hn and the image
+    /// are compared.
+    float *vxw_ = nullptr, *vhw_ = nullptr;
+    void dense_norm(const float* yin, const float* w, float* hn, bool q, int T, const char* what) {
+        const int N = (int) m->g.n_embd;
+        if (verify_k) {
+            if (!vxw_) {
+                CK(cudaMalloc((void**) &vxw_, (size_t) kGemmT * N * 4));
+                CK(cudaMalloc((void**) &vhw_, (size_t) kGemmT * N * 4));
+            }
+            CK(cudaMemcpyAsync(vxw_, x, (size_t) T * N * 4, cudaMemcpyDeviceToDevice, st));
+            k_add_rms<<<T, kThreads, 0, st>>>(vxw_, yin, w, vhw_, N, m->eps);
+        }
+        q36k::k_add_rms_q_wide<<<T, 1024, 0, st>>>(x, yin, w, hn, q ? (q36k::QB*) xq : nullptr, N, m->eps);
+        if (verify_k) {
+            const std::string tag = " T " + std::to_string(T), name = what;
+            verify_cmp((name + " x").c_str(), x, vxw_, (size_t) T * N, tag);
+            verify_cmp((name + " h").c_str(), hn, vhw_, (size_t) T * N, tag);
+            if (q) verify_q8((name + " q8").c_str(), hn, T, tag);
+        }
     }
     /// The shared expert's gate + up + SwiGLU + q8_1 image (into q8) for T <= 4 rows in one launch (q36k::k_sh_gu), else false.
     bool shared_gu(const Layer& L, int T) {
@@ -3003,9 +3026,13 @@ struct Engine {
             mm(L.wo, att, y, T);
         }
         if (g.family == strata::ModelFamily::Qwen35Dense) {
-            k_add_rms<<<T, kThreads, 0, st>>>(x, y, L.post_norm, h, N, m->eps);
+            // decode, verify windows and prompt chunks of <= kGemmT rows: the norms run 1024 threads per row and write the
+            // q8_1 images themselves
+            const bool wide = fast_k && T <= kGemmT && N % 256 == 0 && N <= q36k::kWideRms;
+            if (wide) dense_norm(y, L.post_norm, h, true, T, "dense add_rms");
+            else k_add_rms<<<T, kThreads, 0, st>>>(x, y, L.post_norm, h, N, m->eps);
             const int pffn=profile_begin(3,T,verify);
-            prep(h, N, T, xq);
+            if (!wide) prep(h, N, T, xq);
             apply(L.sh_gate, xq, sg, T);
             apply(L.sh_up, xq, su, T);
             if (T <= kGemmT) {
@@ -3015,7 +3042,10 @@ struct Engine {
                 k_swiglu<<<grid1((int64_t) T * FS), kThreads, 0, st>>>(sg, su, shh, (int64_t) T * FS);
                 mm(L.sh_down, shh, sy, T);
             }
-            k_add_rms<<<T, kThreads, 0, st>>>(x, sy, wn, hout, N, m->eps);
+            const bool next_q = wide && hout == h;   // the next layer's input: prep_in() then finds its image ready
+            if (wide) dense_norm(sy, wn, hout, next_q, T, "dense out_rms");
+            else k_add_rms<<<T, kThreads, 0, st>>>(x, sy, wn, hout, N, m->eps);
+            xq_ready = next_q;
             profile_end(pffn); profile_end(pwhole);
             return;
         }

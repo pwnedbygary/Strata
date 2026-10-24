@@ -219,6 +219,43 @@ __global__ void __launch_bounds__(256) k_add_rms_q(float* x, const float* y, con
     }
 }
 
+/// k_add_rms_q for the dense models' wider rows (n % 256 == 0; n <= kWideRms, the row is held in shared memory and the
+/// caller checks it; `hq` may be null): 1024 threads per row
+/// load and store, while the squares are summed per thread of the 256-wide form (elements t, t + 256, ... in order) and
+/// through its tree, so x, h and the q8_1 image are k_add_rms_q's bits (and k_add_rms's, for x and h).
+constexpr int kWideRms = 8192;
+__global__ void __launch_bounds__(1024) k_add_rms_q_wide(float* x, const float* y, const float* w, float* h, QB* hq, int n,
+                                                         float eps) {
+    __shared__ float vv[kWideRms];
+    __shared__ float sh[256];
+    float* xr = x + (size_t) blockIdx.x * n;
+    const float* yr = y + (size_t) blockIdx.x * n;
+    float* hr = h + (size_t) blockIdx.x * n;
+    for (int i = threadIdx.x; i < n; i += 1024) {
+        const float v = xr[i] + yr[i];
+        xr[i] = v;
+        vv[i] = v;
+    }
+    __syncthreads();
+    if (threadIdx.x < 256) {
+        float s = 0.f;
+        for (int i = threadIdx.x; i < n; i += 256) s += vv[i] * vv[i];
+        sh[threadIdx.x] = s;
+    }
+    __syncthreads();
+    for (int o = 128; o > 0; o >>= 1) {
+        if ((int) threadIdx.x < o) sh[threadIdx.x] += sh[threadIdx.x + o];
+        __syncthreads();
+    }
+    const float r = rsqrtf(sh[0] / (float) n + eps);
+    QB* qr = hq != nullptr ? hq + (size_t) blockIdx.x * (n >> 5) : nullptr;
+    for (int i = threadIdx.x; i < n; i += 1024) {
+        const float hv = __fmul_rn(__fmul_rn(vv[i], r), w[i]);
+        hr[i] = hv;
+        if (qr != nullptr) q8_store(qr, i, ((volatile float*) hr)[i], threadIdx.x & 31);
+    }
+}
+
 /// k_moe_out for T <= 8 rows (decode, verify windows) with n <= 2048 and n % 256 == 0: 1024 threads per row instead of 256
 /// (the elements' loads in parallel), the squares summed per old thread (element t, t + 256, ... in order) and the
 /// 256-wide tree as before: the same bits.  x += sum_k w_k part_k (+ gate * shared); h = rms(x) * wn; with hq the q8_1
