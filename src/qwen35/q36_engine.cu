@@ -3717,9 +3717,11 @@ struct Engine {
     /// hand-over of a stopped request to a batch slot) reuses it instead of reading them again.
     /// `sample_row`: a sampled request's token for verify row r (its logits: `logits` row r).  A draft then stands when
     /// it is the token its row samples, and the first other token is the next x: the same chain, draw and logits (a
-    /// verify row's logits are a single step's, bit for bit) as one token at a time, so the text is the same.
+    /// verify row's logits are a single step's, bit for bit) as one token at a time, so the text is the same.  A row
+    /// whose token ends the answer (`last`) is the next x too, so the state never holds a token past the answer's end.
     int spec_step(int x_tok, const std::vector<int32_t>& fix, int D, std::vector<int32_t>& drafts, int32_t* picks,
-                  const std::atomic<bool>* cancel = nullptr, const std::function<int32_t(int)>& sample_row = nullptr) {
+                  const std::atomic<bool>* cancel = nullptr,
+                  const std::function<int32_t(int, bool&)>& sample_row = nullptr) {
         const int N = (int) m->g.n_embd;
         // Grow before drafting or capturing verification: both heads use the same stride,
         // and resizing/weight eviction invalidates every graph that held the old pointers.
@@ -3774,8 +3776,9 @@ struct Engine {
         int a = 0;
         if (sample_row) {
             for (;;) {
-                picks[a] = sample_row(a);
-                if (a == D || picks[a] != drafts[(size_t) a]) break;
+                bool last = false;
+                picks[a] = sample_row(a, last);
+                if (a == D || last || picks[a] != drafts[(size_t) a]) break;
                 ++a;
             }
             if (cancel != nullptr && cancel->load()) a = 0;
@@ -4708,11 +4711,13 @@ struct Serve {
             if (n_active > 0) window();
             if (spec && n_active == 0 && E.pos + E.mtp_d + 1 <= E.ctx) {
                 const size_t h0 = hist.size();
-                auto sample_row = [&](int r) {   // row r follows x and drafts 0 .. r - 1
+                auto sample_row = [&](int r, bool& last) {   // row r follows x and drafts 0 .. r - 1
                     hist.resize(h0);
                     hist.insert(hist.end(), drafts.begin(), drafts.begin() + r);
                     E.host_logits_row(r, lg);
-                    return (int32_t) sample(lg, smp, hist, rng);
+                    const int32_t t = (int32_t) sample(lg, smp, hist, rng);
+                    last = is_eos(t) || produced + r + 1 >= max_new;   // the answer's last token, as emit() sees it
+                    return t;
                 };
                 const int a = sampled ? E.spec_step(nx, fix, E.mtp_d, drafts, picks, &stop, sample_row)
                                       : E.spec_step(nx, fix, E.mtp_d, drafts, picks, &stop);
@@ -4721,10 +4726,10 @@ struct Serve {
                 offered += E.mtp_d;
                 accepted += a;
                 monitor_accepted = accepted; monitor_offered = offered; monitor();
-                // the state now holds x and every accepted draft, whether or not the answer ends inside them (an end of
-                // answer, max_new): the held tokens say so, so a later request that continues this conversation matches them
-                // (a prompt that has the same tokens next reuses the state, any other reads from the start) and never reads
-                // a token twice
+                // the state now holds x and every accepted draft, whether or not a greedy answer ends inside them (an end
+                // of answer, max_new; a sampled answer's last token is never accepted as a draft): the held tokens say so,
+                // so a later request that continues this conversation matches them (a prompt that has the same tokens next
+                // reuses the state, any other reads from the start) and never reads a token twice
                 ss.live.push_back(nx);
                 for (int i = 0; i < a; ++i) ss.live.push_back(drafts[(size_t) i]);
                 fix.assign(drafts.begin(), drafts.begin() + a);
