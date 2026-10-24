@@ -280,6 +280,54 @@ __device__ __forceinline__ float vec_dot_iq1_m_q8_1(const void* __restrict__ vbq
     return d * ((sumi[0] + sumf[0]) * sc0 + (sumi[1] + sumf[1]) * sc1);
 }
 
+// IQ1_S and Q2_K: llama.cpp's vec_dot_iq1_s_q8_1 / vec_dot_q2_K_q8_1 (vecdotq.cuh at the pinned revision).  For the
+// dense models' weights only (dense_lowbit_mmvq), so iq_row_bytes keeps both at 0.  IQ1_S sums its activations with
+// dp4a as IQ1_M does, instead of reading the q8_1 block's sum half.
+__device__ __forceinline__ float vec_dot_iq1_s_q8_1(const void* __restrict__ vbq, const block_q8_1* __restrict__ bq8_1,
+                                                    const int& kbx, const int& iqs) {
+    const block_iq1_s* bq1 = (const block_iq1_s*) vbq + kbx;
+    const int qs_packed = get_int_b2(bq1->qs, iqs);
+    const uint8_t* qs = (const uint8_t*) &qs_packed;
+    const int qh = bq1->qh[iqs];
+    int sumi = 0, sumy = 0;
+#pragma unroll
+    for (int l0 = 0; l0 < 8; l0 += 2) {
+        const int grid = iq1s_grid_gpu[qs[l0 / 2] | (((qh >> 3 * (l0 / 2)) & 0x07) << 8)];
+        const int u0 = get_int_b4(bq8_1[iqs].qs, l0 + 0);
+        const int u1 = get_int_b4(bq8_1[iqs].qs, l0 + 1);
+        sumi = ggml_cuda_dp4a((grid >> 0) & 0x0F0F0F0F, u0, sumi);
+        sumi = ggml_cuda_dp4a((grid >> 4) & 0x0F0F0F0F, u1, sumi);
+        sumy = ggml_cuda_dp4a(u0, 0x01010101, sumy);
+        sumy = ggml_cuda_dp4a(u1, 0x01010101, sumy);
+    }
+    const float d1q = __half2float(bq1->d) * (((qh >> 11) & 0x0E) + 1);
+    const float delta = -1.0f + IQ1S_DELTA - (qh & 0x8000) * (2.0f * IQ1S_DELTA / 0x8000);
+    return d1q * __low2float(bq8_1[iqs].ds) * ((float) sumi + delta * (float) sumy);
+}
+
+__device__ __forceinline__ float vec_dot_q2_K_q8_1(const void* __restrict__ vbq, const block_q8_1* __restrict__ bq8_1,
+                                                   const int& kbx, const int& iqs) {
+    const block_q2_K* bq2 = (const block_q2_K*) vbq + kbx;
+    const int bq8_offset = QR2_K * (iqs / QI8_1);
+    const int scale_offset = iqs - iqs % QI8_1 + (iqs % QI8_1) / (QI8_1 / 2);
+    const uint8_t* scales = bq2->scales + scale_offset;
+    const int v = get_int_b4(bq2->qs, iqs);
+    float sumf_d = 0.0f, sumf_m = 0.0f;
+#pragma unroll
+    for (int i = 0; i < QR2_K; ++i) {
+        const int u = get_int_b4(bq8_1[bq8_offset + i].qs, iqs % QI8_1);
+        const float d8 = __low2float(bq8_1[bq8_offset + i].ds);
+        const int sc = scales[2 * i];
+        sumf_d += d8 * (ggml_cuda_dp4a((v >> (2 * i)) & 0x03030303, u, 0) * (sc & 0xF));
+        int m = sc >> 4;
+        m |= m << 8;
+        m |= m << 16;
+        sumf_m += d8 * ggml_cuda_dp4a(m, u, 0);
+    }
+    const float2 dm = __half22float2(bq2->dm);
+    return dm.x * sumf_d - dm.y * sumf_m;
+}
+
 __device__ __forceinline__ float vec_dot_iq4_nl_q8_1(const void* __restrict__ vbq, const block_q8_1* __restrict__ bq8_1,
                                                      const int& kbx, const int& iqs) {
     const block_iq4_nl* bq4 = (const block_iq4_nl*) vbq + kbx;
@@ -322,7 +370,8 @@ __device__ __forceinline__ float vec_dot_iq4_xs_q8_1(const void* __restrict__ vb
 // Q4_K / Q5_K gate/up and Q5_1 / Q8_0 down: llama.cpp's vec_dot_*_q8_1 (vecdotq.cuh, VDR 2 each), transcribed; the
 // Q5_1 min term is the one departure (below).  Via eddoursul/Strata 8029fa9 (iq_dot.cuh) and #255 (Q8_0,
 // gopinath87607), which agree with llama.cpp and with each other.
-constexpr int VDR_Q4_K = 2, VDR_Q5_K = 2, VDR_Q5_1 = 2, VDR_Q5_0 = 2, VDR_Q4_1 = 2, VDR_Q4_0 = 2, VDR_Q8_0 = 2, VDR_Q6_K = 1;
+constexpr int VDR_Q4_K = 2, VDR_Q5_K = 2, VDR_Q5_1 = 2, VDR_Q5_0 = 2, VDR_Q4_1 = 2, VDR_Q4_0 = 2, VDR_Q8_0 = 2, VDR_Q6_K = 1,
+              VDR_Q2_K = 1;
 
 __device__ __forceinline__ float vec_dot_q4_K_q8_1_impl_vmmq(const int* __restrict__ v, const int* __restrict__ u,
                                                              const uint8_t* __restrict__ sc, const uint8_t* __restrict__ m,
@@ -735,6 +784,10 @@ template<> struct Fmt<22> { static constexpr int qk = 256, ipb = 8, step = 2;
     __device__ static float dot(const void* v, const block_q8_1* y, int kbx, int iqs) { return vec_dot_iq2_s_q8_1(v, y, kbx, iqs); } };
 template<> struct Fmt<29> { static constexpr int qk = 256, ipb = 8, step = 1;
     __device__ static float dot(const void* v, const block_q8_1* y, int kbx, int iqs) { return vec_dot_iq1_m_q8_1(v, y, kbx, iqs); } };
+template<> struct Fmt<19> { static constexpr int qk = 256, ipb = 8, step = 1;   // IQ1_S, dense weights only
+    __device__ static float dot(const void* v, const block_q8_1* y, int kbx, int iqs) { return vec_dot_iq1_s_q8_1(v, y, kbx, iqs); } };
+template<> struct Fmt<10> { static constexpr int qk = 256, ipb = QI2_K / VDR_Q2_K, step = VDR_Q2_K;   // Q2_K, dense weights only
+    __device__ static float dot(const void* v, const block_q8_1* y, int kbx, int iqs) { return vec_dot_q2_K_q8_1(v, y, kbx, iqs); } };
 template<> struct Fmt<42> { static constexpr int qk = 64, ipb = 2, step = 1;
     __device__ static float dot(const void* v, const block_q8_1* y, int kbx, int iqs) { return vec_dot_q2_0_q8_1(v, y, kbx, iqs); } };
 template<> struct Fmt<12> { static constexpr int qk = 256, ipb = QI4_K / VDR_Q4_K, step = VDR_Q4_K;
@@ -831,7 +884,7 @@ inline bool g_kq_split = [] { const char* v = std::getenv("STRATA_KQ_SPLIT"); re
 template<int TY> inline bool split_off() { return kq_type<TY> && !g_kq_split; }
 template<int TY> inline constexpr bool kTqType = (TY == 144 || TY == 145 || TY == 146);
 // the trellis types stage their int8 codebook (4 KB) too, but only where it pays: tq_stage_on() below (compute capability 6.0)
-template<int TY> inline constexpr bool kStageIqGrid = (TY == 16 || TY == 17 || TY == 18 || TY == 21 || TY == 22 || TY == 29 || kTqType<TY>);
+template<int TY> inline constexpr bool kStageIqGrid = (TY == 16 || TY == 17 || TY == 18 || TY == 21 || TY == 22 || TY == 29 || TY == 19 || kTqType<TY>);
 
 template<> inline constexpr bool kSplit<16> = true;
 template<> struct Split<16> {   // IQ2_XXS
@@ -1102,6 +1155,40 @@ template<> struct Split<29> {   // IQ1_M
         }
         const float d = r.dw * __low2float(bq8_1[iqs].ds);
         return d * ((sumi[0] + sumf[0]) * r.sc0 + (sumi[1] + sumf[1]) * r.sc1);
+    }
+};
+template<> inline constexpr bool kSplit<19> = true;
+template<> struct Split<19> {   // IQ1_S (dense weights only)
+    struct W { int g[8]; float d1q, delta; };
+    template<bool STAGE_GRID = false>
+    __device__ static W load(const void* __restrict__ vbq, int kbx, int iqs, const uint32_t* __restrict__ s_grid = nullptr) {
+        const block_iq1_s* bq1 = (const block_iq1_s*) vbq + kbx;
+        const int qs_packed = get_int_b2(bq1->qs, iqs);
+        const uint8_t* qs = (const uint8_t*) &qs_packed;
+        const int qh = bq1->qh[iqs];
+        const uint32_t* grid_lut;
+        if constexpr (STAGE_GRID) grid_lut = s_grid;
+        else grid_lut = iq1s_grid_gpu;
+        W r;
+#pragma unroll
+        for (int l0 = 0; l0 < 8; l0 += 2) {
+            const int grid = grid_lut[qs[l0 / 2] | (((qh >> 3 * (l0 / 2)) & 0x07) << 8)];
+            r.g[l0 + 0] = (grid >> 0) & 0x0F0F0F0F;
+            r.g[l0 + 1] = (grid >> 4) & 0x0F0F0F0F;
+        }
+        r.d1q = __half2float(bq1->d) * (((qh >> 11) & 0x0E) + 1);
+        r.delta = -1.0f + IQ1S_DELTA - (qh & 0x8000) * (2.0f * IQ1S_DELTA / 0x8000);
+        return r;
+    }
+    __device__ static float apply(const W& r, const block_q8_1* __restrict__ bq8_1, int iqs) {
+        int sumi = 0, sumy = 0;
+#pragma unroll
+        for (int j = 0; j < 8; ++j) {
+            const int u = get_int_b4(bq8_1[iqs].qs, j);
+            sumi = ggml_cuda_dp4a(r.g[j], u, sumi);
+            sumy = ggml_cuda_dp4a(u, 0x01010101, sumy);
+        }
+        return r.d1q * __low2float(bq8_1[iqs].ds) * ((float) sumi + r.delta * (float) sumy);
     }
 };
 template<> inline constexpr bool kSplit<20> = true;
@@ -1729,7 +1816,7 @@ __device__ __forceinline__ const uint32_t* stage_iq_grid(uint32_t* s_buf, int ti
         for (int i = tid; i < 1024; i += nthreads) dst[i] = src[i];
         __syncthreads();
         return s_buf;
-    } else if constexpr (TY == 29) {
+    } else if constexpr (TY == 29 || TY == 19) {
         uint2* dst = (uint2*) s_buf;
         const uint2* src = (const uint2*) iq1s_grid_gpu;
         for (int i = tid; i < 1024; i += nthreads) dst[i] = src[i];
@@ -1767,7 +1854,7 @@ __device__ __forceinline__ const uint32_t* stage_iq_grid(uint32_t* s_buf, int ti
 
 template<int TY, bool STAGE_GRID = kStageIqGrid<TY>>
 struct IqGridWords {
-    static constexpr int value = !STAGE_GRID ? 4 : (TY == 22 || TY == 29) ? 2048 : (TY == 17 || TY == 21 || kTqType<TY>) ? 1024 : (TY == 16 || TY == 18) ? 512 : 4;
+    static constexpr int value = !STAGE_GRID ? 4 : (TY == 22 || TY == 29 || TY == 19) ? 2048 : (TY == 17 || TY == 21 || kTqType<TY>) ? 1024 : (TY == 16 || TY == 18) ? 512 : 4;
 };
 
 // mmvq_kernel with the columns taken NC at a time.  After warp_sum every lane holds the same sum, so lane c stores
@@ -4244,10 +4331,17 @@ void dense_lowbit_mmvq(int type, const void* w, const void* x, float* y,
         std::fprintf(stderr, "dense_lowbit_mmvq: unsupported type or shape\n"); std::exit(1);
     }
     const size_t row = (size_t) (n_in / 256) * (type == 10 ? sizeof(block_q2_K) : sizeof(block_iq1_s));
-    if (type == 10) dense_lowbit_kernel<10><<<dim3((n_out + 7) / 8, ncols), 256, 0, (cudaStream_t) stream>>>(
-        (const uint8_t*) w, (const block_q8_1*) x, y, n_in, n_out, row);
-    else dense_lowbit_kernel<19><<<dim3((n_out + 7) / 8, ncols), 256, 0, (cudaStream_t) stream>>>(
-        (const uint8_t*) w, (const block_q8_1*) x, y, n_in, n_out, row);
+    // STRATA_Q35_LOWBIT_OLD=1: the first kernels (a float per weight, one row per warp), kept to compare against
+    static const bool old = [] { const char* v = std::getenv("STRATA_Q35_LOWBIT_OLD"); return v != nullptr && v[0] == '1' && v[1] == '\0'; }();
+    cudaStream_t s = (cudaStream_t) stream;
+    if (old && type == 10)
+        dense_lowbit_kernel<10><<<dim3((n_out + 7) / 8, ncols), 256, 0, s>>>((const uint8_t*) w, (const block_q8_1*) x, y, n_in, n_out, row);
+    else if (old)
+        dense_lowbit_kernel<19><<<dim3((n_out + 7) / 8, ncols), 256, 0, s>>>((const uint8_t*) w, (const block_q8_1*) x, y, n_in, n_out, row);
+    else if (type == 10)
+        launch_mmvq<10>((const uint8_t*) w, row, (const block_q8_1*) x, y, n_in, n_out, ncols, s);
+    else
+        launch_mmvq<19>((const uint8_t*) w, row, (const block_q8_1*) x, y, n_in, n_out, ncols, s);
     check("dense_lowbit_mmvq");
 }
 // BF16 and Q6_K: embedding only (dq_dispatch has them; no expert or prompt-path kernels take them)
