@@ -77,6 +77,9 @@ std::vector<Kv> metadata(const char* arch, const Dims& d, uint64_t vocab) {
                           fixture::u32(p + "full_attention_interval", d.interval)};
     if (std::string(arch) == "qwen35moe") {
         kv.push_back(fixture::u32(p + "nextn_predict_layers", d.nextn));
+    } else if (std::string(arch) == "qwen35") {
+        kv.push_back(fixture::u32(p + "feed_forward_length", d.ff));
+        if (d.nextn) kv.push_back(fixture::u32(p + "nextn_predict_layers", d.nextn));
     } else {
         kv.push_back(fixture::u32(p + "hyper_connection.count", d.hc));
         kv.push_back(fixture::u32(p + "hyper_connection.low_rank", d.hc_lr));
@@ -115,7 +118,7 @@ std::string layout_error(const fs::path& dir, const char* arch, const Dims& d, u
     strata::core::ModelGeometry g;
     int64_t k = 0;
     std::string err;
-    if (std::string(arch) == "qwen35moe") {
+    if (std::string(arch) == "qwen35moe" || std::string(arch) == "qwen35") {
         if (!geometry_of(meta, g, k, err)) return "geometry: " + err;
     } else {
         // the qwen4exp guard pins Flash-Next's own block count and widths, so the tiny model's geometry is set here
@@ -209,6 +212,13 @@ int main(int argc, char** argv) {
         check(e.find("Qwen3.6-35B-A3B") != std::string::npos && e.find("does not run it yet") != std::string::npos,
               "the engine guard refuses Qwen3.6: recognised, not supported yet");
         check(strata::check_engine_architecture(b).empty(), "the engine guard runs qwen4exp");
+        const fs::path dense = d.path / "dense.gguf";
+        fixture::write(dense, metadata("qwen35", kQwen36, 8), {});
+        const strata::GgufFile dn(dense.string());
+        check(strata::model_family(dn) == strata::ModelFamily::Qwen35Dense && strata::check_architecture(dn).empty(),
+              "model_family: qwen35 is dense Qwen35, and the architecture guard accepts it");
+        check(strata::check_engine_architecture(dn).find("STRATA_Q35_DENSE=1") != std::string::npos,
+              "the engine guard refuses dense Qwen35, naming the opt-in");
         std::vector<Kv> kv = metadata("qwen35moe", kQwen36, 8);
         for (auto it = kv.begin(); it != kv.end(); ++it)
             if (it->key == "qwen35moe.ssm.time_step_rank") { kv.erase(it); break; }
@@ -260,6 +270,18 @@ int main(int argc, char** argv) {
     }
     {
         // the layout tables
+        Dims dense = kTiny36;
+        dense.block_count = 4; dense.nextn = 0;
+        check(layout_error(d.path, "qwen35", dense, 16, nullptr).empty(),
+              "dense Qwen35 geometry and complete layout work without MTP metadata");
+        check(layout_error(d.path, "qwen35", dense, 16, [](std::vector<Tensor>& ts) {
+            for (auto it = ts.begin(); it != ts.end(); ++it)
+                if (it->name == "output.weight") { ts.erase(it); break; }
+        }).empty(), "dense Qwen35 accepts tied output embeddings");
+        check(!layout_error(d.path, "qwen35", dense, 16, [](std::vector<Tensor>& ts) {
+            for (auto& t : ts)
+                if (t.name == "blk.0.ffn_down.weight") ++t.shape[0];
+        }).empty(), "dense Qwen35 rejects incorrect feed-forward dimensions");
         check(layout_error(d.path, "qwen35moe", kTiny36, 16, nullptr).empty(),
               "a complete qwen35moe file passes its layout (incl. the nextn MTP block)");
         const std::string ef = layout_error(d.path, "qwen4exp", kTinyFlash, 16, nullptr);

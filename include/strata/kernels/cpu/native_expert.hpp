@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace strata::kernels::cpu {
 
@@ -45,6 +46,11 @@ constexpr size_t kNvfp4Tail = 16;
 
 /// Whether this build has the ggml-cpu path.
 bool native_experts_available() noexcept;
+
+/// Experimental dense compatibility: decode rows, then requantize to Q8_0.
+/// This is lossy; callers must require an explicit opt-in and keep the original file.
+bool dense_repack_q8(int type, const uint8_t* src, int n_in, int n_out,
+                     std::vector<uint8_t>& dst, std::string& err);
 /// Fills `f` for a layer; false (with a reason) when ggml-cpu has no dot product for a type.
 bool native_fmt(int gu_type, int d_type, int64_t n_embd, int64_t n_ff, NativeFmt& f, std::string& err);
 
