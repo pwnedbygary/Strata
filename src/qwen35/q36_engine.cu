@@ -1581,7 +1581,8 @@ struct Engine {
     float *mq_gu = nullptr, *mq_h = nullptr;
     __half* x16 = nullptr;
     bool use_graph = true;
-    int mtp_d = 0;   // MTP drafts per speculative step (0: none; greedy requests only)
+    int mtp_d = 0;   // MTP drafts per speculative step (0: none; greedy requests, and sampled ones with spec_sampled)
+    bool spec_sampled = false;   // STRATA_Q36_SPEC_SAMPLED (on for dense models): sampled requests draft too
 
     // ---- sessions: the conversation states.  One for a single-request engine; --batch N keeps N, each with its own
     // recurrent state and KV cache, so N requests run at once: their rows share one decode window (forward_rows).  The
@@ -3707,15 +3708,18 @@ struct Engine {
     /// the MTP seed rows of a prompt chunk: a buffer the block's own forward does not use (`moe_out`, [tmax][N])
     float* mtp_seed() { return moe_out; }
 
-    /// One speculative step with D MTP drafts (greedy): `x` is the next token (decided, not processed); `fix` the
+    /// One speculative step with D MTP drafts (greedy ones): `x` is the next token (decided, not processed); `fix` the
     /// tokens of the rows the block must redo first (the drafts the last window accepted, seeded by hmain rows
     /// 0 .. fix.size() - 1 of that window).  Drafts d1 .. dD, then the window [x, d1 .. dD] through the main model;
     /// returns the accepted count a and writes the picks of rows 0 .. a (row a's pick is the token after them).
     /// `cancel`: a stop asked for before the state moves keeps only x (the caller then emits no draft), so that a request
     /// stopped mid-answer leaves the state at the tokens it has shown: a conversation that continues from them (the server's
     /// hand-over of a stopped request to a batch slot) reuses it instead of reading them again.
+    /// `sample_row`: a sampled request's token for verify row r (its logits: `logits` row r).  A draft then stands when
+    /// it is the token its row samples, and the first other token is the next x: the same chain, draw and logits (a
+    /// verify row's logits are a single step's, bit for bit) as one token at a time, so the text is the same.
     int spec_step(int x_tok, const std::vector<int32_t>& fix, int D, std::vector<int32_t>& drafts, int32_t* picks,
-                  const std::atomic<bool>* cancel = nullptr) {
+                  const std::atomic<bool>* cancel = nullptr, const std::function<int32_t(int)>& sample_row = nullptr) {
         const int N = (int) m->g.n_embd;
         // Grow before drafting or capturing verification: both heads use the same stride,
         // and resizing/weight eviction invalidates every graph that held the old pointers.
@@ -3768,9 +3772,18 @@ struct Engine {
         CK(cudaMemcpyAsync(hpin + 2, pick, (size_t) T * 4, cudaMemcpyDeviceToHost, st));
         CK(cudaStreamSynchronize(st));
         int a = 0;
-        while (a < D && hpin[2 + a] == drafts[(size_t) a]) ++a;
-        if (cancel != nullptr && cancel->load()) a = 0;
-        for (int i = 0; i <= a; ++i) picks[i] = hpin[2 + i];
+        if (sample_row) {
+            for (;;) {
+                picks[a] = sample_row(a);
+                if (a == D || picks[a] != drafts[(size_t) a]) break;
+                ++a;
+            }
+            if (cancel != nullptr && cancel->load()) a = 0;
+        } else {
+            while (a < D && hpin[2 + a] == drafts[(size_t) a]) ++a;
+            if (cancel != nullptr && cancel->load()) a = 0;
+            for (int i = 0; i <= a; ++i) picks[i] = hpin[2 + i];
+        }
         commit(a + 1);
         CK(cudaMemcpyAsync(hlast, hmain + (size_t) a * N, (size_t) N * 4, cudaMemcpyDeviceToDevice, st));
         pos += a + 1;
@@ -4633,9 +4646,10 @@ struct Serve {
         const auto d0 = Clock::now();
         long long produced = 0, offered = 0, accepted = 0;
         const char* finish = "length";
-        // greedy requests alone with the MTP block: speculative steps of mtp_d drafts (verified, so the text is the greedy
-        // text); sampled ones, and requests beside others, one token at a time
-        const bool spec = E.mtp_d > 0 && !smp.needs_logits() && !adm;
+        // requests alone with the MTP block: speculative steps of mtp_d drafts, verified, so the text is the text one token
+        // at a time gives (greedy ones; sampled ones with E.spec_sampled, see spec_step); others one token at a time
+        const bool sampled = smp.needs_logits();
+        const bool spec = E.mtp_d > 0 && (!sampled || E.spec_sampled) && !adm;
         std::vector<int32_t> fix, drafts;
         int32_t picks[16];
         int nx = smp.needs_logits() ? -1 : E.greedy();
@@ -4673,11 +4687,13 @@ struct Serve {
                          prompt_ms > 0 ? 1000.0 * (double) fresh / prompt_ms : 0.0, cont ? "" : ", done at once");
             return;
         }
+        bool decided = false;   // nx is a speculative step's sampled token
         for (;;) {
-            if (smp.needs_logits()) {
+            if (sampled && !decided) {
                 E.host_logits(lg);
                 nx = sample(lg, smp, hist, rng);
             }
+            decided = false;
             auto emit = [&](int t) {   // false: the answer ends here
                 std::printf("T %d\n", t);
                 std::fflush(stdout);
@@ -4691,7 +4707,17 @@ struct Serve {
             if (!emit(nx)) break;
             if (n_active > 0) window();
             if (spec && n_active == 0 && E.pos + E.mtp_d + 1 <= E.ctx) {
-                const int a = E.spec_step(nx, fix, E.mtp_d, drafts, picks, &stop);
+                const size_t h0 = hist.size();
+                auto sample_row = [&](int r) {   // row r follows x and drafts 0 .. r - 1
+                    hist.resize(h0);
+                    hist.insert(hist.end(), drafts.begin(), drafts.begin() + r);
+                    E.host_logits_row(r, lg);
+                    return (int32_t) sample(lg, smp, hist, rng);
+                };
+                const int a = sampled ? E.spec_step(nx, fix, E.mtp_d, drafts, picks, &stop, sample_row)
+                                      : E.spec_step(nx, fix, E.mtp_d, drafts, picks, &stop);
+                hist.resize(h0);
+                decided = sampled;
                 offered += E.mtp_d;
                 accepted += a;
                 monitor_accepted = accepted; monitor_offered = offered; monitor();
@@ -4732,8 +4758,9 @@ struct Serve {
     int run() {
         if (E.n_sess > 1) std::printf("INFO batch_slots=%d slot_cache=1\n", E.n_sess);
         if (E.m->g.family == strata::ModelFamily::Qwen35Dense)
-            std::printf("INFO context=%d kv=%s spec=%d mtp_max=%d draft_mode=greedy\n", E.ctx,
-                        E.kv_i8 ? "int8" : E.kv_f16 ? "fp16" : "fp32", E.mtp_d > 0 ? 1 : 0, E.mtp_d + 1);
+            std::printf("INFO context=%d kv=%s spec=%d mtp_max=%d draft_mode=%s\n", E.ctx,
+                        E.kv_i8 ? "int8" : E.kv_f16 ? "fp16" : "fp32", E.mtp_d > 0 ? 1 : 0, E.mtp_d + 1,
+                        E.spec_sampled ? "sampled" : "greedy");
         std::printf("READY %d stop\n", E.ctx);
         std::fflush(stdout);
         std::thread reader([&] {
@@ -4951,6 +4978,10 @@ int strata::qwen35::run(int argc, char** argv) {
     } report{E};
     E.reset();
     E.mtp_d = m.has_mtp ? mtp_d : 0;
+    if (const char* v = std::getenv("STRATA_Q36_SPEC_SAMPLED"))
+        E.spec_sampled = std::strcmp(v, "0") != 0;
+    else
+        E.spec_sampled = m.g.family == strata::ModelFamily::Qwen35Dense;
     if (draft_vocab < 0 && std::getenv("STRATA_Q36_DRAFT_VOCAB") != nullptr) draft_vocab = std::atoi(std::getenv("STRATA_Q36_DRAFT_VOCAB"));
     E.draft_n = std::max(0, draft_vocab);
     E.bmtp = (batch_mtp || (std::getenv("STRATA_BATCH_MTP") != nullptr && std::string(std::getenv("STRATA_BATCH_MTP")) != "0")) && E.n_sess > 1 && E.mtp_d > 0;
