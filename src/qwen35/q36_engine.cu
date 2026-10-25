@@ -18,6 +18,7 @@
 // [--force IDS] [--dump-full-logits F] (tools/qwen35/kl.py's reference interface), --bench-pp N / --bench-tg N.
 #include "strata/artifact/gguf_reader.hpp"
 #include "strata/core/family_layout.hpp"
+#include "strata/core/gfx12_platform_defaults.hpp"
 #include "strata/kernels/fused_gdn.hpp"
 #include "strata/kernels/gfx_arch.hpp"
 #include "strata/kernels/iq_kernels.hpp"
@@ -646,7 +647,7 @@ __global__ void k_store_attention_group(const float* packed, const float* gate, 
 }
 
 #if defined(__HIP_PLATFORM_AMD__)
-// ---- dense prompt attention in one kernel on gfx12 matrix cores (STRATA_Q35_ATTN_FUSED=1, int8 KV, head dim 256): one
+// ---- dense prompt attention in one kernel on gfx12 matrix cores (int8 KV, head dim 256): one
 // block per 16 query tokens and KV head, one wave per query head of its group.  The block walks the cells up to its last
 // token in 32-cell tiles staged in shared memory (K as its exact int8 codes in FP16, V times its cell scale in FP16 and
 // transposed), each taken as two 16-cell halves; each wave keeps its 16 rows' softmax state and output in registers
@@ -820,7 +821,7 @@ __global__ void __launch_bounds__(256) k_attn_prompt_wmma(const float* __restric
     }
 }
 
-/// Decode / verify attention on gfx12 matrix cores (STRATA_Q35_DECODE_WMMA=1), split over the cells: rows t0 .. t0 + nt
+/// Decode / verify attention on gfx12 matrix cores, split over the cells: rows t0 .. t0 + nt
 /// - 1 (nt <= 16) see the cells [0, *pos0 + t]; block (s, kvh) takes the cells [s * split, (s + 1) * split) for the KV
 /// head's G query heads, one wave per head, with k_attn_prompt_wmma's tiles and online softmax, and writes each row's
 /// partial (unnormalized output, max in the log2 domain, sum) at row (t - t0) * H + h, split s, of pacc / pm / pl.
@@ -1894,8 +1895,8 @@ struct Engine {
     std::string dense_physical_device;
     bool dense_head_reuse = false;
     bool dense_attention_lt = false;
-    bool dense_attention_fused = false;   // STRATA_Q35_ATTN_FUSED=1: prompt attention in one kernel (gfx12)
-    bool dense_decode_wmma = false;       // STRATA_Q35_DECODE_WMMA=1: decode / verify attention on matrix cores (gfx12)
+    bool dense_attention_fused = false;   // prompt attention in one kernel (gfx12)
+    bool dense_decode_wmma = false;       // decode / verify attention on matrix cores (gfx12)
     bool dense_token_loan = false;
     bool dense_prefill_loan = false, dense_prefill_live = true;
     uint8_t* weight_scratch = nullptr;
@@ -2197,36 +2198,44 @@ struct Engine {
         if (dense_attention_lt && (!dense_head_reuse || !model.adaptive_dense)) {
             std::fprintf(stderr, "strata-q35: attention LT requires adaptive dense head reuse\n"); std::exit(2);
         }
-        if (const char* fused = std::getenv("STRATA_Q35_ATTN_FUSED"); fused && std::strcmp(fused, "1") == 0) {
+        // The matrix-core attention kernels are on wherever they apply: a gfx12 GPU, a dense model with int8 KV,
+        // head dim 256 and at most 8 query heads per KV head.  STRATA_Q35_ATTN_FUSED=0 / STRATA_Q35_DECODE_WMMA=0
+        // turn one off; =1 also says why it cannot run.  Measured on Linux only: a Windows build takes them only with
+        // =1, as the other gfx12 defaults (gfx12_platform_defaults.hpp).
+        const char* fused = std::getenv("STRATA_Q35_ATTN_FUSED");
+        const char* wmma = std::getenv("STRATA_Q35_DECODE_WMMA");
+        auto wanted = [](const char* v) {
+            if (v && std::strcmp(v, "1") == 0) return true;
+            if (v && std::strcmp(v, "0") == 0) return false;
+            return strata::core::kGfx12PromptDefaultsOn;
+        };
+        const bool want_fused = wanted(fused), want_wmma = wanted(wmma);
+        bool matrix_cores = false;
 #if defined(__HIP_PLATFORM_AMD__)
+        if (dense && kv_i8 && (want_fused || want_wmma)) {
             int dev = 0;
             cudaDeviceProp prop{};
-            const bool gfx12 = cudaGetDevice(&dev) == cudaSuccess && cudaGetDeviceProperties(&prop, dev) == cudaSuccess &&
-                               strata::kernels::gfx_arch_is_gfx12_wmma(prop.gcnArchName);
-            dense_attention_fused = gfx12 && dense && kv_i8 && g.head_dim == 256 && g.n_head % g.n_head_kv == 0 &&
-                                    g.n_head / g.n_head_kv <= 8;
-#endif
-            std::fprintf(stderr, dense_attention_fused
-                                     ? "strata-q35: prompt attention in one kernel (gfx12 matrix cores)\n"
-                                     : "strata-q35: STRATA_Q35_ATTN_FUSED needs a gfx12 GPU and a dense model with int8 KV, "
-                                       "head dim 256 and at most 8 query heads per KV head; prompt attention stays on the "
-                                       "GEMM path\n");
+            matrix_cores = cudaGetDevice(&dev) == cudaSuccess && cudaGetDeviceProperties(&prop, dev) == cudaSuccess &&
+                           strata::kernels::gfx_arch_is_gfx12_wmma(prop.gcnArchName) && g.head_dim == 256 &&
+                           g.n_head % g.n_head_kv == 0 && g.n_head / g.n_head_kv <= 8;
         }
-        if (const char* wmma = std::getenv("STRATA_Q35_DECODE_WMMA"); wmma && std::strcmp(wmma, "1") == 0) {
-#if defined(__HIP_PLATFORM_AMD__)
-            int dev = 0;
-            cudaDeviceProp prop{};
-            const bool gfx12 = cudaGetDevice(&dev) == cudaSuccess && cudaGetDeviceProperties(&prop, dev) == cudaSuccess &&
-                               strata::kernels::gfx_arch_is_gfx12_wmma(prop.gcnArchName);
-            dense_decode_wmma = gfx12 && dense && kv_i8 && g.head_dim == 256 && g.n_head % g.n_head_kv == 0 &&
-                                g.n_head / g.n_head_kv <= 8;
 #endif
-            std::fprintf(stderr, dense_decode_wmma
-                                     ? "strata-q35: decode attention on gfx12 matrix cores\n"
-                                     : "strata-q35: STRATA_Q35_DECODE_WMMA needs a gfx12 GPU and a dense model with int8 KV, "
-                                       "head dim 256 and at most 8 query heads per KV head; decode attention stays as it "
-                                       "was\n");
-        }
+        dense_attention_fused = matrix_cores && want_fused;
+        dense_decode_wmma = matrix_cores && want_wmma;
+        if (dense_attention_fused)
+            std::fprintf(stderr, "strata-q35: prompt attention in one kernel (gfx12 matrix cores; "
+                                 "STRATA_Q35_ATTN_FUSED=0 turns it off)\n");
+        else if (fused && std::strcmp(fused, "1") == 0)
+            std::fprintf(stderr, "strata-q35: STRATA_Q35_ATTN_FUSED needs a gfx12 GPU and a dense model with int8 KV, "
+                                 "head dim 256 and at most 8 query heads per KV head; prompt attention stays on the "
+                                 "GEMM path\n");
+        if (dense_decode_wmma)
+            std::fprintf(stderr, "strata-q35: decode attention on gfx12 matrix cores (STRATA_Q35_DECODE_WMMA=0 "
+                                 "turns it off)\n");
+        else if (wmma && std::strcmp(wmma, "1") == 0)
+            std::fprintf(stderr, "strata-q35: STRATA_Q35_DECODE_WMMA needs a gfx12 GPU and a dense model with int8 KV, "
+                                 "head dim 256 and at most 8 query heads per KV head; decode attention stays as it "
+                                 "was\n");
         const char* loan = std::getenv("STRATA_Q35_PREFILL_LOAN");
         dense_prefill_loan = model.adaptive_dense && dense_head_reuse && loan && std::strcmp(loan,"1")==0;
         const char* token_loan = std::getenv("STRATA_Q35_TOKEN_BUFFER_LOAN");
@@ -3224,7 +3233,12 @@ struct Engine {
     }
 
     bool test_attention_heads() {
-        if (!kv_i8 || !dense_head_reuse || dense_attention_fused || ctx < 4096 || tmax < 512 || !m->adaptive_dense)
+        if (dense_attention_fused) {
+            std::fprintf(stderr, "strata-q35: the head-reuse attention test runs the GEMM prompt path: "
+                                 "set STRATA_Q35_ATTN_FUSED=0\n");
+            return false;
+        }
+        if (!kv_i8 || !dense_head_reuse || ctx < 4096 || tmax < 512 || !m->adaptive_dense)
             return false;
         const int H = (int) m->g.n_head, HKV = (int) m->g.n_head_kv, HD = (int) m->g.head_dim, T = 512;
         size_t li = 0; while (li < kc.size() && !kc[li]) ++li;
@@ -3282,14 +3296,15 @@ struct Engine {
         return true;
     }
 
-    /// --test-dense-fused-attention (STRATA_Q35_ATTN_FUSED=1): k_attn_prompt_wmma, attention_per_head and
+    /// --test-dense-fused-attention: k_attn_prompt_wmma, attention_per_head and
     /// attention_all_heads on random int8 caches, chunks of 512 rows (whole 16-row blocks) and 509 (a partial last block)
     /// ending at cell P, queries at three scales (flat to sharp softmax); each path's first, middle and last rows against
     /// an FP64 reference (relative L2 over every head and dim), and the timings.  The fused path must be no further from
     /// the reference than attention_per_head (itself finite), or within 5e-4.
     bool test_attention_fused() {
         if (!dense_attention_fused || ctx < 4096 || tmax < 512 || !m->adaptive_dense) {
-            std::fprintf(stderr, "strata-q35: the fused attention test needs STRATA_Q35_ATTN_FUSED=1 (gfx12, dense int8 KV), "
+            std::fprintf(stderr, "strata-q35: the fused attention test needs a gfx12 GPU, dense int8 KV, head dim 256, "
+                         "at most 8 query heads per KV head, STRATA_Q35_ATTN_FUSED not 0 (=1 on Windows), "
                          "STRATA_Q35_ADAPTIVE_WEIGHTS=1, --max-context of 4096 or more and --prefill of 512 or more\n");
             return false;
         }
@@ -3489,15 +3504,16 @@ struct Engine {
         return ok;
     }
 
-    /// --test-dense-decode-wmma (STRATA_Q35_DECODE_WMMA=1): attend_wmma against k_attn_part + k_attn_merge (FP32) on random
+    /// --test-dense-decode-wmma: attend_wmma against k_attn_part + k_attn_merge (FP32) on random
     /// int8 caches, windows of 1, 2, 3, 4, 7 and the partials' rows, at split edges and long contexts, flat and sharp
     /// queries, V cell scales near 8e-3, 1e-4 and 3e-5 (small ones take P's remainders toward FP16's subnormals): the
     /// relative L2 over the window's rows (output and partials NaN-poisoned first), and at the first V scale (8e-3)
     /// the times of both and of the path the engine takes otherwise (attend_grouped's policy).  Passes within 5e-4.
     bool test_decode_wmma() {
         if (!dense_decode_wmma) {
-            std::fprintf(stderr, "strata-q35: the matrix-core decode attention test needs STRATA_Q35_DECODE_WMMA=1 (gfx12, "
-                         "dense int8 KV, head dim 256, at most 8 query heads per KV head)\n");
+            std::fprintf(stderr, "strata-q35: the matrix-core decode attention test needs a gfx12 GPU, dense int8 KV, "
+                         "head dim 256, at most 8 query heads per KV head and STRATA_Q35_DECODE_WMMA not 0 (=1 on "
+                         "Windows)\n");
             return false;
         }
         const int H = (int) m->g.n_head, HKV = (int) m->g.n_head_kv, HD = (int) m->g.head_dim, rows_per = att_rows / H;
