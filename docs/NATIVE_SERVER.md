@@ -50,9 +50,11 @@ cgroup memory budget is refused; router mode creates the bounded scope automatic
 a second model worker fails before loading weights. Model switches drain the
 current request before stopping its scope and loading the next. Workers use
 systemd user scopes with 20 GiB memory and zero scope swap by default; the profile
-can specify `router.memory_max_gib`. Startup caps that budget against currently
-available RAM after keeping the system margin, and sets `MemoryHigh` to 90% of
-that cap. Requests arriving during inference receive HTTP 429 instead of building
+can specify `router.memory_max_gib`. Startup caps that hard budget against currently
+available RAM after keeping the system margin. The scope leaves `MemoryHigh` unset:
+it counts the mapped expert-file cache and can force repeated SSD reads before the
+hard limit is reached. The hard `MemoryMax`, zero scope swap and live system-memory
+floor remain active. Requests arriving during inference receive HTTP 429 instead of building
 an unbounded generation queue. Physical-system floors default to 3 GiB
 available RAM and 512 MiB free dedicated VRAM. The monitor stops the worker if
 those floors are crossed. Admission uses an additional 1 GiB host / 256 MiB GPU
