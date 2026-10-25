@@ -12,6 +12,7 @@
 #include "chat.h"
 #include "common.h"
 #include "engine.hpp"
+#include "api_errors.hpp"
 #include "llama.h"
 #include "profiles.hpp"
 #include "router.hpp"
@@ -153,11 +154,25 @@ long long now_s() {
         .count();
 }
 
-void json_error(httplib::Response &res, int status, const std::string &message, const char *type) {
+void json_error(httplib::Response &res, int status, const std::string &message, const char *type,
+                long long prompt_tokens = 0, long long context_tokens = 0) {
+    const std::string public_message =
+        native_api_error::client_message(message, prompt_tokens, context_tokens);
+    status = native_api_error::status_for(message, status);
     common_json e = common_json::object();
     e["error"] = common_json::object();
-    e["error"]["message"] = message;
-    e["error"]["type"] = type;
+    e["error"]["message"] = public_message;
+    const std::string code = native_api_error::code_for(message);
+    e["error"]["type"] = status == 400 ? "invalid_request_error"
+                                : status == 503 && code != "model_worker_unavailable" ? "resource_exhausted"
+                                                                                      : type;
+    e["error"]["code"] = code;
+    const std::string request_id = make_id();
+    e["error"]["request_id"] = request_id;
+    if (code == "context_length_exceeded")
+        e["error"]["param"] = "messages";
+    std::fprintf(stderr, "strata-native: request %s rejected: HTTP %d code=%s: %s\n", request_id.c_str(),
+                 status, code.c_str(), public_message.c_str());
     res.status = status;
     res.set_content(e.dump_safe(), "application/json");
 }
@@ -383,8 +398,7 @@ struct Server {
         constexpr long long kEngineReserve = 8;
         const long long n = (long long)p.ids.size();
         if (n + 1 + kEngineReserve > opt.ctx) {
-            err = "the prompt is " + std::to_string(n) + " tokens, which does not fit the context of " +
-                  std::to_string(opt.ctx);
+            err = native_api_error::context_window_message(n, opt.ctx);
             return false;
         }
         long long max_new = opt.ctx - n - kEngineReserve;
@@ -611,7 +625,8 @@ struct Server {
                 run(*prep, msg, [](const std::vector<common_chat_msg_diff> &) { return true; });
             if (!r.ok)
                 return json_error(res, r.error.rfind("Insufficient", 0) == 0 ? 503 : 500, r.error,
-                                  r.error.rfind("Insufficient", 0) == 0 ? "resource_exhausted" : "server_error");
+                                  r.error.rfind("Insufficient", 0) == 0 ? "resource_exhausted" : "server_error",
+                                  prep->ids.size(), opt.ctx);
             common_json choice = common_json::object();
             choice["index"] = 0;
             choice["message"] = msg.to_json_oaicompat();
@@ -702,8 +717,15 @@ struct Server {
                     } else {
                         common_json e = common_json::object();
                         e["error"] = common_json::object();
-                        e["error"]["message"] = r.error;
-                        e["error"]["type"] = "server_error";
+                        e["error"]["message"] = native_api_error::client_message(r.error, prep->ids.size(), opt.ctx);
+                        e["error"]["type"] = native_api_error::status_for(r.error, 500) == 400
+                                                  ? "invalid_request_error"
+                                                  : native_api_error::status_for(r.error, 500) == 503
+                                                        ? "resource_exhausted"
+                                                        : "server_error";
+                        e["error"]["code"] = native_api_error::code_for(r.error);
+                        if (native_api_error::code_for(r.error) == "context_length_exceeded")
+                            e["error"]["param"] = "messages";
                         const std::string s = "data: " + e.dump_safe() + "\n\n";
                         sink.write(s.data(), s.size());
                     }
