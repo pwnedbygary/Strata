@@ -117,7 +117,10 @@ sets the path and does not upload or copy weights. About keeps linked credits;
 optional profile diagnostics live under Tune.
 Absolute paths must exist; GGUF headers and directory structure are checked before
 saving. Compatibility is checked by the loader. Browser monitoring and auto-scroll
-preferences stay in browser local storage. API keys are not stored there.
+preferences stay in browser local storage. The Settings page can also save the API
+key in that browser's local storage so refreshes retain access; it is not written
+to the Strata registry or shared with other browsers. Clear it from Settings to
+remove it from the current browser.
 
 Overrides are private, atomically written files beside the registry: for
 `~/.config/strata/router.json`, the file is
