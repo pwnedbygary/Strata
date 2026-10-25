@@ -168,6 +168,13 @@ client-side tools themselves. This is not a promise of complete OpenAI/Anthropic
 API coverage. The legacy server remains available for workflows that need its
 additional endpoints.
 
+Request errors use an OpenAI-compatible `error` object with a stable `code`.
+Context overflow reports the tokenized prompt size and active context limit,
+with steps to shorten history or load a larger-context profile. The llama.cpp
+router translates its worker's context-limit response to the same message;
+streaming requests carry that error as an SSE data event. Memory-floor refusals
+and unavailable workers also identify the limiting resource or recovery action.
+
 QFN retains its VRAM/RAM/SSD expert tiers. Native direct CLI startup uses
 `--ple-io direct`, avoiding UnbiasedStrata's RAM-loaded 26.8 GiB table default.
 Existing profile engine args and opt-in tuning environment are retained. MTP is

@@ -1,5 +1,7 @@
 void handle_compat(const httplib::Request &req, httplib::Response &res, bool anthropic, bool count = false) {
     auto input = common_json::parse_no_throw(req.body);
+    if (input.is_discarded())
+        return json_error(res, 400, "the request body is not valid JSON", "invalid_request_error");
     auto p = std::make_shared<Prepared>();
     try {
         auto body = native_api::chat_request(input, anthropic);
@@ -23,7 +25,8 @@ void handle_compat(const httplib::Request &req, httplib::Response &res, bool ant
         auto r = run(*p, msg, [](auto &) { return true; });
         if (!r.ok)
             return json_error(res, r.error.rfind("Insufficient", 0) == 0 ? 503 : 500, r.error,
-                              r.error.rfind("Insufficient", 0) == 0 ? "resource_exhausted" : "server_error");
+                              r.error.rfind("Insufficient", 0) == 0 ? "resource_exhausted" : "server_error",
+                              p->ids.size(), opt.ctx);
         try {
             auto out = anthropic
                            ? native_api::anthropic_message(id, g_model_name, msg.to_json_oaicompat(),
@@ -215,7 +218,13 @@ void handle_compat(const httplib::Request &req, httplib::Response &res, bool ant
                       {{"response", out}});
             }
         } else if (ok) {
-            event("error", {{"error", {{"type", "server_error"}, {"message", r.error}}}});
+            const std::string code = native_api_error::code_for(r.error);
+            const int status = native_api_error::status_for(r.error, 500);
+            event("error", {{"error", {{"type", status == 400 ? "invalid_request_error"
+                                                         : status == 503 ? "resource_exhausted" : "server_error"},
+                                          {"code", code},
+                                          {"message", native_api_error::client_message(
+                                                          r.error, p->ids.size(), opt.ctx)}}}});
         }
         sink.done();
         return true;
