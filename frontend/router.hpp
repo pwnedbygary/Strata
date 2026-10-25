@@ -7,6 +7,7 @@
 #include "memory_policy.hpp"
 #include "ui.hpp"
 #include "file_browser.hpp"
+#include "api_errors.hpp"
 #include <algorithm>
 #include <atomic>
 #include <csignal>
@@ -14,6 +15,7 @@
 #include <cpp-httplib/httplib.h>
 #include <mutex>
 #include <netinet/in.h>
+#include <regex>
 #include <signal.h>
 #include <spawn.h>
 #include <sys/socket.h>
@@ -438,6 +440,41 @@ inline void json(httplib::Response &res, int code, const common_json &body) {
     res.status = code;
     res.set_content(body.dump_safe(), "application/json");
 }
+inline common_json worker_error_body(int status, const std::string &body) {
+    auto parsed = common_json::parse_no_throw(body);
+    std::string message = body;
+    if (parsed.is_object() && parsed.contains("error")) {
+        const auto &error = parsed["error"];
+        if (error.is_object() && error.contains("message") && error["message"].is_string())
+            message = error["message"].template get<std::string>();
+        else if (error.is_string()) message = error.template get<std::string>();
+    }
+    static const std::regex context_error(
+        R"(request \(([0-9,]+) tokens\) exceeds the available context size \(([0-9,]+) tokens\))");
+    std::smatch match;
+    if (std::regex_search(message, match, context_error)) {
+        auto number = [](std::string value) {
+            value.erase(std::remove(value.begin(), value.end(), ','), value.end());
+            try { return std::stoll(value); } catch (...) { return 0LL; }
+        };
+        const auto prompt_tokens = number(match[1].str());
+        const auto context_tokens = number(match[2].str());
+        return {{"error", {{"message", native_api_error::context_window_message(prompt_tokens, context_tokens)},
+                            {"type", "invalid_request_error"}, {"code", "context_length_exceeded"},
+                            {"prompt_tokens", prompt_tokens}, {"context_tokens", context_tokens}}}};
+    }
+    if (!parsed.is_object() || !parsed.contains("error"))
+        return {{"error", {{"message", "The inference worker rejected the request (HTTP " +
+                                  std::to_string(status) + "): " + message},
+                            {"type", "worker_request_error"}}}};
+    auto &error = parsed["error"];
+    if (error.is_object()) {
+        error["message"] = "The inference worker rejected the request (HTTP " +
+                            std::to_string(status) + "): " + message;
+        error["type"] = "worker_request_error";
+    }
+    return parsed;
+}
 inline std::string pick(Router &r, const common_json &body) {
     if (body.contains("model") && body["model"].is_string() && body["model"] != "strata")
         return body["model"].get<std::string>();
@@ -531,7 +568,10 @@ inline void proxy_request(Router &router,const httplib::Request &req,httplib::Re
                     throw std::runtime_error(router.connection_failure("Worker connection failed"));
                 router.observe(common_json::parse_no_throw(answer->body));
                 res.status = answer->status;
-                res.set_content(answer->body, answer->get_header_value("Content-Type"));
+                if (answer->status >= 400) {
+                    const auto error_body = worker_error_body(answer->status, answer->body);
+                    res.set_content(error_body.dump_safe(), "application/json");
+                } else res.set_content(answer->body, answer->get_header_value("Content-Type"));
             } catch (const std::exception &e) {
                 json(res, 503, {{"error", {{"message", e.what()}}}});
             }
@@ -551,15 +591,41 @@ inline void proxy_request(Router &router,const httplib::Request &req,httplib::Re
                 const auto check=native_memory::refusal(native_memory::snapshot(),static_cast<uint64_t>((router.ram_floor+1)*native_memory::GiB),static_cast<uint64_t>(router.vram_floor+256)*native_memory::MiB);
                 if(ticket&&!check.empty())throw std::runtime_error(check);
                 router.load(name);
-                auto c = router.client();router.track(c);std::string event_buffer;
-                auto answer = c->Post(path, httplib::Headers{}, body, "application/json",
-                                      [&](const char *data, size_t n) {
+                auto c = router.client();router.track(c);std::string event_buffer, worker_error;
+                int worker_status = 0;
+                httplib::Request worker_request;
+                worker_request.method = "POST";
+                worker_request.path = path;
+                worker_request.body = body;
+                worker_request.set_header("Content-Type", "application/json");
+                worker_request.response_handler = [&](const httplib::Response &response) {
+                    worker_status = response.status;
+                    return true;
+                };
+                worker_request.content_receiver = [&](const char *data, size_t n, size_t, size_t) {
+                    if (worker_status >= 400) {
+                        if (worker_error.size() + n <= 1024 * 1024) worker_error.append(data, n);
+                        return true;
+                    }
                     event_buffer.append(data,n);size_t end;
                     while((end=event_buffer.find('\n'))!=std::string::npos){auto line=event_buffer.substr(0,end);event_buffer.erase(0,end+1);if(line.rfind("data: ",0)==0)router.observe(common_json::parse_no_throw(line.substr(6)));}
                     if(event_buffer.size()>1024*1024)event_buffer.clear();
                     return sink.is_writable()&&sink.write(data,n);
-                });
-                if (!answer)
+                };
+                httplib::Response worker_response;
+                httplib::Error worker_network_error = httplib::Error::Success;
+                const bool sent = c->send(worker_request, worker_response, worker_network_error);
+                httplib::Result answer;
+                if (sent) {
+                    worker_status = worker_response.status;
+                    if (worker_status >= 400) {
+                        auto error_body = worker_error_body(worker_status, worker_error);
+                        res.status = worker_status;
+                        auto payload = "data: " + error_body.dump_safe() + "\n\n";
+                        sink.write(payload.data(), payload.size());
+                    }
+                }
+                if (!sent)
                     throw std::runtime_error(router.connection_failure("Worker stream disconnected"));
             } catch (const std::exception &e) {
                 auto s = "data: " + common_json({{"error", {{"message", e.what()}}}}).dump_safe() + "\n\n";
