@@ -657,6 +657,7 @@ __global__ void k_store_attention_group(const float* packed, const float* gate, 
 constexpr int kFaCells = 32;           // cells per staged tile
 constexpr int kFaKs = 256 + 8;         // K tile row stride in halves (528 bytes: the 16 rows' reads spread over the banks)
 constexpr int kFaVs = kFaCells + 8;    // transposed V tile row stride in halves (80 bytes)
+constexpr float kFaRest = 2048.0f;     // k_attn_decode_wmma takes P's remainders times 2^11
 typedef _Float16 fa_h2 __attribute__((ext_vector_type(2)));
 typedef _Float16 fa_h8 __attribute__((ext_vector_type(8)));
 typedef float fa_f8 __attribute__((ext_vector_type(8)));
@@ -826,11 +827,14 @@ __global__ void __launch_bounds__(256) k_attn_prompt_wmma(const float* __restric
 /// k_attn_merge_wmma combines the splits.  grid (n_split, HKV), block 32 * G.
 /// K and V enter as their exact int8 codes (V's cell scale goes into P).  Column r scores row r with fp16(q) and weights
 /// it with fp16(P); when nt <= 8 (always, for a dense model's decode), column nt + r, otherwise idle, does the same with
-/// the remainders q - fp16(q) and P - fp16(P), so the two columns' scores add up to the FP32 dot product.  Their outputs
-/// add up to the FP32 sum too, except that once P (e times the V cell scale) is below 1/8 its remainder is an FP16
-/// subnormal, an absolute error of up to 2^-25 per P term: the smaller a layer's V cell scales, the larger the error
-/// (with the self-test's scales, 0.008 to 0.009, the error stays below 1e-5).  9 to 16 rows (no remainder columns)
-/// have FP16 precision.
+/// the remainders q - fp16(q) and P - fp16(P), P's taken times kFaRest (2^11) so that FP16's subnormal step costs
+/// 2^-35 of P instead of 2^-24 (P is e times the V cell scale, mostly below 1/8, where its unscaled remainder is an
+/// FP16 subnormal; the column scales its output back before the exchange).  The two columns' scores add up to the FP32
+/// dot product, each term to about 2^-22 of itself; a q element below 1/8 has a subnormal remainder, within 2^-25
+/// against K's integer codes: an absolute error in the score, so a relative error in P that does not grow as V's
+/// scales shrink.  Their outputs add up to the FP32 sum, each P term to about 2^-22 of itself, a P below about 2^-14
+/// to within 2^-36.  9 to 16 rows (no remainder columns) have FP16 precision: 2^-11 of each term, 2^-25 absolute below
+/// 2^-14.
 __global__ void __launch_bounds__(256, 6) k_attn_decode_wmma(const float* __restrict__ q, const int8_t* __restrict__ kc,
                                                           const int8_t* __restrict__ vc, const float* __restrict__ ks,
                                                           const float* __restrict__ vs, const int32_t* __restrict__ pos0,
@@ -850,6 +854,7 @@ __global__ void __launch_bounds__(256, 6) k_attn_decode_wmma(const float* __rest
     if (cb >= ce) return;                         // past the window's last row
     const bool pair = 2 * nt <= 16;               // the remainders have columns of their own
     const bool rest = pair && col >= nt && col < 2 * nt;
+    const float back = rest ? 1.0f / kFaRest : 1.0f;      // the remainder column's output, scaled back
     const int r = rest ? col - nt : col;          // the row this column scores
     const int limit = r < nt ? min(first + r, ce - 1) : -1;   // the row's last cell in the split (-1: padding)
     uint32_t sel_lo = 0, sel_hi = 0;              // fa_permlane16 selectors: each column reads its row's other column
@@ -956,7 +961,7 @@ __global__ void __launch_bounds__(256, 6) k_attn_decode_wmma(const float* __rest
                 l += e;
                 const float ev = e * svs[s0 + half * 8 + i];
                 const _Float16 hi = (_Float16) ev;
-                p[i] = rest ? (_Float16) (ev - (float) hi) : hi;
+                p[i] = rest ? (_Float16) ((ev - (float) hi) * kFaRest) : hi;
             }
 #pragma unroll
             for (int dt = 0; dt < DT; ++dt)
@@ -970,7 +975,10 @@ __global__ void __launch_bounds__(256, 6) k_attn_decode_wmma(const float* __rest
 #pragma unroll
         for (int dt = 0; dt < DT; ++dt) {
 #pragma unroll
-            for (int i = 0; i < 8; ++i) o[dt][i] += fa_permlane16(o[dt][i], sel_lo, sel_hi);
+            for (int i = 0; i < 8; ++i) {
+                o[dt][i] *= back;
+                o[dt][i] += fa_permlane16(o[dt][i], sel_lo, sel_hi);
+            }
         }
     }
     if (col >= nt) return;
@@ -3482,9 +3490,10 @@ struct Engine {
     }
 
     /// --test-dense-decode-wmma (STRATA_Q35_DECODE_WMMA=1): attend_wmma against k_attn_part + k_attn_merge (FP32) on random
-    /// int8 caches, windows of 1, 2, 3 and the partials' rows, at split edges and long contexts, flat and sharp queries:
-    /// the relative L2 over the window's rows (output and partials NaN-poisoned first), and the times of both and of the
-    /// path the engine takes otherwise (attend_grouped's policy).  Passes within 5e-4.
+    /// int8 caches, windows of 1, 2, 3, 4, 7 and the partials' rows, at split edges and long contexts, flat and sharp
+    /// queries, V cell scales near 8e-3, 1e-4 and 3e-5 (small ones take P's remainders toward FP16's subnormals): the
+    /// relative L2 over the window's rows (output and partials NaN-poisoned first), and at the first V scale (8e-3)
+    /// the times of both and of the path the engine takes otherwise (attend_grouped's policy).  Passes within 5e-4.
     bool test_decode_wmma() {
         if (!dense_decode_wmma) {
             std::fprintf(stderr, "strata-q35: the matrix-core decode attention test needs STRATA_Q35_DECODE_WMMA=1 (gfx12, "
@@ -3515,19 +3524,27 @@ struct Engine {
                 CK(cudaMemcpy(reinterpret_cast<int8_t*>(kc[li])+(size_t)h*cache_stride*HD,keys.data()+(size_t)h*P*HD,(size_t)P*HD,cudaMemcpyHostToDevice));
                 CK(cudaMemcpy(reinterpret_cast<int8_t*>(vc[li])+(size_t)h*cache_stride*HD,values.data()+(size_t)h*P*HD,(size_t)P*HD,cudaMemcpyHostToDevice));
                 CK(cudaMemcpy(kscale[li]+(size_t)h*ctx,kscales.data()+(size_t)h*P,(size_t)P*4,cudaMemcpyHostToDevice));
-                CK(cudaMemcpy(vscale[li]+(size_t)h*ctx,vscales.data()+(size_t)h*P,(size_t)P*4,cudaMemcpyHostToDevice));
             }
-            for (float qs : {1.0f, 16.0f}) {
+            for (int c = 0; c < 6; ++c) {
+                const int vi = c / 2;
+                const float vmul = vi == 0 ? 1.0f : vi == 1 ? 0.0125f : 0.00375f, qs = c % 2 ? 16.0f : 1.0f;
+                if (c % 2 == 0) {
+                    std::vector<float> scaled(vscales);
+                    for (auto& x : scaled) x *= vmul;
+                    for (int h = 0; h < HKV; ++h)
+                        CK(cudaMemcpy(vscale[li]+(size_t)h*ctx,scaled.data()+(size_t)h*P,(size_t)P*4,cudaMemcpyHostToDevice));
+                }
                 for (size_t i = 0; i < count; ++i) queries[i] = base[i] * qs;
                 CK(cudaMemcpy(q,queries.data(),count*4,cudaMemcpyHostToDevice));
-                for (int nt : {1, 2, 3, rows_per}) {
-                    if (nt > P) continue;
+                for (int nt : {1, 2, 3, 4, 7, rows_per}) {
+                    if (nt > P || nt > rows_per) continue;
                     const int32_t first = P - nt;   // the window's rows see first + 1 .. P cells
                     CK(cudaMemcpy(pos0,&first,sizeof first,cudaMemcpyHostToDevice));
                     const int fit = (P + kChunkCells - 1) / kChunkCells, policy = gqa_rb(nt, gqa_level_of(P));
                     const size_t n = (size_t) nt * H * HD;
                     float elapsed[3]{};
                     for (int mode = 0; mode < 3; ++mode) {
+                        if (mode == 1 && vi > 0) continue;
                         auto run = [&] {
                             if (mode == 2) { attend_wmma(li, 0, nt, pos0); return; }
                             if (mode == 1) attend_grouped(li, fit, 0, nt, pos0, policy);
@@ -3542,6 +3559,7 @@ struct Engine {
                         CK(cudaMemsetAsync(pl, 0xff, (size_t) att_rows * n_chunk * 4, st));
                         run(); CK(cudaStreamSynchronize(st));
                         if (mode != 1) CK(cudaMemcpy(mode ? candidate.data() : reference.data(), att, n * 4, cudaMemcpyDeviceToHost));
+                        if (vi > 0) continue;
                         elapsed[mode] = INFINITY;
                         for (int batch = 0; batch < 3; ++batch) {   // the best of three batches: other GPU work skews one
                             CK(cudaEventRecord(start,st));
@@ -3561,8 +3579,12 @@ struct Engine {
                     }
                     const double err = finite ? std::sqrt(e2 / std::max(n2, 1e-30)) : INFINITY;
                     const bool pass = err <= 5e-4;
-                    std::fprintf(stderr, "DECODE_WMMA_TEST P=%d T=%d qscale=%.0f reference_ms=%.4f grouped_ms=%.4f wmma_ms=%.4f "
-                                 "rel_l2=%.3g %s\n", P, nt, qs, elapsed[0], elapsed[1], elapsed[2], err, pass ? "ok" : "FAIL");
+                    char times[96] = "";
+                    if (vi == 0)
+                        std::snprintf(times, sizeof times, " reference_ms=%.4f grouped_ms=%.4f wmma_ms=%.4f",
+                                      elapsed[0], elapsed[1], elapsed[2]);
+                    std::fprintf(stderr, "DECODE_WMMA_TEST P=%d T=%d qscale=%.0f vscale=%.0e%s rel_l2=%.3g %s\n",
+                                 P, nt, qs, .008 * vmul, times, err, pass ? "ok" : "FAIL");
                     ok = ok && pass;
                 }
             }
