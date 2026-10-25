@@ -3,6 +3,9 @@
 #include <limits>
 using namespace native_memory;
 int main() {
+    const auto scope = worker_scope_memory_args(17451);
+    assert(scope == std::vector<std::string>({"-p", "MemoryMax=17451M", "-p", "MemorySwapMax=0", "-p", "OOMPolicy=kill"}));
+    for (const auto &arg : scope) assert(arg.rfind("MemoryHigh=", 0) != 0);
     Snapshot s{8*GiB, 2*GiB, 20*GiB, 2*static_cast<int64_t>(GiB)};
     assert(refusal(s,4*GiB,768*MiB,MiB).empty());
     assert(!refusal(s,4*GiB,768*MiB,5*GiB).empty());

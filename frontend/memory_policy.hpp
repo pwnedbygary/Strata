@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace native_memory {
 inline constexpr uint64_t MiB = 1ULL << 20, GiB = 1ULL << 30;
@@ -95,5 +96,13 @@ inline std::string refusal(const Snapshot &s, uint64_t ram_floor, uint64_t vram_
         s.cgroup_limit - s.cgroup_used - additional < 512 * MiB))
         return "Insufficient process memory budget; request refused before inference";
     return {};
+}
+// MemoryHigh counts the mapped expert-file cache that Strata reads from SSD.
+// A soft limit here makes the kernel reclaim those pages before the worker
+// reaches its hard bound, which can turn each expert miss into another SSD
+// stall. Keep the bounded hard cap, but leave MemoryHigh unset.
+inline std::vector<std::string> worker_scope_memory_args(uint64_t budget_mib) {
+    return {"-p", "MemoryMax=" + std::to_string(budget_mib) + "M",
+            "-p", "MemorySwapMax=0", "-p", "OOMPolicy=kill"};
 }
 } // namespace native_memory
