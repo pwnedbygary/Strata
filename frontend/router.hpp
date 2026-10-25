@@ -357,8 +357,9 @@ class Router {
             {
                 std::lock_guard<std::mutex> l(lifecycle);
                 worker_config = native_config::temporary(cfg, fs::temp_directory_path());
-                std::vector<std::string> cmd={"systemd-run", "--user", "--scope", "--collect", "--quiet", "--unit=" + unit, "-p",
-                    "MemoryMax="+std::to_string(budget_mib)+"M","-p","MemoryHigh="+std::to_string(budget_mib*9/10)+"M","-p","MemorySwapMax=0","-p","OOMPolicy=kill"};
+                std::vector<std::string> cmd={"systemd-run", "--user", "--scope", "--collect", "--quiet", "--unit=" + unit};
+                const auto memory_args = native_memory::worker_scope_memory_args(budget_mib);
+                cmd.insert(cmd.end(), memory_args.begin(), memory_args.end());
                 if(native_backend::resolve(cfg)["engine"]=="llama") {
                     cmd.insert(cmd.end(),{(native_profiles::executable_dir()/"strata-native").string(),"--llama-worker",std::to_string(getpid()),std::to_string((uint64_t)((ram_floor+1)*1024)),std::to_string(vram_floor+256)});
                     auto backend=native_backend::command(cfg,name,port,native_profiles::executable_dir());cmd.insert(cmd.end(),backend.begin(),backend.end());
