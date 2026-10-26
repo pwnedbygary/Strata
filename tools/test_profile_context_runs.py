@@ -7,6 +7,7 @@ import io
 import json
 import os
 import socket
+import subprocess
 import sys
 import tempfile
 import textwrap
@@ -19,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import profile_context_runs as pcr  # noqa: E402
 
 FAKE_ROUTER = textwrap.dedent(r'''
-    import json, re, sys
+    import json, os, re, sys
     from http.server import BaseHTTPRequestHandler, HTTPServer
     args = sys.argv[1:]
     registry = json.load(open(args[args.index("--registry") + 1]))
@@ -64,6 +65,9 @@ FAKE_ROUTER = textwrap.dedent(r'''
                 self.reply({"error": "no"}, 404)
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            if os.environ.get("FAKE_ROUTER_LOG") and self.path == "/v1/chat/completions":
+                with open(os.environ["FAKE_ROUTER_LOG"], "a") as f:
+                    f.write(json.dumps({k: v for k, v in body.items() if k != "messages"}) + "\n")
             if body.get("model") not in registry["profiles"]:
                 return self.reply({"error": "unknown model"}, 404)
             content = body["messages"][0]["content"]
@@ -162,6 +166,33 @@ class Runs(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(self.run_tool("--deadline", "23:30", "plain", out="bare")[0], 2)
         self.assertEqual(self.run_tool("missing", out="missing")[0], 2)
+
+    def test_sampled_and_greedy_requests(self):
+        log = self.d / "requests.jsonl"
+        with mock.patch.dict(os.environ, {"FAKE_ROUTER_LOG": str(log)}):
+            self.assertEqual(self.run_tool("--tokens", "1000", "pic", out="sampled")[0], 0)
+            sampled = [json.loads(line) for line in log.read_text().splitlines()]
+            log.unlink()
+            self.assertEqual(self.run_tool("--tokens", "1000", "--greedy", "plain", out="greedy")[0], 0)
+            greedy = [json.loads(line) for line in log.read_text().splitlines()]
+        bench = [r for r in sampled if r["max_tokens"] == 768]
+        self.assertEqual(len(bench), 2)
+        self.assertTrue(all("temperature" not in r and r["seed"] == 20261026 for r in bench))
+        picture = [r for r in sampled if r["max_tokens"] != 768]
+        self.assertEqual([(r["temperature"], "seed" in r) for r in picture], [(0, False)])
+        self.assertEqual([(r["temperature"], "seed" in r) for r in greedy], [(0, False), (0, False)])
+        rec = json.loads((self.d / "sampled" / "pic" / "run.json").read_text())
+        self.assertEqual((rec["sampling"], rec["seed"]), ("profile", 20261026))
+        report = json.loads((self.d / "sampled" / "pic" / "report.json").read_text())
+        self.assertEqual((report["sampling"], report["seed"]), ("profile", 20261026))
+        self.assertTrue((self.d / "sampled" / "table.md").read_text().startswith(
+            "Requests: each profile's own sampling, seed 20261026."))
+        self.assertTrue((self.d / "greedy" / "table.md").read_text().startswith("Requests: greedy (temperature 0)."))
+        script = Path(pcr.__file__).parent / "coding_context_bench.py"
+        bad = subprocess.run([sys.executable, str(script), "--model", "m", "--tokens", "10", "--output",
+                              str(self.d / "bad"), "--seed", "1"], capture_output=True, text=True, timeout=60)
+        self.assertEqual(bad.returncode, 2)
+        self.assertIn("--seed needs --sampling profile", bad.stderr)
 
     def test_picture_pass_rule(self):
         self.assertTrue(pcr.picture_pass(200, "A red Circle, a blue square and a GREEN triangle."))

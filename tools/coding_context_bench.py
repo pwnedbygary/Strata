@@ -35,7 +35,13 @@ def main():
     p.add_argument('--long-context-probes', action='store_true', help='require unique build IDs from the beginning, middle and end')
     p.add_argument('--require-zero-gpu-offset', action='store_true',
                    help='refuse to start if the AMD GPU voltage offset is nonzero or cannot be read')
+    p.add_argument('--sampling',choices=('greedy','profile'),default='greedy',
+                   help="greedy: temperature 0; profile: no sampling fields, so the router applies the profile's "
+                        "own values")
+    p.add_argument('--seed',type=int,help='seed sent with --sampling profile, so a repeated run draws the same tokens')
     a=p.parse_args()
+    if a.seed is not None and a.sampling!='profile':
+        p.error('--seed needs --sampling profile')
     if a.require_zero_gpu_offset:
         offsets=[]
         for dev in Path('/sys/class/drm').glob('card*/device'):
@@ -119,7 +125,7 @@ def main():
     (a.output/'prompt.txt').write_text(prompt)
     reports=[]
     def run(name,messages):
-        body={'model':a.model,'messages':messages,'temperature':0,'reasoning_effort':'none','chat_template_kwargs':{'enable_thinking':False},'max_tokens':768,'stream':True,'stream_options':{'include_usage':True},'return_progress':True}
+        body={'model':a.model,'messages':messages,**({'temperature':0} if a.sampling=='greedy' else {}),'reasoning_effort':'none','chat_template_kwargs':{'enable_thinking':False},'max_tokens':768,'stream':True,'stream_options':{'include_usage':True},'return_progress':True,**({'seed':a.seed} if a.seed is not None else {})}
         started=time.monotonic();answer='';latest={};progress={};first_token=None;completed=False
         with urllib.request.urlopen(request('/v1/chat/completions',body),timeout=a.request_timeout) as r,(a.output/(name+'.sse')).open('w') as stream:
             for raw in r:
@@ -147,7 +153,7 @@ def main():
                 'prompt_sha256': hashlib.sha256(prompt.encode()).hexdigest()}, indent=2)+'\n')
         report={'phase':name,'completed':completed,'elapsed_seconds':round(time.monotonic()-started,2),'first_content_seconds':first_token,'usage':latest.get('usage'),'timings':latest.get('timings')}
         reports.append(report)
-        (a.output/'report.json').write_text(json.dumps({'model':a.model,'target_prompt_tokens':a.tokens,'counted_prompt_tokens':actual,'runs':reports},indent=2)+'\n')
+        (a.output/'report.json').write_text(json.dumps({'model':a.model,'target_prompt_tokens':a.tokens,'counted_prompt_tokens':actual,'sampling':a.sampling,'seed':a.seed,'runs':reports},indent=2)+'\n')
         print(json.dumps(report),flush=True)
         return answer
     messages=[{'role':'user','content':prompt}]

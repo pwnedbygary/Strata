@@ -9,6 +9,9 @@ API key, from a copy of the registry (profile paths made absolute) and its tunin
   * for a profile with --vision, a picture question on tools/qwen35/pictures/shapes.png (PASS when the answer names
     the three shapes and the three colours);
   * the router's /router/status (the engine its Automatic route chose).
+The bench's requests carry no sampling fields, so the router applies each profile's own `sampling` values, plus a
+fixed --seed so a repeated run draws the same tokens; --greedy sends temperature 0 instead. The picture question is
+always greedy.
 The router is then stopped, and the next profile starts once no GPU compute process is left (at most --settle-max s).
 A sampler records the 1-minute load, available RAM, GPU busy %, VRAM used, GPU compute processes and the top CPU users
 every --sample-every s; the table takes each profile's peak VRAM, lowest available RAM and highest load from it.
@@ -298,9 +301,12 @@ def table(run_dir):
             except ValueError:
                 pass
     recs = sorted((load_json(p) for p in run_dir.glob("*/run.json")), key=lambda r: r.get("started", 0))
-    out = ["| Profile | Engine | Prompt tokens | Prompt tok/s (s) | Decode tok/s | Drafts | Follow-up: first token s, "
-           "decode tok/s | Retrieval | Code | Picture | Peak VRAM MiB | Min RAM free GiB | Max load |",
-           "|---|---|---:|---:|---:|---:|---:|---|---|---|---:|---:|---:|"]
+    modes = sorted({"greedy (temperature 0)" if r["sampling"] == "greedy" else
+                    "each profile's own sampling, seed %s" % r.get("seed") for r in recs if r.get("sampling")})
+    out = ["Requests: %s." % "; ".join(modes), ""] if modes else []
+    out += ["| Profile | Engine | Prompt tokens | Prompt tok/s (s) | Decode tok/s | Drafts | Follow-up: first token s, "
+            "decode tok/s | Retrieval | Code | Picture | Peak VRAM MiB | Min RAM free GiB | Max load |",
+            "|---|---|---:|---:|---:|---:|---:|---|---|---|---:|---:|---:|"]
     for rec in recs:
         d = run_dir / rec["profile"]
         r = load_json(d / "report.json")
@@ -344,6 +350,8 @@ def parse_args(argv):
     ap.add_argument("--port", type=int, default=18098)
     ap.add_argument("--tokens", type=int, help="prompt tokens for every profile (default: context minus --margin)")
     ap.add_argument("--margin", type=int, default=2048, help="context left for the answers")
+    ap.add_argument("--greedy", action="store_true", help="greedy requests (temperature 0), not the profiles' sampling")
+    ap.add_argument("--seed", type=int, default=20261026, help="seed of the sampled requests (ignored with --greedy)")
     ap.add_argument("--deadline", help='no profile starts after this ("YYYY-MM-DD HH:MM")')
     ap.add_argument("--request-timeout", type=int, default=7200, help="seconds for one request")
     ap.add_argument("--settle-max", type=float, default=90, help="seconds to wait for the GPU to be free between profiles")
@@ -404,6 +412,7 @@ def main(argv=None):
             pdir = out / name
             pdir.mkdir(exist_ok=True)
             rec = {"profile": name, "profile_file": profiles[name], "context": ctx, "prompt_target": tokens,
+                   "sampling": "greedy" if a.greedy else "profile", "seed": None if a.greedy else a.seed,
                    "started": time.time()}
             try:
                 proc, rlog = start_router(a.app, registry, a.port, pdir / "router.log")
@@ -416,11 +425,12 @@ def main(argv=None):
                     rec["error"] = "the router did not answer (exit %s)" % proc.poll()
                     log("%s: %s" % (name, rec["error"]))
                 else:
-                    log("%s start: context %s, prompt target %d tokens; %s" % (name, ctx, tokens,
-                                                                             state_text(machine_state(dev))))
+                    log("%s start: context %s, prompt target %d tokens, %s requests; %s" % (
+                        name, ctx, tokens, rec["sampling"], state_text(machine_state(dev))))
                     cmd = [sys.executable, str(ROOT / "tools" / "coding_context_bench.py"), "--model", name,
                            "--tokens", str(tokens), "--long-context-probes", "--request-timeout", str(a.request_timeout),
                            "--base-url", url, "--output", str(pdir)]
+                    cmd += ["--sampling", "greedy"] if a.greedy else ["--sampling", "profile", "--seed", str(a.seed)]
                     with open(out / (name + ".out"), "w") as bench_out:
                         try:
                             rec["bench_exit"] = subprocess.run(cmd, stdout=bench_out, stderr=subprocess.STDOUT,
