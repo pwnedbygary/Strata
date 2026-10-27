@@ -15,7 +15,8 @@
 //   * decode one token at a time from a captured graph (positions on the device), or with --no-graph eagerly.
 //
 // Modes: --serve (serve/server.py's engine protocol: READY / GEN / T / DONE / STOP / PP), --tokens IDS [--n N]
-// [--force IDS] [--dump-full-logits F] (tools/qwen35/kl.py's reference interface), --bench-pp N / --bench-tg N.
+// [--force IDS] [--dump-full-logits F] (tools/qwen35/kl.py's reference interface; --checkpoint-at C tests the
+// conversation checkpoints), --bench-pp N / --bench-tg N.
 #include "strata/artifact/gguf_reader.hpp"
 #include "strata/core/family_layout.hpp"
 #include "strata/core/gfx12_platform_defaults.hpp"
@@ -27,6 +28,7 @@
 #include "strata/kernels/native_router.hpp"
 #include "strata/prefill/gemm.hpp"
 #include "strata/prefill/moe_mmq.hpp"
+#include "strata/qwen35/checkpoints.hpp"
 #include "strata/qwen35/engine.hpp"
 #include "q36_kernels.cuh"
 #if defined(STRATA_Q36_CPU_POOL)
@@ -1962,6 +1964,22 @@ struct Engine {
     // ---- sessions: the conversation states.  One for a single-request engine; --batch N keeps N, each with its own
     // recurrent state and KV cache, so N requests run at once: their rows share one decode window (forward_rows).  The
     // members conv / S / kc / vc / pos / hlast above are the CURRENT session's (select() swaps them).
+    // A conversation checkpoint (STRATA_Q35_CHECKPOINTS=N, dense): the session's recurrent state at a cell, in pinned
+    // host RAM (checkpoints.hpp); the K / V cells below it stay in the cache, stored by position.
+    struct HostState {   // pinned: the copies run at the bus's speed, and a reused buffer needs no page faults
+        float* p = nullptr;
+        HostState() = default;
+        HostState(HostState&& o) noexcept : p(o.p) { o.p = nullptr; }
+        HostState& operator=(HostState&& o) noexcept { std::swap(p, o.p); return *this; }
+        ~HostState() { if (p) (void) cudaFreeHost(p); }
+    };
+    struct Ckpt {
+        int64_t cell = 0;
+        uint64_t stamp = 0;              // its last use: taken, or resumed from
+        HostState state;                 // each GDN layer's conv then S, then hlast
+        std::vector<float> logits;       // at a prompt's end: its last cell's logits (else empty)
+        int32_t pick = -1;               // and their greedy pick
+    };
     struct Sess {
         std::vector<float*> conv, S, kc, vc;
         std::vector<float*> kscale, vscale;
@@ -1972,10 +1990,14 @@ struct Engine {
         std::vector<ImgKey> imgs;           // the pictures among them
         bool active = false;                // a batch slot is decoding in it
         uint64_t used = 0;                  // when it was last used (the LRU pick)
+        std::vector<Ckpt> ckpts;            // its checkpoints, ascending by cell, all within `live`
     };
     std::vector<Sess> sess;
     int n_sess = 1, cur = 0;
     uint64_t use_clock = 0;
+    int ckpt_cap = 0;                                 // STRATA_Q35_CHECKPOINTS: checkpoints a session holds (0: off)
+    uint64_t ckpt_clock = 0;
+    std::vector<HostState> ckpt_spare;                // state buffers of dropped checkpoints, for the next ones
     // device tables for batch rows: per state index (layer, then the MTP block) the session pointers
     float **d_conv_tab = nullptr, **d_S_tab = nullptr, **d_kc_tab = nullptr, **d_vc_tab = nullptr;
     int32_t *d_rcell = nullptr, *d_rslot = nullptr, *d_rdelta = nullptr;   // [kVerify] the rows' cell / session / rotary offset
@@ -2242,6 +2264,15 @@ struct Engine {
         dense_token_loan = token_loan && std::strcmp(token_loan, "1") == 0;
         if (dense_token_loan && !dense_prefill_loan) {
             std::fprintf(stderr, "strata-q35: token buffer loan requires prefill loan\n"); std::exit(2);
+        }
+        // STRATA_Q35_CHECKPOINTS=N (dense, opt-in): up to N snapshots of the recurrent state in host RAM, so a request
+        // that changes the conversation resumes from the last one it shares instead of reading it all again
+        if (const char* ck = dense && n_sess == 1 ? std::getenv("STRATA_Q35_CHECKPOINTS") : nullptr) {
+            ckpt_cap = std::max(0, std::min(64, std::atoi(ck)));
+            if (ckpt_cap > 0)
+                std::fprintf(stderr, "strata-q35: conversation checkpoints: up to %d of %.1f MiB each in pinned "
+                                     "host RAM\n",
+                             ckpt_cap, (double) ckpt_floats() * 4 / 1048576.0);
         }
         if (dense) kAttScoreFloats = (size_t) 8 << 20;
         const char* score_env = dense ? std::getenv("STRATA_Q35_ATTN_SCORE_MIB") : nullptr;
@@ -2537,6 +2568,175 @@ struct Engine {
         pos = 0;
         sess[(size_t) cur].pos = 0;
         set_delta(0);
+        drop_ckpts_after(-1);
+    }
+
+    /// The floats of a checkpoint's state: each GDN layer's conv and S, then hlast.
+    size_t ckpt_floats() const {
+        const auto& g = m->g;
+        const size_t per = (size_t) g.ssm_conv_channels * (g.ssm_d_conv - 1) +
+                           (size_t) g.ssm_v_heads * g.ssm_state_size * g.ssm_state_size;
+        size_t n = (size_t) g.n_embd;
+        for (const Layer& L : m->layers)
+            if (!L.attn) n += per;
+        return n;
+    }
+    /// Checkpoint c: the current session's recurrent state at its position; with_logits (a prompt's end, its read
+    /// done): also the last cell's logits and pick, which the first token is taken from.
+    void snapshot(Ckpt& c, bool with_logits) {
+        const auto& g = m->g;
+        const size_t nc = (size_t) g.ssm_conv_channels * (g.ssm_d_conv - 1);
+        const size_t ns = (size_t) g.ssm_v_heads * g.ssm_state_size * g.ssm_state_size;
+        if (!c.state.p && !ckpt_spare.empty()) {
+            c.state = std::move(ckpt_spare.back());
+            ckpt_spare.pop_back();
+        }
+        if (!c.state.p) CK(cudaHostAlloc((void**) &c.state.p, ckpt_floats() * 4, cudaHostAllocDefault));
+        CK(cudaStreamSynchronize(st));
+        float* o = c.state.p;
+        for (size_t l = 0; l < conv.size(); ++l) {
+            if (!conv[l]) continue;
+            CK(cudaMemcpyAsync(o, conv[l], nc * 4, cudaMemcpyDeviceToHost, st));
+            CK(cudaMemcpyAsync(o + nc, S[l], ns * 4, cudaMemcpyDeviceToHost, st));
+            o += nc + ns;
+        }
+        CK(cudaMemcpyAsync(o, hlast, (size_t) g.n_embd * 4, cudaMemcpyDeviceToHost, st));
+        c.logits.clear();
+        c.pick = -1;
+        if (with_logits) {
+            c.logits.resize((size_t) g.n_vocab);
+            CK(cudaMemcpyAsync(c.logits.data(), logits, c.logits.size() * 4, cudaMemcpyDeviceToHost, st));
+            CK(cudaMemcpyAsync(&c.pick, pick, 4, cudaMemcpyDeviceToHost, st));
+        }
+        CK(cudaStreamSynchronize(st));
+        c.cell = pos;
+        c.stamp = ++ckpt_clock;
+    }
+    /// The current session back at checkpoint c's cell: the state copied into the session's own buffers (the captured
+    /// graphs keep their pointers); the K / V cells below the cell are the ones it was taken with.
+    void restore(Ckpt& c) {
+        const auto& g = m->g;
+        const size_t nc = (size_t) g.ssm_conv_channels * (g.ssm_d_conv - 1);
+        const size_t ns = (size_t) g.ssm_v_heads * g.ssm_state_size * g.ssm_state_size;
+        CK(cudaStreamSynchronize(st));
+        const float* o = c.state.p;
+        for (size_t l = 0; l < conv.size(); ++l) {
+            if (!conv[l]) continue;
+            CK(cudaMemcpyAsync(conv[l], o, nc * 4, cudaMemcpyHostToDevice, st));
+            CK(cudaMemcpyAsync(S[l], o + nc, ns * 4, cudaMemcpyHostToDevice, st));
+            o += nc + ns;
+        }
+        CK(cudaMemcpyAsync(hlast, o, (size_t) g.n_embd * 4, cudaMemcpyHostToDevice, st));
+        if (!c.logits.empty()) {
+            CK(cudaMemcpyAsync(logits, c.logits.data(), c.logits.size() * 4, cudaMemcpyHostToDevice, st));
+            CK(cudaMemcpyAsync(pick, &c.pick, 4, cudaMemcpyHostToDevice, st));
+        }
+        CK(cudaStreamSynchronize(st));
+        pos = c.cell;
+        sess[(size_t) cur].pos = pos;
+        c.stamp = ++ckpt_clock;
+    }
+    /// Drops the current session's checkpoints past `cell` (cells about to be written again); -1: all of them.
+    void drop_ckpts_after(int64_t cell) {
+        auto& v = sess[(size_t) cur].ckpts;
+        while (!v.empty() && v.back().cell > cell) {
+            if (ckpt_spare.size() < 2) ckpt_spare.push_back(std::move(v.back().state));
+            v.pop_back();
+        }
+    }
+    /// Checkpoint c joins the current session's (one at the same cell is replaced); then one at a time leaves until
+    /// ckpt_cap are held (checkpoints.hpp's eviction_victim).
+    void keep_ckpt(Ckpt&& c) {
+        auto& v = sess[(size_t) cur].ckpts;
+        auto at = std::lower_bound(v.begin(), v.end(), c.cell,
+                                   [](const Ckpt& a, int64_t cell) { return a.cell < cell; });
+        if (at != v.end() && at->cell == c.cell) {
+            if (ckpt_spare.size() < 2) ckpt_spare.push_back(std::move(at->state));
+            *at = std::move(c);
+        } else {
+            v.insert(at, std::move(c));
+        }
+        while (v.size() > (size_t) ckpt_cap) {
+            std::vector<int64_t> cells;
+            std::vector<uint64_t> stamps;
+            for (const Ckpt& k : v) {
+                cells.push_back(k.cell);
+                stamps.push_back(k.stamp);
+            }
+            const size_t i = strata::qwen35::checkpoints::eviction_victim(cells, stamps, (size_t) ckpt_cap);
+            if (ckpt_spare.size() < 2) ckpt_spare.push_back(std::move(v[i].state));
+            v.erase(v.begin() + (long) i);
+        }
+    }
+
+    /// --test-dense-checkpoint: a read of 3 chunks and 37 cells of random tokens, a checkpoint at its second chunk end
+    /// and one at its end; the next logits after 16 more tokens; other tokens written over the cells from the first
+    /// checkpoint on.  Then restored, the first must give the read's last logits again bit for bit once the rest of the
+    /// read is done again, and the second must give them back at once and the same next logits.  The cache is grown
+    /// first, so its stride stays the same throughout.  Timed: a snapshot (its buffer's allocation included, then again
+    /// into the same buffer) and a restore.
+    bool test_checkpoint() {
+        const auto& g = m->g;
+        const int64_t t = tmax, n = 3 * t + 37, extra = 64;
+        if (g.family != strata::ModelFamily::Qwen35Dense || n + extra + 16 > ctx) {
+            std::fprintf(stderr, "strata-q35: the checkpoint test needs a dense model and --max-context of %lld or "
+                         "more\n", (long long) (n + extra + 16));
+            return false;
+        }
+        std::mt19937 rng(20261026);
+        std::uniform_int_distribution<int32_t> tok_d(1000, (int32_t) std::min<int64_t>(g.n_vocab, 150000) - 1);
+        auto random_tokens = [&](int64_t k) {
+            std::vector<int32_t> v((size_t) k);
+            for (auto& x : v) x = tok_d(rng);
+            return v;
+        };
+        const std::vector<int32_t> A = random_tokens(n), B = random_tokens(n - 2 * t + extra), D = random_tokens(16);
+        reset();
+        if (m->adaptive_dense) ensure_dense_kv(n + extra + 16);
+        const int stride0 = cache_stride;
+        auto none = [](int64_t) {};
+        Ckpt mid, end;
+        process(A.data(), 2 * t, none);
+        auto t0 = Clock::now();
+        snapshot(mid, false);
+        const double snap_ms = ms_since(t0);
+        t0 = Clock::now();
+        snapshot(mid, false);
+        const double again_ms = ms_since(t0);
+        process(A.data() + 2 * t, n - 2 * t, none);
+        std::vector<float> L1, L2, L3, N1, N2;
+        host_logits(L1);
+        const int g1 = greedy();
+        snapshot(end, true);
+        process(D.data(), 16, none);
+        host_logits(N1);
+        restore(mid);
+        process(B.data(), (int64_t) B.size(), none);
+        t0 = Clock::now();
+        restore(mid);
+        const double restore_ms = ms_since(t0);
+        process(A.data() + 2 * t, n - 2 * t, none);
+        host_logits(L2);
+        const int g2 = greedy();
+        process(B.data(), 50, none);
+        restore(end);
+        host_logits(L3);
+        const int g3 = greedy();
+        process(D.data(), 16, none);
+        host_logits(N2);
+        auto same = [](const std::vector<float>& a, const std::vector<float>& b) {
+            return a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size() * 4) == 0;
+        };
+        const bool rest_again = same(L1, L2) && g1 == g2, at_end = same(L1, L3) && g1 == g3, follows = same(N1, N2);
+        const bool ok = rest_again && at_end && follows && cache_stride == stride0;
+        std::fprintf(stderr, "CHECKPOINT_TEST cells=%lld chunk=%lld state_mib=%.1f snapshot_ms=%.1f/%.1f "
+                     "restore_ms=%.1f stride=%d/%d rest_again=%s at_end=%s next=%s %s\n", (long long) n, (long long) t,
+                     (double) ckpt_floats() * 4 / 1048576.0, snap_ms, again_ms, restore_ms, stride0, cache_stride,
+                     rest_again ? "identical" : "DIFFERS", at_end ? "identical" : "DIFFERS",
+                     follows ? "identical" : "DIFFERS",
+                     ok ? "ok" : "FAIL");
+        reset();
+        return ok;
     }
 
     /// y [T][n_out] = W x [T][n_in] on the native MMVQ, 8 columns per launch.
@@ -4838,6 +5038,7 @@ std::vector<int32_t> parse_ids(const char* s) {
 }
 
 bool is_eos(int t) { return t == 248044 || t == 248046; }
+constexpr int32_t kImStart = 248045;   // <|im_start|>: a message's first token (the checkpoints' marks)
 
 // ------------------------------------------------------------------------------------------------ pictures
 constexpr int32_t kImagePad = 248056;   // <|image_pad|>
@@ -5215,6 +5416,47 @@ struct Serve {
         return best >= 0 ? best : free_empty >= 0 ? free_empty : lru;
     }
 
+    /// STRATA_Q35_CHECKPOINTS: the current session (ss) back at its longest checkpoint the prompt shares, the ones past
+    /// it dropped; the cells it returns are the prompt's already held, 0 for none.  The shared cells end at the first
+    /// picture that the held tokens and the prompt do not both have, or that they would cut.
+    size_t resume(Engine::Sess& ss, const std::vector<int32_t>& ids, const std::vector<ImgKey>& imgs) {
+        if (ss.ckpts.empty()) return 0;
+        int64_t shared = std::mismatch(ss.live.begin(), ss.live.end(), ids.begin(), ids.end()).first - ss.live.begin();
+        std::vector<ImgKey> below;
+        for (const ImgKey& k : ss.imgs)
+            if (k.cell < shared) below.push_back(k);
+        for (const ImgKey& k : imgs)
+            if (k.cell < shared) below.push_back(k);
+        std::sort(below.begin(), below.end(), [](const ImgKey& a, const ImgKey& b) { return a.cell < b.cell; });
+        for (const ImgKey& k : below) {
+            const bool held = std::find(ss.imgs.begin(), ss.imgs.end(), k) != ss.imgs.end();
+            const bool asked = std::find(imgs.begin(), imgs.end(), k) != imgs.end();
+            if (!held || !asked || k.cell + k.n > shared) {
+                shared = k.cell;
+                break;
+            }
+        }
+        std::vector<int64_t> cells;
+        std::vector<bool> has_logits;
+        for (const Engine::Ckpt& c : ss.ckpts) {
+            cells.push_back(c.cell);
+            has_logits.push_back(!c.logits.empty());
+        }
+        const int i = strata::qwen35::checkpoints::pick(cells, has_logits, shared, (int64_t) ids.size());
+        if (i < 0) return 0;
+        const int64_t cell = ss.ckpts[(size_t) i].cell;
+        E.drop_ckpts_after(cell);
+        E.restore(ss.ckpts[(size_t) i]);
+        ss.live.resize((size_t) cell);
+        std::vector<ImgKey> kept;
+        for (const ImgKey& k : ss.imgs)
+            if (k.cell + k.n <= cell) kept.push_back(k);
+        ss.imgs = kept;
+        std::fprintf(stderr, "strata-q35: the prompt (%zu cells, %lld shared with the held ones) resumes from the "
+                     "checkpoint at cell %lld\n", ids.size(), (long long) shared, (long long) cell);
+        return (size_t) cell;
+    }
+
     void request(const std::string& line) {
         const bool adm = line[0] == 'B';
         const bool geni = line.rfind(adm ? "BGENI " : "GENI ", 0) == 0;
@@ -5321,6 +5563,7 @@ struct Serve {
             }
         }
         E.select(s);
+        if (reuse == 0 && E.ckpt_cap > 0 && !adm) reuse = resume(ss, ids, ir.imgs);
         if (reuse == 0) {
             E.reset();
             ss.live.clear();
@@ -5332,7 +5575,29 @@ struct Serve {
         const int64_t fresh = (int64_t) (ids.size() - reuse);
         bool cancelled = false;
         monitor_accepted = monitor_offered = 0;
+        // STRATA_Q35_CHECKPOINTS: the chunk ends at which this read takes checkpoints (checkpoints.hpp); the marks are
+        // the last two <|im_start|> it reads
+        std::vector<int64_t> snap_at;
+        int snaps = 0;
+        double snap_ms = 0;
+        if (E.ckpt_cap > 0 && !adm) {
+            std::vector<int64_t> marks;
+            for (size_t i = ids.size(); i-- > reuse && marks.size() < 2;)
+                if (ids[i] == kImStart) marks.push_back((int64_t) i);
+            std::vector<std::pair<int64_t, int64_t>> pictures;
+            for (const ImgKey& k : ir.imgs) pictures.emplace_back(k.cell, k.n);
+            snap_at = strata::qwen35::checkpoints::snapshot_cells((int64_t) reuse, (int64_t) ids.size(), E.tmax, marks,
+                                                                  pictures);
+        }
         const int64_t got = E.process(ids.data() + reuse, fresh, [&](int64_t done) -> bool {
+            if (std::binary_search(snap_at.begin(), snap_at.end(), E.pos)) {
+                const auto s0 = Clock::now();
+                Engine::Ckpt c;
+                E.snapshot(c, E.pos == (int64_t) ids.size());
+                E.keep_ckpt(std::move(c));
+                snap_ms += ms_since(s0);
+                ++snaps;
+            }
             std::printf("PP %lld %lld %.0f %.1f\n", (long long) done, (long long) fresh, ms_since(t0),
                         (double) done / std::max(1e-9, ms_since(t0) / 1000.0));
             std::fflush(stdout);
@@ -5357,8 +5622,12 @@ struct Serve {
         if (cancelled && cut) {   // stopped inside a picture: the state cannot be continued, the next read starts over
             ss.live.clear();
             ss.imgs.clear();
+            E.drop_ckpts_after(-1);
         }
         E.sess[(size_t) E.cur].pos = E.pos;
+        if (snaps > 0)
+            std::fprintf(stderr, "strata-q35: %d checkpoint(s) taken in %.0f ms, %zu held\n", snaps, snap_ms,
+                         ss.ckpts.size());
         const double prompt_ms = ms_since(t0);
         if (cancelled) {
             monitor(true);
@@ -5554,7 +5823,8 @@ int strata::qwen35::run(int argc, char** argv) {
     int ctx = 32768, chunk = 0, n_gen = 64, bench_pp = 0, bench_tg = 0, mtp_d = 0, cpu_threads = 0, hybrid_rows = 128;
     double expert_vram = -1.0;
     bool warm = true, test_cache_cycle = false, test_attention_heads = false, test_decode_attention = false;
-    bool test_attention_fused = false, test_decode_wmma = false;
+    bool test_attention_fused = false, test_decode_wmma = false, test_checkpoint = false;
+    int64_t checkpoint_at = 0;
     int expert_slots = 0, batch = 0, draft_vocab = -1;
     bool serve_mode = false, graph = true, vision = false, batch_mtp = false;
     for (int i = 1; i < argc; ++i) {
@@ -5587,6 +5857,8 @@ int strata::qwen35::run(int argc, char** argv) {
         else if (a == "--test-dense-fused-attention") test_attention_fused = true;
         else if (a == "--test-dense-decode-attention") test_decode_attention = true;
         else if (a == "--test-dense-decode-wmma") test_decode_wmma = true;
+        else if (a == "--test-dense-checkpoint") test_checkpoint = true;
+        else if (a == "--checkpoint-at") checkpoint_at = std::atoll(next().c_str());
         else if (a == "--mtp") {
             // a number of drafts; Flash-Next's "--mtp <draft layer dir>" means nothing for this family
             const std::string v = next();
@@ -5612,8 +5884,8 @@ int strata::qwen35::run(int argc, char** argv) {
         } else {
             std::fprintf(stderr,
                          "usage: strata-q36 --model GGUF [--max-context 32768] [--chunk 512] [--no-graph]\n"
-                         "       (--serve | --tokens IDS|@FILE [--n 64] [--force IDS|@FILE] [--dump-full-logits F] | "
-                         "--bench-pp N --bench-tg N)\n");
+                         "       (--serve | --tokens IDS|@FILE [--n 64] [--force IDS|@FILE] [--dump-full-logits F]\n"
+                         "        [--checkpoint-at C] | --bench-pp N --bench-tg N)\n");
             return 2;
         }
     }
@@ -5721,6 +5993,7 @@ int strata::qwen35::run(int argc, char** argv) {
     if (test_attention_fused) return E.test_attention_fused() ? 0 : 1;
     if (test_decode_attention) return E.test_decode_attention() ? 0 : 1;
     if (test_decode_wmma) return E.test_decode_wmma() ? 0 : 1;
+    if (test_checkpoint) return E.test_checkpoint() ? 0 : 1;
     if (test_cache_cycle) {
         if (!m.adaptive_dense) { std::fprintf(stderr,"strata-q35: cache cycle test needs adaptive dense mode\n"); return 2; }
         E.ensure_dense_kv(ctx);
@@ -5793,7 +6066,31 @@ int strata::qwen35::run(int argc, char** argv) {
                      ir.rows.size() / (size_t) m.g.n_embd, (int) ir.delta);
     }
     const auto t0 = Clock::now();
-    E.process(prompt.data(), (int64_t) prompt.size(), [](int64_t) {});
+    if (checkpoint_at > 0) {
+        // --checkpoint-at C, a test of the conversation checkpoints: the prompt read to cell C, a checkpoint, other
+        // tokens written over the cells from C on, the checkpoint restored and the rest of the prompt read from C
+        const int64_t np = (int64_t) prompt.size();
+        if (m.g.family != strata::ModelFamily::Qwen35Dense || checkpoint_at >= np || np + 64 > ctx ||
+            !emb_file.empty()) {
+            std::fprintf(stderr, "strata-q36: --checkpoint-at needs a dense model, a cell inside the prompt, 64 "
+                         "cells of room after the prompt and no --emb\n");
+            return 2;
+        }
+        E.process(prompt.data(), checkpoint_at, [](int64_t) {});
+        Engine::Ckpt c;
+        E.snapshot(c, false);
+        std::mt19937 rng(20261026);
+        std::uniform_int_distribution<int32_t> tok_d(1000, (int32_t) std::min<int64_t>(m.g.n_vocab, 150000) - 1);
+        std::vector<int32_t> other((size_t) (np - checkpoint_at + 64));
+        for (auto& x : other) x = tok_d(rng);
+        E.process(other.data(), (int64_t) other.size(), [](int64_t) {});
+        E.restore(c);
+        E.process(prompt.data() + checkpoint_at, np - checkpoint_at, [](int64_t) {});
+        std::fprintf(stderr, "strata-q36: the prompt resumed at cell %lld from a checkpoint, after %zu other tokens "
+                     "were written over the cells from there\n", (long long) checkpoint_at, other.size());
+    } else {
+        E.process(prompt.data(), (int64_t) prompt.size(), [](int64_t) {});
+    }
     const double pp_ms = ms_since(t0);
     const auto t1 = Clock::now();
     if (E.mtp_d > 0 && forced.empty() && !ff) {
