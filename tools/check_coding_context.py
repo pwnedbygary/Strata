@@ -9,11 +9,9 @@ import subprocess
 import sys
 
 
-def check(path):
-    import resource
-    resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
-    resource.setrlimit(resource.RLIMIT_AS, (256 << 20, 256 << 20))
-    match = re.search(r'```(?:python)?\n(.*?)```', path.read_text(), re.S)
+def load_answer(text):
+    """The answer's code block, defined in a namespace of the allowed builtins; ValueError or SyntaxError otherwise."""
+    match = re.search(r'```(?:python)?\n(.*?)```', text, re.S)
     if not match:
         raise ValueError('No Python code block')
     tree = ast.parse(match.group(1))
@@ -29,6 +27,13 @@ def check(path):
             raise ValueError('Unexpected function call: '+node.func.id)
     namespace = {'__builtins__': builtins}
     exec(compile(tree, 'saved benchmark answer', 'exec'), namespace)
+    return namespace
+
+
+def check(path):
+    import resource
+    resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
+    resource.setrlimit(resource.RLIMIT_AS, (256 << 20, 256 << 20))
     cases = [('normalize_path', ('a'+chr(92)+'b',), 'a/b'),
              ('normalize_path', ('a'+chr(92)*2+'b',), 'a/b'),
              ('normalize_path', ('/a//./b',), 'a/b'),
@@ -39,6 +44,10 @@ def check(path):
              ('next_head', ((0,0),(1,1),1,1), (0,0)),
              ('next_head', ((0,0),(1,0),0,4), ValueError),
              ('next_head', ((0,0),(1,0),2.5,4), ValueError)]
+    try:
+        namespace = load_answer(path.read_text())
+    except (SyntaxError, ValueError) as exc:   # no code the checks can run: every check fails
+        return {'passed':0, 'total':len(cases), 'error':f'{type(exc).__name__}: {exc}', 'cases':[]}
     results = []
     for name, args, expected in cases:
         try:
@@ -67,7 +76,8 @@ def main():
     text = json.dumps(report, indent=2)+'\n'
     if args.output:
         args.output.write_text(text)
-    print(f'{report["passed"]}/{report["total"]} checks passed')
+    reason = f' ({report["error"]})' if 'error' in report else ''
+    print(f'{report["passed"]}/{report["total"]} checks passed{reason}')
     if report['passed'] != report['total']:
         raise SystemExit(1)
 
