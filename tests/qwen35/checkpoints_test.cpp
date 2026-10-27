@@ -1,11 +1,12 @@
 // qwen35/checkpoints.hpp: where a dense prompt read takes snapshots, which one a request resumes from, which one leaves
-// (synthetic: no model, no GPU).
+// and which one lends its buffer (synthetic: no model, no GPU).
 #include "strata/qwen35/checkpoints.hpp"
 
 #include <cstdio>
 #include <vector>
 
 using strata::qwen35::checkpoints::eviction_victim;
+using strata::qwen35::checkpoints::lend_victim;
 using strata::qwen35::checkpoints::pick;
 using strata::qwen35::checkpoints::snapshot_cells;
 
@@ -32,6 +33,10 @@ int main() {
     CHECK(snapshot_cells(0, 6000, 2048, {5995}, Pictures{{4000, 260}}) == (Cells{6000}));
     CHECK(snapshot_cells(0, 6000, 2048, {5995}, Pictures{{4096, 100}}) == (Cells{4096, 6000}));
     CHECK(snapshot_cells(0, 6000, 2048, {5995}, Pictures{{3996, 100}}) == (Cells{4096, 6000}));
+    // a mark exactly on a chunk end: the snapshot is at the mark (the state before its <|im_start|> is read)
+    CHECK(snapshot_cells(0, 6000, 2048, {4096}, {}) == (Cells{4096, 6000}));
+    // a quarter point inside a picture is dropped, not moved: 5,000 -> 4,096 is inside [4,000, 4,200)
+    CHECK(snapshot_cells(0, 20000, 2048, {}, Pictures{{4000, 200}}) == (Cells{10240, 14336, 20000}));
     // nothing to read, or no chunk size
     CHECK(snapshot_cells(500, 500, 2048, {}, {}).empty());
     CHECK(snapshot_cells(0, 500, 0, {}, {}).empty());
@@ -56,10 +61,28 @@ int main() {
     CHECK(eviction_victim({1000, 5000, 5500, 9000, 20000}, {1, 5, 4, 3, 2}, 4) == 4);
     // the longest leaves when it is close to the one before it and not among the most recent
     CHECK(eviction_victim({100, 2000, 2100, 2200}, {1, 4, 2, 3}, 3) == 3);
+    // the shortest is also the most recently used: it stays and takes none of the 2 most recent places (2,000 and
+    // 9,000 keep them), so 2,100 leaves; counting the shortest among them would make 9,000 leave
+    CHECK(eviction_victim({1000, 2000, 2100, 9000}, {9, 3, 1, 2}, 4) == 2);
     // below a cap of 3: the least recently used, the shortest included
     CHECK(eviction_victim({100, 200, 300}, {5, 1, 9}, 2) == 1);
     CHECK(eviction_victim({100, 200}, {1, 2}, 1) == 0);
     CHECK(eviction_victim({100, 200}, {2, 1}, 1) == 1);
+
+    // no new buffer: the held one that eviction_victim drops once the new one has joined lends its buffer
+    // nothing held, or only the shortest (which stays): the new one is not taken
+    CHECK(lend_victim({}, {}, 4096, 1, 8) == -1);
+    CHECK(lend_victim({4096}, {1}, 5836, 2, 8) == -1);
+    // cap 3, the new one at the end: the shortest and the new one (the most recent) stay; of 4,096 and 6,144 (equal
+    // gaps) the older leaves
+    CHECK(lend_victim({2048, 4096, 6144}, {1, 2, 3}, 8192, 4, 3) == 1);
+    // a new one between held ones, at 3,000: 3,000 and 9,000 are the 2 most recent, 5,000 leaves a gap of 2,500 and
+    // 5,500 one of 4,000, so 5,000 leaves: held index 1
+    CHECK(lend_victim({1000, 5000, 5500, 9000}, {1, 2, 3, 4}, 3000, 5, 4) == 1);
+    // below a cap of 3, the least recently used: the shortest, before the new one's place
+    CHECK(lend_victim({1000, 9000}, {1, 2}, 5000, 3, 2) == 0);
+    // ... or the new one itself, when it is the least recently used
+    CHECK(lend_victim({100}, {7}, 200, 6, 1) == -1);
 
     if (fails == 0) std::printf("qwen35_checkpoints_test: ok\n");
     return fails == 0 ? 0 : 1;

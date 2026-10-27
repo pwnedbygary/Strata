@@ -1,6 +1,6 @@
 // include/strata/qwen35/checkpoints.hpp - the dense engine's conversation checkpoints (STRATA_Q35_CHECKPOINTS=N): the
-// cells at which a prompt read takes a snapshot, the snapshot a request resumes from, and the one that leaves when more
-// than N are held.
+// cells at which a prompt read takes a snapshot, the snapshot a request resumes from, the one that leaves when more
+// than N are held, and the one that lends its buffer to a new snapshot when no other buffer can be had.
 //
 // A snapshot is the session's recurrent state at a cell - each GDN layer's conv and S, and the MTP seed (~150 MiB on
 // the 27B models) - kept in host RAM.  The K / V cells need no copy: they are stored by position, and a read resumed at
@@ -12,6 +12,7 @@
 // chunk end goes on in the chunks the read that never stopped there used.
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
@@ -105,6 +106,22 @@ inline size_t eviction_victim(const std::vector<int64_t>& cells, const std::vect
         }
     }
     return v < n ? v : lru(1);
+}
+
+/// A snapshot at `cell` (its stamp `stamp`) is to join the held ones (`cells` ascending, `stamps`) and no new buffer
+/// can be had (N buffers are out, or the RAM is short): the index of the held one that leaves now and lends it its
+/// buffer - the one eviction_victim picks among the held ones and the new one - or -1 when that is the new one (it is
+/// then not taken).  The same snapshots stay as when the new one joins first and the victim leaves after.
+inline int lend_victim(const std::vector<int64_t>& cells, const std::vector<uint64_t>& stamps, int64_t cell,
+                       uint64_t stamp, size_t cap) {
+    const size_t k = (size_t) (std::lower_bound(cells.begin(), cells.end(), cell) - cells.begin());
+    std::vector<int64_t> all(cells);
+    std::vector<uint64_t> all_stamps(stamps);
+    all.insert(all.begin() + (long) k, cell);
+    all_stamps.insert(all_stamps.begin() + (long) k, stamp);
+    const size_t v = eviction_victim(all, all_stamps, cap);
+    if (v == k) return -1;
+    return (int) (v < k ? v : v - 1);
 }
 
 }  // namespace strata::qwen35::checkpoints

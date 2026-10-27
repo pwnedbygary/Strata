@@ -63,6 +63,7 @@
 #include <type_traits>
 #include <vector>
 #include "strata/core/physical_vram.hpp"
+#include "strata/core/pin_budget.hpp"
 #if defined(__linux__)
 #include <sys/mman.h>
 #include <unistd.h>
@@ -84,6 +85,18 @@ namespace MMQ = strata::prefill::mmq;
 
 using Clock = std::chrono::steady_clock;
 double ms_since(Clock::time_point t) { return std::chrono::duration<double, std::milli>(Clock::now() - t).count(); }
+
+/// MemAvailable in bytes (Linux; 0 where it cannot be read).
+uint64_t mem_available_bytes() {
+    std::FILE* f = std::fopen("/proc/meminfo", "r");
+    if (!f) return 0;
+    char line[256];
+    unsigned long long kib = 0;
+    bool found = false;
+    while (!found && std::fgets(line, sizeof line, f)) found = std::sscanf(line, "MemAvailable: %llu", &kib) == 1;
+    std::fclose(f);
+    return found ? (uint64_t) kib << 10 : 0;
+}
 
 constexpr int kThreads = 256;
 constexpr int kChunkCells = 256;   // attention split-K chunk
@@ -1998,6 +2011,7 @@ struct Engine {
     int ckpt_cap = 0;                                 // STRATA_Q35_CHECKPOINTS: checkpoints a session holds (0: off)
     uint64_t ckpt_clock = 0;
     std::vector<HostState> ckpt_spare;                // state buffers of dropped checkpoints, for the next ones
+    uint64_t ckpt_min_free = 5120ull << 20;           // the RAM that must stay available after a new state buffer
     // device tables for batch rows: per state index (layer, then the MTP block) the session pointers
     float **d_conv_tab = nullptr, **d_S_tab = nullptr, **d_kc_tab = nullptr, **d_vc_tab = nullptr;
     int32_t *d_rcell = nullptr, *d_rslot = nullptr, *d_rdelta = nullptr;   // [kVerify] the rows' cell / session / rotary offset
@@ -2269,10 +2283,15 @@ struct Engine {
         // that changes the conversation resumes from the last one it shares instead of reading it all again
         if (const char* ck = dense && n_sess == 1 ? std::getenv("STRATA_Q35_CHECKPOINTS") : nullptr) {
             ckpt_cap = std::max(0, std::min(64, std::atoi(ck)));
+            // a new buffer only while this much RAM stays available after it (default 5 GiB: the native router's
+            // worker cancels a running request under 4 GiB, frontend/main.cpp with its default --memory-floor-gib 3)
+            if (const char* mf = std::getenv("STRATA_Q35_CHECKPOINTS_MIN_FREE_MIB"))
+                ckpt_min_free = (uint64_t) std::max(0LL, std::min(1LL << 20, std::atoll(mf))) << 20;
             if (ckpt_cap > 0)
                 std::fprintf(stderr, "strata-q35: conversation checkpoints: up to %d of %.1f MiB each in pinned "
-                                     "host RAM\n",
-                             ckpt_cap, (double) ckpt_floats() * 4 / 1048576.0);
+                                     "host RAM, while %llu MiB of RAM stay available\n",
+                             ckpt_cap, (double) ckpt_floats() * 4 / 1048576.0,
+                             (unsigned long long) (ckpt_min_free >> 20));
         }
         if (dense) kAttScoreFloats = (size_t) 8 << 20;
         const char* score_env = dense ? std::getenv("STRATA_Q35_ATTN_SCORE_MIB") : nullptr;
@@ -2581,17 +2600,34 @@ struct Engine {
             if (!L.attn) n += per;
         return n;
     }
-    /// Checkpoint c: the current session's recurrent state at its position; with_logits (a prompt's end, its read
-    /// done): also the last cell's logits and pick, which the first token is taken from.
-    void snapshot(Ckpt& c, bool with_logits) {
+    /// A new pinned buffer for a checkpoint's state, or false: not while less than ckpt_min_free of RAM would stay
+    /// available after it (MemAvailable; not checked where it cannot be read), nor when the allocation is refused
+    /// (pin_budget.hpp; its STRATA_TEST_PIN_BUDGET_MIB makes it refuse).
+    bool alloc_ckpt_state(HostState& s) {
+        const size_t bytes = ckpt_floats() * 4;
+        const uint64_t avail = mem_available_bytes();
+        if (avail != 0 && avail < bytes + ckpt_min_free) {
+            std::fprintf(stderr, "strata-q35: no new checkpoint buffer: %llu MiB of RAM available, %llu MiB must stay "
+                         "available after one\n", (unsigned long long) (avail >> 20),
+                         (unsigned long long) (ckpt_min_free >> 20));
+            return false;
+        }
+        if (strata::core::host_alloc_guarded((void**) &s.p, bytes, cudaHostAllocDefault) != cudaSuccess) {
+            s.p = nullptr;
+            std::fprintf(stderr, "strata-q35: no new checkpoint buffer: %.1f MiB of pinned host RAM refused\n",
+                         (double) bytes / 1048576.0);
+            return false;
+        }
+        return true;
+    }
+    /// Checkpoint c: the current session's recurrent state at its position, in c's buffer (a new one when it has none;
+    /// false when none can be had); with_logits (a prompt's end, its read done): also the last cell's logits and pick,
+    /// which the first token is taken from.
+    bool snapshot(Ckpt& c, bool with_logits) {
         const auto& g = m->g;
         const size_t nc = (size_t) g.ssm_conv_channels * (g.ssm_d_conv - 1);
         const size_t ns = (size_t) g.ssm_v_heads * g.ssm_state_size * g.ssm_state_size;
-        if (!c.state.p && !ckpt_spare.empty()) {
-            c.state = std::move(ckpt_spare.back());
-            ckpt_spare.pop_back();
-        }
-        if (!c.state.p) CK(cudaHostAlloc((void**) &c.state.p, ckpt_floats() * 4, cudaHostAllocDefault));
+        if (!c.state.p && !alloc_ckpt_state(c.state)) return false;
         CK(cudaStreamSynchronize(st));
         float* o = c.state.p;
         for (size_t l = 0; l < conv.size(); ++l) {
@@ -2611,6 +2647,7 @@ struct Engine {
         CK(cudaStreamSynchronize(st));
         c.cell = pos;
         c.stamp = ++ckpt_clock;
+        return true;
     }
     /// The current session back at checkpoint c's cell: the state copied into the session's own buffers (the captured
     /// graphs keep their pointers); the K / V cells below the cell are the ones it was taken with.
@@ -2644,37 +2681,46 @@ struct Engine {
             v.pop_back();
         }
     }
-    /// Checkpoint c joins the current session's (one at the same cell is replaced); then one at a time leaves until
-    /// ckpt_cap are held (checkpoints.hpp's eviction_victim).
-    void keep_ckpt(Ckpt&& c) {
+    /// The current session takes a checkpoint at its position (with_logits: see snapshot()): in a spare buffer, else in
+    /// a new one while fewer than ckpt_cap are held, else in the buffer of the held one that would leave once it joined
+    /// (checkpoints.hpp's lend_victim); one already at this cell is taken again in its own.  So the held checkpoints
+    /// and the spare buffers never take more than ckpt_cap buffers.  False when it is not taken.
+    bool take_ckpt(bool with_logits) {
         auto& v = sess[(size_t) cur].ckpts;
-        auto at = std::lower_bound(v.begin(), v.end(), c.cell,
-                                   [](const Ckpt& a, int64_t cell) { return a.cell < cell; });
-        if (at != v.end() && at->cell == c.cell) {
-            if (ckpt_spare.size() < 2) ckpt_spare.push_back(std::move(at->state));
-            *at = std::move(c);
-        } else {
-            v.insert(at, std::move(c));
-        }
-        while (v.size() > (size_t) ckpt_cap) {
+        auto by_cell = [](const Ckpt& a, int64_t cell) { return a.cell < cell; };
+        auto at = std::lower_bound(v.begin(), v.end(), pos, by_cell);
+        if (at != v.end() && at->cell == pos) return snapshot(*at, with_logits);
+        Ckpt c;
+        if (!ckpt_spare.empty()) {
+            c.state = std::move(ckpt_spare.back());
+            ckpt_spare.pop_back();
+        } else if (v.size() >= (size_t) ckpt_cap || !alloc_ckpt_state(c.state)) {
             std::vector<int64_t> cells;
             std::vector<uint64_t> stamps;
-            for (const Ckpt& k : v) {
-                cells.push_back(k.cell);
-                stamps.push_back(k.stamp);
+            for (const Ckpt& h : v) {
+                cells.push_back(h.cell);
+                stamps.push_back(h.stamp);
             }
-            const size_t i = strata::qwen35::checkpoints::eviction_victim(cells, stamps, (size_t) ckpt_cap);
-            if (ckpt_spare.size() < 2) ckpt_spare.push_back(std::move(v[i].state));
-            v.erase(v.begin() + (long) i);
+            const int i = strata::qwen35::checkpoints::lend_victim(cells, stamps, pos, ckpt_clock + 1,
+                                                                   (size_t) ckpt_cap);
+            if (i < 0) return false;
+            c.state = std::move(v[(size_t) i].state);
+            v.erase(v.begin() + i);
         }
+        snapshot(c, with_logits);
+        v.insert(std::lower_bound(v.begin(), v.end(), c.cell, by_cell), std::move(c));
+        return true;
     }
 
     /// --test-dense-checkpoint: a read of 3 chunks and 37 cells of random tokens, a checkpoint at its second chunk end
     /// and one at its end; the next logits after 16 more tokens; other tokens written over the cells from the first
-    /// checkpoint on.  Then restored, the first must give the read's last logits again bit for bit once the rest of the
-    /// read is done again, and the second must give them back at once and the same next logits.  The cache is grown
-    /// first, so its stride stays the same throughout.  Timed: a snapshot (its buffer's allocation included, then again
-    /// into the same buffer) and a restore.
+    /// checkpoint on.  Then restored, the first must give the read's last logits and MTP seed (hlast) again bit for bit
+    /// once the rest of the read is done again, and the second must give them back at once and the same next logits.
+    /// Then the same read with ckpt_cap 3 takes a checkpoint at each chunk end through take_ckpt: the fourth must take
+    /// the buffer of the one at 3 chunks (lend_victim), so 3 buffers are out, and the one at 2 chunks and the one at
+    /// the end must still give the read's last logits.  The cache is grown first, so its stride stays the same
+    /// throughout.  Timed: a snapshot (its buffer's allocation included, then again into the same buffer) and a
+    /// restore.
     bool test_checkpoint() {
         const auto& g = m->g;
         const int64_t t = tmax, n = 3 * t + 37, extra = 64;
@@ -2695,19 +2741,32 @@ struct Engine {
         if (m->adaptive_dense) ensure_dense_kv(n + extra + 16);
         const int stride0 = cache_stride;
         auto none = [](int64_t) {};
+        auto seed = [&](std::vector<float>& h) {
+            h.resize((size_t) g.n_embd);
+            CK(cudaMemcpyAsync(h.data(), hlast, h.size() * 4, cudaMemcpyDeviceToHost, st));
+            CK(cudaStreamSynchronize(st));
+        };
+        auto same = [](const std::vector<float>& a, const std::vector<float>& b) {
+            return a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size() * 4) == 0;
+        };
         Ckpt mid, end;
         process(A.data(), 2 * t, none);
         auto t0 = Clock::now();
-        snapshot(mid, false);
+        bool got = snapshot(mid, false);
         const double snap_ms = ms_since(t0);
         t0 = Clock::now();
-        snapshot(mid, false);
+        got = got && snapshot(mid, false);
         const double again_ms = ms_since(t0);
         process(A.data() + 2 * t, n - 2 * t, none);
-        std::vector<float> L1, L2, L3, N1, N2;
+        std::vector<float> L1, L2, L3, L4, L5, N1, N2, H1, H2, H3;
         host_logits(L1);
         const int g1 = greedy();
-        snapshot(end, true);
+        seed(H1);
+        if (!got || !snapshot(end, true)) {
+            std::fprintf(stderr, "CHECKPOINT_TEST FAIL: no buffer for a checkpoint\n");
+            reset();
+            return false;
+        }
         process(D.data(), 16, none);
         host_logits(N1);
         restore(mid);
@@ -2718,23 +2777,52 @@ struct Engine {
         process(A.data() + 2 * t, n - 2 * t, none);
         host_logits(L2);
         const int g2 = greedy();
+        seed(H2);
         process(B.data(), 50, none);
         restore(end);
         host_logits(L3);
         const int g3 = greedy();
+        seed(H3);
         process(D.data(), 16, none);
         host_logits(N2);
-        auto same = [](const std::vector<float>& a, const std::vector<float>& b) {
-            return a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size() * 4) == 0;
+        const int stride1 = cache_stride;
+        // the cap: checkpoints at t, 2t, 3t and n; the last one takes the buffer of the one at 3t
+        const int cap0 = ckpt_cap;
+        ckpt_cap = 3;
+        reset();
+        if (m->adaptive_dense) ensure_dense_kv(n + extra + 16);
+        int taken = 0;
+        auto take = [&](int64_t) {
+            if (take_ckpt(pos == n)) ++taken;
         };
+        process(A.data(), 2 * t, take);
+        process(A.data() + 2 * t, n - 2 * t, take);
+        auto& held = sess[(size_t) cur].ckpts;
+        std::vector<int64_t> cells;
+        for (const Ckpt& h : held) cells.push_back(h.cell);
+        const size_t buffers = held.size() + ckpt_spare.size();
+        bool cap_ok = taken == 4 && buffers == 3 && cells == std::vector<int64_t>{t, 2 * t, n};
+        if (cap_ok) {
+            restore(held[2]);
+            host_logits(L5);
+            const int g5 = greedy();
+            restore(held[1]);
+            process(A.data() + 2 * t, n - 2 * t, none);
+            host_logits(L4);
+            cap_ok = same(L1, L4) && greedy() == g1 && same(L1, L5) && g5 == g1;
+        }
+        const int stride2 = cache_stride;
+        ckpt_cap = cap0;
         const bool rest_again = same(L1, L2) && g1 == g2, at_end = same(L1, L3) && g1 == g3, follows = same(N1, N2);
-        const bool ok = rest_again && at_end && follows && cache_stride == stride0;
+        const bool seed_ok = same(H1, H2) && same(H1, H3);
+        const bool ok = rest_again && at_end && follows && seed_ok && cap_ok && stride1 == stride0 &&
+                        stride2 == stride0;
         std::fprintf(stderr, "CHECKPOINT_TEST cells=%lld chunk=%lld state_mib=%.1f snapshot_ms=%.1f/%.1f "
-                     "restore_ms=%.1f stride=%d/%d rest_again=%s at_end=%s next=%s %s\n", (long long) n, (long long) t,
-                     (double) ckpt_floats() * 4 / 1048576.0, snap_ms, again_ms, restore_ms, stride0, cache_stride,
-                     rest_again ? "identical" : "DIFFERS", at_end ? "identical" : "DIFFERS",
-                     follows ? "identical" : "DIFFERS",
-                     ok ? "ok" : "FAIL");
+                     "restore_ms=%.1f stride=%d/%d/%d rest_again=%s at_end=%s next=%s seed=%s cap=%s (%d taken, %zu "
+                     "buffers) %s\n", (long long) n, (long long) t, (double) ckpt_floats() * 4 / 1048576.0, snap_ms,
+                     again_ms, restore_ms, stride0, stride1, stride2, rest_again ? "identical" : "DIFFERS",
+                     at_end ? "identical" : "DIFFERS", follows ? "identical" : "DIFFERS",
+                     seed_ok ? "identical" : "DIFFERS", cap_ok ? "ok" : "FAIL", taken, buffers, ok ? "ok" : "FAIL");
         reset();
         return ok;
     }
@@ -5578,7 +5666,7 @@ struct Serve {
         // STRATA_Q35_CHECKPOINTS: the chunk ends at which this read takes checkpoints (checkpoints.hpp); the marks are
         // the last two <|im_start|> it reads
         std::vector<int64_t> snap_at;
-        int snaps = 0;
+        int snaps = 0, missed = 0;
         double snap_ms = 0;
         if (E.ckpt_cap > 0 && !adm) {
             std::vector<int64_t> marks;
@@ -5592,11 +5680,9 @@ struct Serve {
         const int64_t got = E.process(ids.data() + reuse, fresh, [&](int64_t done) -> bool {
             if (std::binary_search(snap_at.begin(), snap_at.end(), E.pos)) {
                 const auto s0 = Clock::now();
-                Engine::Ckpt c;
-                E.snapshot(c, E.pos == (int64_t) ids.size());
-                E.keep_ckpt(std::move(c));
+                if (E.take_ckpt(E.pos == (int64_t) ids.size())) ++snaps;
+                else ++missed;
                 snap_ms += ms_since(s0);
-                ++snaps;
             }
             std::printf("PP %lld %lld %.0f %.1f\n", (long long) done, (long long) fresh, ms_since(t0),
                         (double) done / std::max(1e-9, ms_since(t0) / 1000.0));
@@ -5625,9 +5711,9 @@ struct Serve {
             E.drop_ckpts_after(-1);
         }
         E.sess[(size_t) E.cur].pos = E.pos;
-        if (snaps > 0)
-            std::fprintf(stderr, "strata-q35: %d checkpoint(s) taken in %.0f ms, %zu held\n", snaps, snap_ms,
-                         ss.ckpts.size());
+        if (snaps + missed > 0)
+            std::fprintf(stderr, "strata-q35: %d checkpoint(s) taken in %.0f ms, %d not taken, %zu held, %zu buffers\n",
+                         snaps, snap_ms, missed, ss.ckpts.size(), ss.ckpts.size() + E.ckpt_spare.size());
         const double prompt_ms = ms_since(t0);
         if (cancelled) {
             monitor(true);
@@ -6078,7 +6164,10 @@ int strata::qwen35::run(int argc, char** argv) {
         }
         E.process(prompt.data(), checkpoint_at, [](int64_t) {});
         Engine::Ckpt c;
-        E.snapshot(c, false);
+        if (!E.snapshot(c, false)) {
+            std::fprintf(stderr, "strata-q36: --checkpoint-at: no buffer for the checkpoint\n");
+            return 2;
+        }
         std::mt19937 rng(20261026);
         std::uniform_int_distribution<int32_t> tok_d(1000, (int32_t) std::min<int64_t>(m.g.n_vocab, 150000) - 1);
         std::vector<int32_t> other((size_t) (np - checkpoint_at + 64));
