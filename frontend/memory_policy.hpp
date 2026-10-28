@@ -1,7 +1,10 @@
 #pragma once
+#include <algorithm>
+#include <charconv>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -15,11 +18,45 @@ struct Snapshot {
     uint64_t total = 0, swap_total = 0, swap_free = 0, gpu_total = 0, gpu_used = 0;
     uint64_t cpu_total = 0, cpu_idle = 0;
     int gpu_busy = -1, gpu_temperature_millic = 0;
+    uint64_t cgroup_reclaimable = 0;   // of cgroup_used: clean inactive file cache, which refusal() counts as free
 };
 inline uint64_t number(const std::filesystem::path &path) {
     std::ifstream f(path);
     uint64_t n = 0;
     return f >> n ? n : 0;
+}
+// A cgroup's clean inactive file cache, counted as the engine's memory guard counts it
+// (src/core/conversation_memory.cpp): memory.stat's inactive_file less file_dirty and file_writeback, never more than
+// the charged usage, and 0 when the file is missing or unparsable.  A model file read into the page cache is charged to
+// the group that read it; at the group's hard limit the kernel reclaims these pages before it kills a process.
+inline uint64_t reclaimable_cache(const std::filesystem::path &dir, uint64_t current) {
+    std::ifstream stat(dir / "memory.stat");
+    std::optional<uint64_t> inactive;
+    uint64_t dirty = 0, writeback = 0;
+    std::string line;
+    while (std::getline(stat, line)) {
+        std::istringstream fields(line);
+        std::string key, value, extra;
+        if (!(fields >> key >> value) || (fields >> extra)) continue;
+        if (key != "inactive_file" && key != "file_dirty" && key != "file_writeback") continue;
+        uint64_t n = 0;
+        const auto parsed = std::from_chars(value.data(), value.data() + value.size(), n);
+        if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size()) return 0;
+        if (key == "inactive_file") {
+            if (inactive) return 0;
+            inactive = n;
+        } else {
+            (key == "file_dirty" ? dirty : writeback) = n;
+        }
+    }
+    if (!inactive) return 0;
+    uint64_t credit = std::min(*inactive, current);
+    credit = dirty >= credit ? 0 : credit - dirty;
+    return writeback >= credit ? 0 : credit - writeback;
+}
+inline uint64_t cgroup_headroom(uint64_t limit, uint64_t used, uint64_t reclaimable) {
+    const uint64_t charged = used - std::min(reclaimable, used);
+    return limit > charged ? limit - charged : 0;
 }
 inline Snapshot snapshot(const std::string &process = "self") {
     Snapshot s;
@@ -71,13 +108,16 @@ inline Snapshot snapshot(const std::string &process = "self") {
     while (std::getline(cg, line)) {
         if (line.rfind("0::/", 0) != 0) continue;
         auto base = std::filesystem::path("/sys/fs/cgroup") / line.substr(4);
-        // Enforce the tightest ancestor, including an enclosing user slice.
+        // Enforce the tightest ancestor, including an enclosing user slice; its clean file cache counts as free.
         while (base.string().rfind("/sys/fs/cgroup", 0) == 0) {
-            auto limit = number(base / "memory.max");
-            auto used = number(base / "memory.current");
-            if (limit && (!s.cgroup_limit || (limit > used ? limit - used : 0) <
-                                               (s.cgroup_limit > s.cgroup_used ? s.cgroup_limit - s.cgroup_used : 0))) {
-                s.cgroup_limit = limit; s.cgroup_used = used;
+            const auto limit = number(base / "memory.max");
+            if (limit) {
+                const auto used = number(base / "memory.current");
+                const auto reclaimable = reclaimable_cache(base, used);
+                if (!s.cgroup_limit || cgroup_headroom(limit, used, reclaimable) <
+                                           cgroup_headroom(s.cgroup_limit, s.cgroup_used, s.cgroup_reclaimable)) {
+                    s.cgroup_limit = limit; s.cgroup_used = used; s.cgroup_reclaimable = reclaimable;
+                }
             }
             if (base == "/sys/fs/cgroup") break;
             base = base.parent_path();
@@ -91,9 +131,10 @@ inline std::string refusal(const Snapshot &s, uint64_t ram_floor, uint64_t vram_
         return "Insufficient available system RAM; request refused before inference";
     if (s.vram_free >= 0 && static_cast<uint64_t>(s.vram_free) < vram_floor)
         return "Insufficient physical VRAM headroom; request refused before inference";
-    if (s.cgroup_limit && (s.cgroup_used >= s.cgroup_limit ||
-        additional > s.cgroup_limit - s.cgroup_used ||
-        s.cgroup_limit - s.cgroup_used - additional < 512 * MiB))
+    const uint64_t cgroup_used = s.cgroup_used - std::min(s.cgroup_reclaimable, s.cgroup_used);
+    if (s.cgroup_limit && (cgroup_used >= s.cgroup_limit ||
+        additional > s.cgroup_limit - cgroup_used ||
+        s.cgroup_limit - cgroup_used - additional < 512 * MiB))
         return "Insufficient process memory budget; request refused before inference";
     return {};
 }
