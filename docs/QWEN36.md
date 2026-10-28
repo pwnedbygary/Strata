@@ -112,6 +112,33 @@ for bit. The chunk size changes the GEMM tiles the BLAS picks and with them the 
 the size of the llama.cpp CPU-against-HIP difference on the same file, not a quality loss. A prompt shorter than the
 chunk (every chat turn after the first) is one chunk either way.
 
+## Opt-in settings for files and cards the defaults do not fit
+
+These environment settings change nothing unless they are set.
+
+- `STRATA_Q36_SKIP_MTP=1` leaves the file's MTP block out, as in a file without one. It is for an MTP block whose
+  experts the GPU expert kernels do not take: Tiel-Coder-35B-A3B's block (blk.40) is Q3_K, and without the setting the
+  load stops with an error. There are no MTP drafts then, and `--mtp` is refused. Setup writes `--mtp 2` into the
+  config's `args` (`strata-qwen36-<size>.json`); change it to `--mtp 0` with this setting.
+- `STRATA_Q36_LEAN_ARENA=1`: in the hybrid mode host memory keeps only the experts without a VRAM slot, not every
+  expert. When a slot moves to an expert the routing uses more, the blob leaving the slot goes to the host place the
+  arriving one left. The slot tables and the bytes each kernel reads stay those of the default hybrid mode; only where
+  the host copies sit changes. A prompt chunk's experts are then always streamed in runs (`STRATA_Q36_STREAM_ALL` has
+  no effect). `--test-lean-arena` checks that every expert is in one place and holds the file's bytes and that the
+  device's slot table matches the host's, after the placement and after forced slot changes, and that a streamed layer
+  arrives whole. It needs `STRATA_Q36_FIXED_SLOTS` unset.
+- `STRATA_Q36_EXPERT_RESERVE_MIB=N` leaves N MiB of VRAM free after the experts instead of 768: a whole number, held
+  to 256-16384 (any other value keeps 768, with a message). N counts against the less of the HIP runtime's free VRAM
+  and the card's free VRAM in sysfs, which includes every program's allocations (Linux HIP; elsewhere the runtime's
+  figure), and the CPU part's output buffers come out of the slots' share. Where a file's MTP block is loaded and the
+  main layers' experts nearly fit, the engine lowers the reserve to 256 MiB to fit them; with this setting it keeps N.
+  With `--expert-vram` or `--expert-slots` the setting has no effect (setup's `--vram-reserve-mib` writes
+  `--expert-vram`). The native server's worker refuses a request, and cancels a running one, when less VRAM is free
+  than its floor plus 256 MiB (768 MiB with the default `--vram-floor-mib 512`; `frontend/main.cpp`), so a larger
+  reserve leaves room for the desktop's VRAM to grow. VRAM taken after the placement, by the engine or by other
+  programs, still comes out of N: with N = 1,536 the least free VRAM in two runs of Tiel-Coder through the native
+  server was 1,442 MiB at a 16K context and 1,292 MiB at 40K (RX 9070 XT, Oct 28).
+
 ## Speed and exactness
 
 Every change on the decode path gives the old kernels' bits. `STRATA_Q36_VERIFY=1 strata ... --no-graph` runs the old
