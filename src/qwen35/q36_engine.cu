@@ -2020,7 +2020,7 @@ struct Engine {
     uint64_t use_clock = 0;
     int ckpt_cap = 0;                                 // STRATA_Q35_CHECKPOINTS: checkpoints a session holds (0: off)
     uint64_t ckpt_clock = 0;
-    std::vector<HostState> ckpt_spare;                // state buffers of dropped checkpoints, for the next ones
+    std::vector<HostState> ckpt_spare;                // buffers no checkpoint holds: allocated ahead, or dropped
     uint64_t ckpt_min_free = 5120ull << 20;           // the RAM that must stay available after a new state buffer
     // device tables for batch rows: per state index (layer, then the MTP block) the session pointers
     float **d_conv_tab = nullptr, **d_S_tab = nullptr, **d_kc_tab = nullptr, **d_vc_tab = nullptr;
@@ -2685,11 +2685,12 @@ struct Engine {
         sess[(size_t) cur].pos = pos;
         c.stamp = ++ckpt_clock;
     }
-    /// Drops the current session's checkpoints past `cell` (cells about to be written again); -1: all of them.
+    /// Drops the current session's checkpoints past `cell` (cells about to be written again); -1: all of them.  Their
+    /// buffers stay as spares: a new pinned one can take more than a second to allocate.
     void drop_ckpts_after(int64_t cell) {
         auto& v = sess[(size_t) cur].ckpts;
         while (!v.empty() && v.back().cell > cell) {
-            if (ckpt_spare.size() < 2) ckpt_spare.push_back(std::move(v.back().state));
+            ckpt_spare.push_back(std::move(v.back().state));
             v.pop_back();
         }
     }
@@ -2722,6 +2723,20 @@ struct Engine {
         snapshot(c, with_logits);
         v.insert(std::lower_bound(v.begin(), v.end(), c.cell, by_cell), std::move(c));
         return true;
+    }
+    /// A server with STRATA_Q35_CHECKPOINTS allocates its ckpt_cap buffers before the first request, so that no
+    /// request waits on one; each must leave ckpt_min_free of RAM available, as on demand, and the first that cannot
+    /// leaves the rest to be allocated when needed.
+    void prealloc_ckpts() {
+        if (ckpt_cap <= 0) return;
+        const auto t0 = Clock::now();
+        while (ckpt_spare.size() + sess[(size_t) cur].ckpts.size() < (size_t) ckpt_cap) {
+            HostState s;
+            if (!alloc_ckpt_state(s)) break;
+            ckpt_spare.push_back(std::move(s));
+        }
+        std::fprintf(stderr, "strata-q35: %zu of %d checkpoint buffers allocated before the first request, in %.0f "
+                     "ms\n", ckpt_spare.size(), ckpt_cap, ms_since(t0));
     }
 
     /// --test-dense-checkpoint: a read of 3 chunks and 37 cells of random tokens, a checkpoint at its second chunk end
@@ -6074,6 +6089,7 @@ struct Serve {
     }
 
     int run() {
+        E.prealloc_ckpts();
         if (E.n_sess > 1) std::printf("INFO batch_slots=%d slot_cache=1\n", E.n_sess);
         if (E.m->g.family == strata::ModelFamily::Qwen35Dense)
             std::printf("INFO context=%d kv=%s spec=%d mtp_max=%d draft_mode=%s\n", E.ctx,
