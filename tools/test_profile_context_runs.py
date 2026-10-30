@@ -177,22 +177,52 @@ class Runs(unittest.TestCase):
             greedy = [json.loads(line) for line in log.read_text().splitlines()]
         bench = [r for r in sampled if r["max_tokens"] == 768]
         self.assertEqual(len(bench), 2)
-        self.assertTrue(all("temperature" not in r and r["seed"] == 20261026 for r in bench))
+        profile_keys = {"model", "seed", "reasoning_effort", "chat_template_kwargs", "max_tokens", "stream",
+                        "stream_options", "return_progress"}
+        self.assertTrue(all(set(r) == profile_keys and r["seed"] == 20261026 for r in bench))
         picture = [r for r in sampled if r["max_tokens"] != 768]
-        self.assertEqual([(r["temperature"], "seed" in r) for r in picture], [(0, False)])
-        self.assertEqual([(r["temperature"], "seed" in r) for r in greedy], [(0, False), (0, False)])
+        picture_keys = {"model", "temperature", "presence_penalty", "reasoning_effort", "chat_template_kwargs",
+                        "max_tokens"}
+        self.assertEqual([(set(r), r["temperature"], r["presence_penalty"], "seed" in r) for r in picture],
+                         [(picture_keys, 0, 0, False)])
+        greedy_keys = {"model", "temperature", "presence_penalty", "reasoning_effort", "chat_template_kwargs",
+                       "max_tokens", "stream", "stream_options", "return_progress"}
+        self.assertEqual([(set(r), r["temperature"], r["presence_penalty"]) for r in greedy],
+                         [(greedy_keys, 0, 0), (greedy_keys, 0, 0)])
         rec = json.loads((self.d / "sampled" / "pic" / "run.json").read_text())
         self.assertEqual((rec["sampling"], rec["seed"]), ("profile", 20261026))
         report = json.loads((self.d / "sampled" / "pic" / "report.json").read_text())
         self.assertEqual((report["sampling"], report["seed"]), ("profile", 20261026))
         self.assertTrue((self.d / "sampled" / "table.md").read_text().startswith(
             "Requests: each profile's own sampling, seed 20261026."))
-        self.assertTrue((self.d / "greedy" / "table.md").read_text().startswith("Requests: greedy (temperature 0)."))
+        self.assertTrue((self.d / "greedy" / "table.md").read_text().startswith(
+            "Requests: greedy (temperature 0, presence_penalty 0)."))
+        rec = json.loads((self.d / "greedy" / "plain" / "run.json").read_text())
+        self.assertEqual((rec["sampling"], rec["seed"]), ("greedy", None))
         script = Path(pcr.__file__).parent / "coding_context_bench.py"
         bad = subprocess.run([sys.executable, str(script), "--model", "m", "--tokens", "10", "--output",
                               str(self.d / "bad"), "--seed", "1"], capture_output=True, text=True, timeout=60)
         self.assertEqual(bad.returncode, 2)
         self.assertIn("--seed needs --sampling profile", bad.stderr)
+        self.assertFalse((self.d / "bad").exists())
+
+    def test_an_explicit_seed_with_greedy_is_a_usage_error(self):
+        with self.assertRaises(SystemExit) as cm:
+            pcr.parse_args(["--greedy", "--seed", "5", "--out", str(self.d / "seedgreedy"), "plain"])
+        self.assertEqual(cm.exception.code, 2)
+        with self.assertRaises(SystemExit) as cm:
+            pcr.parse_args(["--table", str(self.d), "--greedy", "--seed", "5"])
+        self.assertEqual(cm.exception.code, 2)
+
+    def test_an_explicit_seed_reaches_the_record_and_the_bench(self):
+        log = self.d / "seeded.jsonl"
+        with mock.patch.dict(os.environ, {"FAKE_ROUTER_LOG": str(log)}):
+            self.assertEqual(self.run_tool("--tokens", "1000", "--seed", "7", "plain", out="seeded")[0], 0)
+        bodies = [json.loads(line) for line in log.read_text().splitlines()]
+        self.assertEqual(len(bodies), 2)
+        self.assertTrue(all(r.get("seed") == 7 for r in bodies))
+        rec = json.loads((self.d / "seeded" / "plain" / "run.json").read_text())
+        self.assertEqual((rec["sampling"], rec["seed"]), ("profile", 7))
 
     def test_picture_pass_rule(self):
         self.assertTrue(pcr.picture_pass(200, "A red Circle, a blue square and a GREEN triangle."))

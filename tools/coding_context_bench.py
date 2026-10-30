@@ -36,8 +36,8 @@ def main():
     p.add_argument('--require-zero-gpu-offset', action='store_true',
                    help='refuse to start if the AMD GPU voltage offset is nonzero or cannot be read')
     p.add_argument('--sampling',choices=('greedy','profile'),default='greedy',
-                   help="greedy: temperature 0; profile: no sampling fields, so the router applies the profile's "
-                        "own values")
+                   help="greedy: temperature 0 and presence_penalty 0; profile: no sampling fields, so the router "
+                        "applies the profile's own values")
     p.add_argument('--seed',type=int,help='seed sent with --sampling profile, so a repeated run draws the same tokens')
     a=p.parse_args()
     if a.seed is not None and a.sampling!='profile':
@@ -125,7 +125,7 @@ def main():
     (a.output/'prompt.txt').write_text(prompt)
     reports=[]
     def run(name,messages):
-        body={'model':a.model,'messages':messages,**({'temperature':0} if a.sampling=='greedy' else {}),'reasoning_effort':'none','chat_template_kwargs':{'enable_thinking':False},'max_tokens':768,'stream':True,'stream_options':{'include_usage':True},'return_progress':True,**({'seed':a.seed} if a.seed is not None else {})}
+        body={'model':a.model,'messages':messages,**({'temperature':0,'presence_penalty':0} if a.sampling=='greedy' else {}),'reasoning_effort':'none','chat_template_kwargs':{'enable_thinking':False},'max_tokens':768,'stream':True,'stream_options':{'include_usage':True},'return_progress':True,**({'seed':a.seed} if a.seed is not None else {})}
         started=time.monotonic();answer='';latest={};progress={};first_token=None;completed=False
         with urllib.request.urlopen(request('/v1/chat/completions',body),timeout=a.request_timeout) as r,(a.output/(name+'.sse')).open('w') as stream:
             for raw in r:

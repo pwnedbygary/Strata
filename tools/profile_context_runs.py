@@ -10,8 +10,8 @@ API key, from a copy of the registry (profile paths made absolute) and its tunin
     the three shapes and the three colours);
   * the router's /router/status (the engine its Automatic route chose).
 The bench's requests carry no sampling fields, so the router applies each profile's own `sampling` values, plus a
-fixed --seed so a repeated run draws the same tokens; --greedy sends temperature 0 instead. The picture question is
-always greedy.
+fixed --seed so a repeated run draws the same tokens; --greedy sends temperature 0 and presence_penalty 0
+instead, and refuses an explicit --seed. The picture question is always greedy.
 The router is then stopped, and the next profile starts once no GPU compute process is left (at most --settle-max s).
 A sampler records the 1-minute load, available RAM, GPU busy %, VRAM used, GPU compute processes and the top CPU users
 every --sample-every s; the table takes each profile's peak VRAM, lowest available RAM and highest load from it.
@@ -176,7 +176,7 @@ def picture_pass(status, text):
 
 def picture_check(url, model, out_path, timeout):
     png = base64.b64encode(PICTURE.read_bytes()).decode()
-    body = {"model": model, "temperature": 0, "max_tokens": 160, "reasoning_effort": "none",
+    body = {"model": model, "temperature": 0, "presence_penalty": 0, "max_tokens": 160, "reasoning_effort": "none",
             "chat_template_kwargs": {"enable_thinking": False},
             "messages": [{"role": "user", "content": [
                 {"type": "image_url", "image_url": {"url": "data:image/png;base64," + png}},
@@ -301,7 +301,7 @@ def table(run_dir):
             except ValueError:
                 pass
     recs = sorted((load_json(p) for p in run_dir.glob("*/run.json")), key=lambda r: r.get("started", 0))
-    modes = sorted({"greedy (temperature 0)" if r["sampling"] == "greedy" else
+    modes = sorted({"greedy (temperature 0, presence_penalty 0)" if r["sampling"] == "greedy" else
                     "each profile's own sampling, seed %s" % r.get("seed") for r in recs if r.get("sampling")})
     out = ["Requests: %s." % "; ".join(modes), ""] if modes else []
     out += ["| Profile | Engine | Prompt tokens | Prompt tok/s (s) | Decode tok/s | Drafts | Follow-up: first token s, "
@@ -350,13 +350,16 @@ def parse_args(argv):
     ap.add_argument("--port", type=int, default=18098)
     ap.add_argument("--tokens", type=int, help="prompt tokens for every profile (default: context minus --margin)")
     ap.add_argument("--margin", type=int, default=2048, help="context left for the answers")
-    ap.add_argument("--greedy", action="store_true", help="greedy requests (temperature 0), not the profiles' sampling")
-    ap.add_argument("--seed", type=int, default=20261026, help="seed of the sampled requests (ignored with --greedy)")
+    ap.add_argument("--greedy", action="store_true", help="greedy requests (temperature 0 and presence_penalty 0), "
+                                                          "not the profiles' sampling")
+    ap.add_argument("--seed", type=int, help="seed of the sampled requests (default 20261026; refused with --greedy)")
     ap.add_argument("--deadline", help='no profile starts after this ("YYYY-MM-DD HH:MM")')
     ap.add_argument("--request-timeout", type=int, default=7200, help="seconds for one request")
     ap.add_argument("--settle-max", type=float, default=90, help="seconds to wait for the GPU to be free between profiles")
     ap.add_argument("--sample-every", type=float, default=10.0, help="sampler period in seconds")
     a = ap.parse_args(argv)
+    if a.greedy and a.seed is not None:
+        ap.error("--seed needs the profile's sampling: the runner sends no seed with --greedy")
     if not a.table and (not a.out or not a.profiles):
         ap.error("--out and at least one profile are needed (or --table DIR)")
     a.app = os.path.expanduser(a.app)
@@ -368,6 +371,7 @@ def main(argv=None):
     if a.table:
         print(table(a.table))
         return 0
+    seed = a.seed if a.seed is not None else 20261026
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     try:
@@ -412,7 +416,7 @@ def main(argv=None):
             pdir = out / name
             pdir.mkdir(exist_ok=True)
             rec = {"profile": name, "profile_file": profiles[name], "context": ctx, "prompt_target": tokens,
-                   "sampling": "greedy" if a.greedy else "profile", "seed": None if a.greedy else a.seed,
+                   "sampling": "greedy" if a.greedy else "profile", "seed": None if a.greedy else seed,
                    "started": time.time()}
             try:
                 proc, rlog = start_router(a.app, registry, a.port, pdir / "router.log")
@@ -430,7 +434,7 @@ def main(argv=None):
                     cmd = [sys.executable, str(ROOT / "tools" / "coding_context_bench.py"), "--model", name,
                            "--tokens", str(tokens), "--long-context-probes", "--request-timeout", str(a.request_timeout),
                            "--base-url", url, "--output", str(pdir)]
-                    cmd += ["--sampling", "greedy"] if a.greedy else ["--sampling", "profile", "--seed", str(a.seed)]
+                    cmd += ["--sampling", "greedy"] if a.greedy else ["--sampling", "profile", "--seed", str(seed)]
                     with open(out / (name + ".out"), "w") as bench_out:
                         try:
                             rec["bench_exit"] = subprocess.run(cmd, stdout=bench_out, stderr=subprocess.STDOUT,
