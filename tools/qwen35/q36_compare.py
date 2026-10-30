@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """q36_compare.py - do two engine builds (or two settings of one build) give the same answers on the same prompt?
 
-Checks (--checks, comma-separated; default logits,mtp,serve):
+Checks (--checks, comma-separated; default when the option is absent: logits,mtp,serve; a named but empty list is
+a usage error):
   logits  the qwen35 engine's `--tokens @ids --n N --dump-full-logits F` from both commands: the full logits at the
           prompt's last position and at the N - 1 greedy steps after it, compared bit for bit, with the largest
           |difference|, mean and max KL(ref || cand) in float64 and the top-1 agreement; and the two greedy answers.
+          With --kl-max or --top1-min a tolerance pass also fails on a row holding NaN or +inf in either file: the
+          KL sum skips a row whose reference log-probs are non-finite, and a row non-finite only on the candidate
+          side makes the mean KL non-numeric (the logits report's nonfinite_rows counts such rows).
   mtp     the candidate's greedy answer with its MTP drafts (`--tokens @ids --n N`, --mtp K: the profile's K unless
-          --mtp-check gives one) against the reference's plain greedy answer.
+          --mtp-check gives one) against the reference's plain greedy answer. It is skipped, and listed in the
+          report's "skipped", when the default checks run and no drafts can be had (the profile has no --mtp, or
+          --mtp-check 0); naming mtp in --checks makes that a usage error instead (exit 2).
   serve   `--serve` with the profile's settings, drafts as the server runs them (any engine that speaks the engine
           protocol, Flash-Next's too): a GEN request on the prompt and, with --picture, a GENI request with the
           picture's rows laid over <|image_pad|> runs; the answers of both compared.
@@ -361,7 +367,7 @@ def parse_args(argv):
     ap.add_argument("--prefill", help="--prefill for both (default: the profile's)")
     ap.add_argument("--n", type=int, default=33, help="greedy tokens (logits rows) per answer")
     ap.add_argument("--checks", help="comma-separated: logits, mtp, serve (default: all; the mtp check is skipped "
-                    "without drafts unless named here)")
+                    "without drafts unless named here; a named but empty list is an error)")
     ap.add_argument("--mtp-check", type=int, help="drafts for the mtp check (default: the profile's --mtp; 0: skip)")
     ap.add_argument("--picture", help="strata-vision embeddings file for a GENI request in the serve check")
     ap.add_argument("--question", default=PICTURE_QUESTION, help="the picture request's question")
@@ -379,10 +385,12 @@ def parse_args(argv):
     ap.add_argument("--out", required=True, help="output directory")
     a = ap.parse_args(argv)
     a.checks_named = a.checks is not None
-    a.check_list = [c for c in (a.checks or ",".join(CHECKS)).split(",") if c]
+    a.check_list = [c for c in (a.checks if a.checks_named else ",".join(CHECKS)).split(",") if c]
     bad = [c for c in a.check_list if c not in CHECKS]
     if bad:
         ap.error("unknown check(s): %s" % ", ".join(bad))
+    if a.checks_named and not a.check_list:
+        ap.error("--checks names no check: give logits, mtp or serve")
     if a.n < 1 or a.picture_n < 1:
         ap.error("--n and --picture-n must be at least 1")
     return a

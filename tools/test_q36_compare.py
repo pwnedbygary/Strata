@@ -279,6 +279,19 @@ class WholeRuns(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("--mtp-check 0", summary["error"])
 
+    def test_an_empty_checks_list_is_a_usage_error(self):
+        base = ["--ref", self.engine, "--cand", self.engine, "--ids", str(self.d / "prompt.ids"),
+                "--out", str(self.d / "empty")]
+        self.assertEqual(qc.parse_args(base).check_list, ["logits", "mtp", "serve"])
+        for value in ("", ","):
+            with self.assertRaises(SystemExit) as cm:
+                qc.parse_args(base + ["--checks", value])
+            self.assertEqual(cm.exception.code, 2)
+        self.assertEqual(qc.parse_args(base + ["--checks", "logits,,,"]).check_list, ["logits"])
+        with self.assertRaises(SystemExit) as cm:
+            qc.parse_args(base + ["--checks", "logits,bogus"])
+        self.assertEqual(cm.exception.code, 2)
+
     def test_a_dead_engine_gives_an_engine_error_and_closes_cleanly(self):
         env = dict(os.environ, FAKE_PROFILE_ENV="yes")
         eng = qc.Served([sys.executable, str(self.d / "engine.py")], ["--native", "m.gguf", "--max-context", "64"],
