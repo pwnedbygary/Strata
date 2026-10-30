@@ -2726,7 +2726,8 @@ struct Engine {
     }
     /// A server with STRATA_Q35_CHECKPOINTS allocates its ckpt_cap buffers before the first request, so that no
     /// request waits on one; each must leave ckpt_min_free of RAM available, as on demand, and the first that cannot
-    /// leaves the rest to be allocated when needed.
+    /// leaves the rest to be allocated when needed. The line logs how many were allocated, how long, and their pinned
+    /// total.
     void prealloc_ckpts() {
         if (ckpt_cap <= 0) return;
         const auto t0 = Clock::now();
@@ -2735,8 +2736,10 @@ struct Engine {
             if (!alloc_ckpt_state(s)) break;
             ckpt_spare.push_back(std::move(s));
         }
+        const size_t got = ckpt_spare.size();
         std::fprintf(stderr, "strata-q35: %zu of %d checkpoint buffers allocated before the first request, in %.0f "
-                     "ms\n", ckpt_spare.size(), ckpt_cap, ms_since(t0));
+                     "ms (%.1f MiB pinned)\n", got, ckpt_cap, ms_since(t0),
+                     (double) got * (double) ckpt_floats() * 4.0 / 1048576.0);
     }
 
     /// --test-dense-checkpoint: a read of 3 chunks and 37 cells of random tokens, a checkpoint at its second chunk end
