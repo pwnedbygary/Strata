@@ -27,7 +27,8 @@ when and with which build it was measured. A context limit counts as tested only
   field, so the router fills in the rest of each profile's `sampling` block. At temperature 0 those values change no
   token except Saluki's presence penalty 1.1, which the engine subtracts from the tokens seen in the last 64 before it
   takes the most likely one: Saluki's Oct 25 rows are greedy with that penalty, and its Oct 16 llama.cpp baseline had
-  none.
+  none. From Oct 29 (`tools` 55e7034a) the bench's greedy requests and the picture question send
+  `presence_penalty` 0 explicitly, so a later greedy run carries no penalty; the rows here stay as measured.
 - Oct 26 (window 10): the bench sends no sampling field but a fixed seed (20261026), so the whole block applies, as
   for any client that sends no sampling fields: temperature 1.0, top-p 0.95 and top-k 20 for the Flash-Next and dense
   profiles (Saluki adds presence penalty 1.1), temperature 0.6 with the same top-p and top-k for Tiel and Cyber Tiel.
