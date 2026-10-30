@@ -10,14 +10,18 @@ import sys
 
 
 def load_answer(text):
-    """The answer's code block, defined in a namespace of the allowed builtins; ValueError or SyntaxError otherwise."""
+    """The answer's code block, defined in a namespace of the allowed builtins (ValueError and TypeError among them).
+    The checker's rules raise ValueError and a parse raises SyntaxError; defining the code can raise others (a default
+    argument naming an unknown name raises NameError). check() sets the CPU and memory limits and reads the file
+    before calling this."""
     match = re.search(r'```(?:python)?\n(.*?)```', text, re.S)
     if not match:
         raise ValueError('No Python code block')
     tree = ast.parse(match.group(1))
     if not all(isinstance(node, ast.FunctionDef) and not node.decorator_list for node in tree.body):
         raise ValueError('Only undecorated function definitions are allowed')
-    builtins = {'ValueError': ValueError, 'min': min, 'max': max, 'int': int, 'isinstance': isinstance}
+    builtins = {'ValueError': ValueError, 'TypeError': TypeError, 'min': min, 'max': max, 'int': int,
+                'isinstance': isinstance}
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             raise ValueError('Imports are not allowed')
@@ -44,8 +48,9 @@ def check(path):
              ('next_head', ((0,0),(1,1),1,1), (0,0)),
              ('next_head', ((0,0),(1,0),0,4), ValueError),
              ('next_head', ((0,0),(1,0),2.5,4), ValueError)]
+    text = path.read_text()   # a read error is the checker's, not the answer's: it stops the checker
     try:
-        namespace = load_answer(path.read_text())
+        namespace = load_answer(text)
     except (SyntaxError, ValueError) as exc:   # no code the checks can run: every check fails
         return {'passed':0, 'total':len(cases), 'error':f'{type(exc).__name__}: {exc}', 'cases':[]}
     results = []

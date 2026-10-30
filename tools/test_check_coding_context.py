@@ -9,6 +9,8 @@ import tempfile
 import unittest
 
 TOOL = Path(__file__).resolve().parent / "check_coding_context.py"
+sys.path.insert(0, str(TOOL.parent))
+import check_coding_context as ccc  # noqa: E402
 
 WORKING = r'''The three functions:
 
@@ -69,12 +71,35 @@ class CheckCodingContextTest(unittest.TestCase):
         p, report = self.run_tool("```python\ndef normalize_path(path:\n    return path\n```\n")
         self.assertEqual(p.returncode, 1)
         self.assertNotIn("Traceback", p.stderr)
+        self.assertTrue(p.stdout.startswith("0/13 checks passed (SyntaxError: "), p.stdout)
         self.assertTrue(report["error"].startswith("SyntaxError: "), report)
         self.assertEqual((report["passed"], report["total"], report["cases"]), (0, 13, []))
 
     def test_code_breaking_the_rules_fails_every_check(self):
         self.assert_fails_all("```python\ndef normalize_path(path):\n    import os\n    return path\n```\n",
                               "ValueError: Imports are not allowed")
+        self.assert_fails_all("```python\n@staticmethod\ndef normalize_path(path):\n    return path\n```\n",
+                              "ValueError: Only undecorated function definitions are allowed")
+        self.assert_fails_all("```python\ndef normalize_path(path):\n    return path.upper()\n```\n",
+                              "ValueError: Unexpected attribute: upper")
+        self.assert_fails_all("```python\ndef normalize_path(path):\n    print(path)\n    return path\n```\n",
+                              "ValueError: Unexpected function call: print")
+
+    def test_typeerror_is_an_allowed_name(self):
+        namespace = ccc.load_answer("```python\ndef normalize_path(path):\n    raise TypeError('x')\n```\n")
+        self.assertIn("normalize_path", namespace)
+        self.assertIs(namespace["__builtins__"]["TypeError"], TypeError)
+
+    def test_a_read_error_is_not_an_answer_verdict(self):
+        with tempfile.TemporaryDirectory() as d:
+            answer, out = Path(d) / "fresh.md", Path(d) / "code-check.json"
+            answer.write_bytes(b"\xff\xfe\x00bad")
+            p = subprocess.run([sys.executable, str(TOOL), str(answer), "--output", str(out)], capture_output=True,
+                               text=True, timeout=60)
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("UnicodeDecodeError", p.stderr)
+            self.assertNotIn("checks passed", p.stdout)
+            self.assertFalse(out.exists())
 
 
 if __name__ == "__main__":
